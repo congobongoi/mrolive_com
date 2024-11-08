@@ -1,0 +1,47 @@
+<div class="mro-header-wrapper">
+	<section id="mrotop"></section>
+	<div class="grid-container mro-header">
+		<div class="grid-x grid-padding-x align-middle">
+			<div class="cell medium-7 small-12 mro-headerlogo">
+				<a href="{{root}}" alt="MRO Live - Homepage">
+					<img src="assets/img/mro-live_header.png" alt="Where Productivity Takes Flight" alt="MRO Live - Where Productivity Takes Flight">
+				</a>
+			</div>
+			<div class="cell medium-5 small-12 mro-clientlogo show-for-medium">
+				{{> client-logo}}
+			</div>
+		</div>
+		<div class="grid-x medium-margin-collapse align-middle">
+			<div class="cell large-1 medium-2 small-12 mro-menu-button">
+				<a  data-toggle="offCanvas">Menu <i class="fas fa-bars"></i></a>
+			</div>
+			<div class="cell large-11 medium-10 small-12 show-for-medium"><hr/></div>
+		</div>
+	</div>
+</div>
+
+<!-- Off-canvas Menu -->
+
+<div class="off-canvas position-left" id="offCanvas" data-off-canvas>
+
+<!-- Close button -->
+<button class="close-button" aria-label="Close menu" type="button" data-close>
+  <span aria-hidden="true">&times;</span>
+</button>
+
+<!-- Menu -->
+<ul class="vertical mro-menu menu">
+	<li class="mro-menu-logo">
+		<a href="http://mrolive.com/" target="_blank">
+			<img src="assets/img/MROlive-logo.png" alt="Where Productivity Takes Flight" alt="MRO Live - Where Productivity Takes Flight">
+		</a>
+	</li>
+  <li><a href="wo-search.html">WO Search</a></li>
+  <li><a href="physical-inv.html">Physical Inventory</a></li>
+  <li><a href="barcoding.html">Barcoding</a></li>
+  <li><a href="styleguide.html">MRO System Style Guide</a></li>
+</ul>
+
+</div>
+
+<!-- Off-canvas Menu - END -->

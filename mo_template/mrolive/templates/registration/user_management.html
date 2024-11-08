@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+{% load static %}
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>MROLive | API/User Management</title>
+    <link href="{% static '_screen.css' %}" rel="stylesheet" type="text/css" />
+	<script type="text/javascript" src="{% static 'jquery-1.12.4.js' %}"></script>
+	<script type="text/javascript" src="{% static 'jquery_tab_submit.js' %}"></script>
+	<script src="{% static 'jquery.bootstrap.modal.forms.min.js' %}"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+   </head>
+  <body style="background:none;"> 
+    <div id="container" style="width:1400px;">
+      <div id="contentWrap" style="border:none;">
+   	    <div class="contentLeft" style="width:1280px;margin-left:-50px;">
+		  <div style="float:left;margin-top:-85px;">
+			<img style="width:250px;height:250px;" src = "{% static 'logo-django-site.jpg' %}" />
+		  </div>
+		  <div>
+			{% if user.is_authenticated %}
+			</h3>Welcome {{ user.username }}!</h3>
+			{%  endif %}
+		  </div>
+			{% if user.is_authenticated and user.is_superuser %}
+			<div style="float:left;font-weight:bold;margin-top:100;margin-left:335px;padding:5px;">
+				<form method="POST" id="quapitions" name="quapitions">
+				{% csrf_token %}
+				    <h2>Add New API Connection & Associate with User</h2>
+					<div>	
+						<span>Name: </span><input type="text" id="name" name="name" value="{{ name }}" size="25"/>
+					    <span>User: </span>	
+						<select id="user_selected" name='user_selected'>
+							<option value=""> -- Select a User -- </option>
+							{% for user in users %}						
+							{% if user.id == user_sel %}
+							<option value="{{ user.id }}" selected>{{ user.first_name }} {{ user.last_name }} - {{ user.username }}</option>
+							{% else %}
+							<option value="{{ user.id }}">{{ user.first_name }} {{ user.last_name }} - {{ user.username }}</option>
+							{% endif %}						
+							{% endfor %}
+					    </select>				
+					  <span>Connection String: </span><input type="text" id="conn_str" name="conn_str" value="{{ conn_str }}" size="25"/>					
+					  <span>Host: </span><input type="text" id="host" name="host" value="{{ host }}" size="25"/>
+					  <span>Schema: </span><input type="text" id="schema" name="schema" value="{{ schema }}" size="25"/>
+                    </div>
+			    </form>
+			</div>
+			{% else %}
+			  <p>Please click to login:</p>
+			  <a href="{% url 'login' %}">login</a>
+			{% endif %}
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

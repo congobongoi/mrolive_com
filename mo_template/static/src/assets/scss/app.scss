@@ -1,0 +1,1169 @@
+@charset 'utf-8';
+
+@import 'settings';
+@import 'foundation';
+@import 'motion-ui';
+
+// Global styles
+@include foundation-global-styles;
+@include foundation-forms;
+@include foundation-typography;
+
+// Grids (choose one)
+@include foundation-xy-grid-classes;
+// @include foundation-grid;
+// @include foundation-flex-grid;
+
+// Generic components
+@include foundation-button;
+@include foundation-button-group;
+@include foundation-close-button;
+@include foundation-label;
+@include foundation-progress-bar;
+@include foundation-slider;
+@include foundation-switch;
+@include foundation-table;
+// Basic components
+@include foundation-badge;
+@include foundation-breadcrumbs;
+@include foundation-callout;
+@include foundation-card;
+@include foundation-dropdown;
+@include foundation-pagination;
+@include foundation-tooltip;
+
+// Containers
+@include foundation-accordion;
+@include foundation-media-object;
+@include foundation-orbit;
+@include foundation-responsive-embed;
+@include foundation-tabs;
+@include foundation-thumbnail;
+// Menu-based containers
+@include foundation-menu;
+@include foundation-menu-icon;
+@include foundation-accordion-menu;
+@include foundation-drilldown-menu;
+@include foundation-dropdown-menu;
+
+// Layout components
+@include foundation-off-canvas;
+@include foundation-reveal;
+@include foundation-sticky;
+@include foundation-title-bar;
+@include foundation-top-bar;
+
+// Helpers
+@include foundation-float-classes;
+@include foundation-flex-classes;
+@include foundation-visibility-classes;
+// @include foundation-prototype-classes;
+
+// Motion UI
+@include motion-ui-transitions;
+@include motion-ui-animations;
+
+/* MRO CSS */
+
+/* Extra */
+
+.shadow{
+	-webkit-box-shadow: 2px 2px 10px 0px rgba(0,0,0,0.15);
+-moz-box-shadow: 2px 2px 10px 0px rgba(0,0,0,0.15);
+box-shadow: 2px 2px 10px 0px rgba(0,0,0,0.15);
+}
+
+.shadow:hover{
+	-webkit-box-shadow: 1px 1px 5px 0px rgba(0,0,0,0.20);
+-moz-box-shadow: 1px 1px 5px 0px rgba(0,0,0,0.20);
+box-shadow: 1px 1px 5px 0px rgba(0,0,0,0.20);
+}
+
+/* Extra - END */
+
+/* Buttons */
+.button{
+border-bottom:$button-border-bottom;
+}
+
+.secondary.button{
+border-color: darken( $secondary-color, 30% );
+}
+
+.button:after{
+content:' →';
+color: $secondary-color;
+font-family: monospace;
+}
+
+.secondary.button:after{
+content:' →';
+color: $primary-color;
+}
+
+.button.lightbutton{
+	background-color: #fff;
+    color: $primary-color;
+	border-color: #c2cad9;
+}
+
+.button.lightbutton:hover, .button.lightbutton:focus {
+    background-color: #f3f5f8;
+}
+
+/* Buttons - END */
+
+/* Tables */
+.mro-main-table-card{
+
+}
+
+/* Status bubble */
+
+.mro-status-bubble{
+padding: 10px 15px;
+    border-radius: 60px;
+    border:1px solid;
+    color:$black;
+    font-weight: 600;
+    transition: all 0.5s ease;
+    &:hover{
+    -webkit-box-shadow: 2px 2px 5px 0px rgba(0,0,0,0.10);
+	-moz-box-shadow: 2px 2px 5px 0px rgba(0,0,0,0.10);
+	box-shadow: 2px 2px 5px 0px rgba(0,0,0,0.10);
+    }
+}
+
+.mro-status-done{
+background:$success-color;
+border-color: darken( $success-color, 5% );
+	&:hover{
+		background: darken( $success-color, 3% );
+		border-color: darken( $success-color, 7% );
+	}
+}
+
+.mro-status-pending{
+background:$warning-color;
+border-color: darken( $warning-color, 5% );
+	&:hover{
+		background: darken( $warning-color, 3% );
+		border-color: darken( $warning-color, 7% );
+	}
+}
+
+.mro-status-cancelled{
+background:$alert-color;
+border-color: darken( $alert-color, 5% );
+	&:hover{
+		background: darken( $alert-color, 3% );
+		border-color: darken( $alert-color, 7% );
+	}
+}
+
+/* Status bubble - end */
+
+.mro-main-table-stack, .mro-barcoding-table-stack, .mro-physical-table-stack{
+
+	thead{
+		th{
+		font-weight: 500;
+	    color: #727272;
+	    font-size: .9em;
+		    &:first-child{
+				color: #284a8a;
+    			font-weight: bold;
+		    }
+		}
+	}
+
+	thead th:first-child, thead td:first-child, tfoot th:first-child, tfoot td:first-child, tbody th:first-child, tbody td:first-child{
+		padding-left: 2em !important;
+	}
+
+	thead th:last-child, thead td:last-child, tfoot th:last-child, tfoot td:last-child, tbody th:last-child, tbody td:last-child{
+		padding-right: 2em !important;
+	}
+
+tbody tr:nth-child(even) {
+    border-bottom: 0;
+    background-color: #f3f6fb;
+}
+
+tbody tr{
+    transition: all 0.5s ease;
+    border: 1px solid #f1f1f1;
+    &:hover{
+    	border:1px solid #d5e1f8;
+    -webkit-box-shadow: 1px 1px 16px 0px rgba(0, 0, 0, 0.07);
+	-moz-box-shadow: 1px 1px 16px 0px rgba(0, 0, 0, 0.07);
+	box-shadow: 1px 1px 16px 0px rgba(0, 0, 0, 0.07);
+		td{
+			    position: relative;
+			&:first-child{
+	   			&:before{
+					content:"";
+					position: absolute;
+				    width: 3px;
+				    height: 30%;
+				    background: $primary-color;
+				    left: 0px;
+				    top: 36%;
+	   			}
+   			}
+   		}
+    }
+
+    td{
+    	p{
+    		font-size:12px;
+    	}
+			h3{
+				font-size: 14px;
+			}
+
+			.mro-status-bubble{
+				font-size: 12px;
+			}
+
+			.mro-customerref{
+				font-size: 12px;
+			}
+
+			&.mro-needdate{
+				color: $primary-color;
+				font-size: 12px;
+				strong{
+					color: $black;
+				}
+			}
+
+			&.mro-clientinfo{
+				.mro-customerref{
+					margin-bottom: 0px;
+				}
+			}
+		}
+
+}
+
+}
+
+.mro-barcoding-table-stack{
+
+	p{
+		margin-bottom: 0px;
+	}
+
+	.mro-partnum{
+		a{
+			color: $black;
+		}
+	}
+
+	.mro-Rack{
+		strong{
+			color: $primary-color;
+		}
+	}
+}
+
+.mro-physical-table-stack{ 
+
+	p{
+		margin-bottom: 0px;
+	}
+
+	.mro-partnum{
+		a{
+			color: $black;
+		}
+	}
+
+	.mro-location{
+		p{
+			color: $primary-color;
+		}
+	}
+}
+
+.mro-main-table-card{
+	    background: white;
+    border: 1px solid rgba(0,0,0,.15);
+    border-radius: 5px;
+    font-size: 20px;
+    border-bottom: 5px solid $primary-color;
+    margin-bottom: 1em;
+
+    -webkit-box-shadow: 1px 1px 16px 0px rgba(0, 0, 0, 0.1);
+	-moz-box-shadow: 1px 1px 16px 0px rgba(0, 0, 0, 0.1);
+	box-shadow: 1px 1px 16px 0px rgba(0, 0, 0, 0.1);
+
+    &:hover{
+		-webkit-box-shadow: 1px 1px 16px 0px rgba(0, 0, 0, 0.15);
+	-moz-box-shadow: 1px 1px 16px 0px rgba(0, 0, 0, 0.15);
+	box-shadow: 1px 1px 16px 0px rgba(0, 0, 0, 0.15);
+	}
+
+	.mro-main-table-row-1{
+		    padding: 1.2em 1.5em .3em;
+
+		.mro-wo{
+			strong{
+				color: $primary-color;
+			}
+		}
+
+		.mro-rank{
+			text-align: right;
+		}
+	}
+
+	.mro-main-table-row-2{
+		text-align: center;
+		font-size: 20px;
+		padding: 0em 1.5em;
+		p{
+			margin-bottom: 0px;
+		}
+		span{
+			color: $primary-color;
+		}
+		strong{
+			color: $black;
+		}
+
+		.mro-needdate{
+			    padding: .7em 0em;
+		    border-top: 1px solid rgba(0,0,0,.1);
+		    border-bottom: 1px solid rgba(0,0,0,.1);
+		}
+	}
+
+	.mro-main-table-row-3{
+		    padding: 1.1em 1.5em 1.3em;
+		h3{
+			font-style: italic;
+			color: $primary-color;
+			font-size: 20px;
+		}
+
+		.mro-wotype, .mro-serialnum{
+			text-align: right;
+		}
+
+		.mro-partname{
+			h2{
+			font-size: 25px;
+			font-style: italic;
+			font-weight: bolder;
+			}
+		}
+	}
+
+	.accordion{
+		margin-bottom: 0px;
+		background: #f7f9fa;
+
+	}
+
+	.accordion-title{
+		font-size: 16px;
+    text-align: center;
+    padding: 0rem 1rem 1.25rem;
+	}
+
+	.accordion-title:hover, .accordion-title:focus {
+	    background-color: darken( #f7f9fa, 2% );
+
+	}
+
+	.accordion-title::before {
+	        position: relative;
+    content: "^";
+    margin: 0 auto;
+    font-family: monospace;
+    background: white;
+    text-align: center;
+    line-height: 0.5em;
+    display: block;
+    width: 45px;
+    height: 45px;
+    border: 1px solid rgba(0, 0, 0, 0.25);
+    border-radius: 50%;
+    padding: 18px 20px 20px 15px;
+    font-size: 1.5em;
+	    color: $secondary-color;
+	    right: 0px;
+	    margin-top: -1em;
+	}
+
+	.is-active > .accordion-title::before {
+	    transform: scaley(-1);
+	}
+	.accordion-title p{
+		    margin-bottom: 0px;
+    font-size: 19px;
+    padding-top: 10px;
+    display: block;
+	}
+	
+	.is-active > .accordion-title{
+		border-bottom: none;
+	}
+
+	.is-active > .accordion-title p{
+		display: none;
+	}
+
+	.accordion-content{
+		border-top:none;
+		background: #f7f9fa;
+		padding: 1em 1.5em;
+
+		.mro-status{
+			text-align: center;
+			padding-bottom: 1em;
+
+			hr{
+				margin-top: -15px;
+			}
+		}
+
+		.mro-entrydate, .mro-customerref, .mro-time{
+			text-align: right;
+		}
+
+		.mro-entrydate strong, .mro-timeto strong{
+		color:$primary-color;
+		}
+		p{
+			margin-bottom: 0px;
+		}
+
+		.mro-timeto-wrap{
+			background: white;
+			width: 100%;
+			text-align: center;
+			margin-top: 10px;
+			padding: .5em;
+		}
+	}
+}
+
+
+
+.mro-main-table-row{
+
+}
+
+	/* Main-Table */
+
+	.mro-main-table-row-1{
+
+	}
+
+
+
+	/* Main-Table - END */
+
+/* Bardcoding */
+
+.mro-barcoding-table-card{
+	    background: white;
+    border: 1px solid rgba(0,0,0,.15);
+    border-radius: 5px;
+    font-size: 20px;
+    border-bottom: 5px solid $primary-color;
+    margin-bottom: 1em;
+
+    -webkit-box-shadow: 1px 1px 16px 0px rgba(0, 0, 0, 0.1);
+	-moz-box-shadow: 1px 1px 16px 0px rgba(0, 0, 0, 0.1);
+	box-shadow: 1px 1px 16px 0px rgba(0, 0, 0, 0.1);
+
+    &:hover{
+		-webkit-box-shadow: 1px 1px 16px 0px rgba(0, 0, 0, 0.15);
+	-moz-box-shadow: 1px 1px 16px 0px rgba(0, 0, 0, 0.15);
+	box-shadow: 1px 1px 16px 0px rgba(0, 0, 0, 0.15);
+	}
+
+	.mro-barcoding-table-row-1{
+		    padding: 1.2em 1.5em .3em;
+
+		.mro-wo{
+			strong{
+				color: $primary-color;
+			}
+		}
+
+		.mro-serial{
+			text-align: right;
+		}
+	}
+
+	.mro-barcoding-table-row-2{
+		font-size: 20px;
+		padding: 0em 1.5em;
+		p{
+			margin-bottom: 0px;
+		}
+		span{
+			color: $primary-color;
+		}
+		strong{
+			color: $black;
+		}
+
+		.mro-partinfo{
+			    padding: .7em 0em;
+		    border-top: 1px solid rgba(0,0,0,.1);
+		    border-bottom: 1px solid rgba(0,0,0,.1);
+		    .mro-partname{
+		    	strong{
+		    		color: $primary-color;
+		    	}
+		    }
+		}
+	}
+
+	.mro-barcoding-table-row-3{
+		    padding: 1.1em 1.5em 1.3em;
+		.mro-rack{
+			strong{
+				color: $primary-color;
+			}
+		}
+		p{
+			margin-bottom: 0px;
+		}
+	}
+
+	.mro-barcoding-table-row-4{
+		background: #f7f9fa;
+		padding: 1.25rem 1.5rem 1rem;
+		p{
+			margin-bottom: 0px;
+		}
+
+		.mro-warehouse{
+			strong{
+				color: $primary-color;
+			}
+		}
+	}
+
+}
+
+/* Barcoding - end */
+
+/* Physical */
+
+.mro-physical-table-card{
+	    background: white;
+    border: 1px solid rgba(0,0,0,.15);
+    border-radius: 5px;
+    font-size: 20px;
+    border-bottom: 5px solid $primary-color;
+    margin-bottom: 1em;
+
+    -webkit-box-shadow: 1px 1px 16px 0px rgba(0, 0, 0, 0.1);
+	-moz-box-shadow: 1px 1px 16px 0px rgba(0, 0, 0, 0.1);
+	box-shadow: 1px 1px 16px 0px rgba(0, 0, 0, 0.1);
+
+    &:hover{
+		-webkit-box-shadow: 1px 1px 16px 0px rgba(0, 0, 0, 0.15);
+	-moz-box-shadow: 1px 1px 16px 0px rgba(0, 0, 0, 0.15);
+	box-shadow: 1px 1px 16px 0px rgba(0, 0, 0, 0.15);
+	}
+
+	.mro-physical-table-row-1{
+		    padding: 1.2em 1.5em .3em;
+
+		.mro-wo{
+			strong{
+				color: $primary-color;
+			}
+		}
+
+		.mro-serial{
+			text-align: right;
+		}
+	}
+
+	.mro-physical-table-row-2{
+		font-size: 20px;
+		padding: 0em 1.5em;
+		p{
+			margin-bottom: 0px;
+		}
+		span{
+			color: $primary-color;
+		}
+		strong{
+			color: $black;
+		}
+
+		.mro-location{
+			    padding: .7em 0em;
+		    border-top: 1px solid rgba(0,0,0,.1);
+		    text-align: center;
+		    .mro-partname{
+		    	strong{
+		    		color: $primary-color;
+		    	}
+		    }
+		}
+	}
+
+	.mro-physical-table-row-3{
+		background: #f7f9fa;
+		padding: 1.25rem 1.5rem 1rem;
+		p{
+			margin-bottom: 0px;
+		}
+
+		.mro-warehouse{
+			strong{
+				color: $primary-color;
+			}
+		}
+	}
+
+}
+
+/* Physical - end */
+
+/* Tables - END */
+
+/* MRO Header */
+
+.mro-header-wrapper{
+	
+	.mro-header{
+		    padding-bottom: 1em;
+		    padding-top: 1em;
+
+		.mro-headerlogo{
+			img{
+				margin: 0 auto;
+		    position: relative;
+		    text-align: center;
+		    display: block;
+			}
+		}
+
+		.mro-clientlogo{
+			img{
+				margin: 0 auto;
+		    position: relative;
+		    text-align: center;
+		    display: block;
+			}
+		}
+
+		@include breakpoint(medium) {
+			.mro-headerlogo{
+				img{
+					text-align: center;
+					margin: inherit;
+				}
+			}
+
+			.mro-clientlogo{
+				img{
+					text-align: right;
+					margin: inherit;
+					float: right;
+				}
+			}
+		}
+
+	}
+}
+
+.mro-menu-button{
+
+	text-align: center;
+	a{
+		font-size: 18px;
+		color: $primary-color;
+
+		i{
+			color: #aaaaaa;
+    		margin-left: 5px;
+		}
+	}
+	@include breakpoint(medium) {
+		text-align: left;
+	}
+}
+
+.js-off-canvas-overlay {
+    background: rgba(40, 74, 138, 0.75);
+}
+
+.off-canvas.is-open{
+	background: $primary-color;
+	.mro-menu{
+
+		.mro-menu-logo{
+			background: none;
+		}
+			li{
+				    padding: .5em;
+				a{
+					background: darken( $primary-color, 10% );
+					color:white;
+					border-radius: 3px;
+
+					&:hover{
+						background: darken( $primary-color, 20% );
+					}
+				}
+
+				&.mro-menu-logo{
+					a{
+						background: none;
+					}
+				}
+			}
+		}
+
+	.close-button.medium, .close-button {
+	    color: white;
+	}
+}
+
+
+
+/* MRO Header - END */
+
+/* MRO Content */
+
+.mro-bottom-section-wrapper{
+
+	background-color: #efeff3;
+		margin-top: 2em;
+
+	@include breakpoint(large) {
+		margin-top: 6em;
+	}
+
+	.mro-bottom-section{
+	}
+
+
+}
+
+.mro-bottom-section-wrapper > .mro-bottom-section > .grid-x > .large-12{
+
+	padding-top: 3em;
+
+		@include breakpoint(large) {
+		margin-top: -3em;
+		padding-top: 0px;
+		}
+	}
+
+.mro-pagination-section{
+
+	padding-top:1em;
+	padding-bottom: 3em;
+	text-align: center;
+	.mrotop{
+		color: #7e7e7e;
+		font-size: 18px;
+
+
+		span{
+			margin: 0 auto;
+		    font-family: monospace;
+		    text-align: center;
+		    line-height: 0.5em;
+		    display: inline-block;
+		    width: 45px;
+		    height: 45px;
+		    border: 1px solid rgba(0, 0, 0, 0.25);
+		    border-radius: 50%;
+		    padding: 18px 20px 20px 14px;
+		    font-size: 1.5em;
+		    color: $secondary-color;
+		    right: 0px;
+			margin-right: 6px;
+		}
+
+		&:hover{
+			span{
+		    	background-color:white;
+			}
+		    }
+	}
+
+	@include breakpoint(medium) {
+		padding: 1.8em 2em 4em;
+		text-align: inherit;
+
+		.mrotop{
+			float: right;
+		}
+	}
+}
+
+.mro-table{
+	.mro-main-table-stack{
+		-webkit-box-shadow: 0px 10px 25px 0px rgba(0,0,0,0.05);
+		-moz-box-shadow: 0px 10px 25px 0px rgba(0,0,0,0.05);
+		box-shadow: 0px 10px 25px 0px rgba(0,0,0,0.05);
+	}
+
+	.mro-physical-table-stack{
+		-webkit-box-shadow: 0px 10px 25px 0px rgba(0,0,0,0.05);
+		-moz-box-shadow: 0px 10px 25px 0px rgba(0,0,0,0.05);
+		box-shadow: 0px 10px 25px 0px rgba(0,0,0,0.05);
+	}
+
+	.mro-barcoding-table-stack{
+		-webkit-box-shadow: 0px 10px 25px 0px rgba(0,0,0,0.05);
+		-moz-box-shadow: 0px 10px 25px 0px rgba(0,0,0,0.05);
+		box-shadow: 0px 10px 25px 0px rgba(0,0,0,0.05);
+	}
+}
+
+
+
+/* FORM */
+
+[type='text'], [type='password'], [type='date'], [type='datetime'], [type='datetime-local'], [type='month'], [type='week'], [type='email'], [type='number'], [type='search'], [type='tel'], [type='time'], [type='url'], [type='color'], textarea{
+	border-radius: 3px;
+}
+
+.mro-top-section{
+
+	.mro-clearselection{
+		font-size: 12px;
+		text-decoration: underline;
+	}
+
+	h1{
+		color: $primary-color;
+		font-size: 16px;
+    padding: 2px;
+	}
+
+	.mro-lightsearch, .mro-darksearch{
+		padding:2em;
+	}
+
+
+	.mro-lightsearch{
+		border:3px solid #efeff3;
+		border-top-left-radius: 4px;
+		border-top-right-radius: 4px;
+		.button{
+			@include breakpoint(medium) {
+				float: right;
+			}
+		}
+	}
+	.mro-darksearch{
+		background: transparent;
+		@include breakpoint(large) {
+				background-color: #efeff3;
+			}
+	}
+	.mro-searchbuttonbox{
+		@include breakpoint(medium) {
+			padding-top: 1.3em;
+		}
+	}
+	
+
+	.mro-barcodingradio-title{
+
+		display: inline-block;
+
+		@include breakpoint(large) {
+			margin-right: 1em;
+		}
+	}
+
+	.mro-mobileclient{
+				padding: 2em 2em 1em 2em;
+			}
+
+	.mro-lightsearch{
+
+			background-color: $primary-color;
+			border:none;
+			border-top-left-radius: 30px;
+			border-top-right-radius: 0px;
+			padding-top: 1em;
+
+			h1{
+				color: white;
+				font-size: 20px;
+				background: $primary-color;
+				    position: relative;
+			    margin: -3em -32px;
+			    padding: 14px 36px 3px 2px;
+			    border-top-right-radius: 30px;
+			    text-align: right;
+			    display: inline-block;
+			    float: right;
+			    font-weight: 300;
+			}
+
+			h1:before {
+			    content: '';
+			    background: $primary-color;
+			    -webkit-clip-path: polygon(0 0, 100% 0%, 100% 100%, 45% 100%);
+			    clip-path: polygon(40% 0%, 100% 0%, 100% 100%, 0% 100%);
+			    -webkit-clip-path: polygon(95% 0%, 100% 0%, 100% 100%, 0% 100%);
+			    clip-path: polygon(95% 0%, 100% 0%, 100% 100%, 0% 100%);
+			    display: block;
+			    position: absolute;
+			    height: 100%;
+			    width: 70px;
+			    top: 0px;
+			    z-index: 0;
+			    left: -68px;
+			}
+
+			label {
+			    font-size: 25px;
+			    font-weight: 300;
+			        line-height: 2.3;
+			    color: #fff;
+			}
+
+			.mro-barcodingradio-title{
+				color: #fff;
+				margin-right: 1em;
+			}
+
+			.primary.button{
+				background: $secondary-color;
+				border-color: darken( $secondary-color, 30% );
+				    font-size: 20px;
+			    width: 100%;
+			    margin-top: 1em;
+
+				&:after{
+					color:$primary-color;
+				}
+
+				&:hover{
+					background: darken( $secondary-color, 10% );
+					border-color: darken( $secondary-color, 35% );
+				}
+			}
+
+			
+
+		@include breakpoint(medium) {
+
+			background-color: white;
+			padding-top: 2em;
+			border:3px solid #efeff3;
+			border-top-left-radius: 4px;
+			border-top-right-radius: 4px;
+
+			.primary.button{
+				background: $primary-color;
+				border-color: darken( $primary-color, 30% );
+				font-size: 0.9rem;
+			    width: auto;
+			    margin-top: 0px;
+
+				&:after{
+					color:$secondary-color;
+				}
+
+				&:hover{
+					background: darken( $primary-color, 10% );
+					border-color: darken( $primary-color, 35% );
+				}
+			}
+
+			.mro-barcodingradio-title{
+				color: $primary-color;
+			}
+
+			h1{
+				color: $primary-color;
+				    font-size: 16px;
+			    background: transparent;
+			    float: initial;
+			    padding: inherit;
+			    margin: inherit;
+			    border-top-right-radius: 0px;
+			    display: contents;
+			    font-weight: 500;
+			    text-align: left;
+				&:before{
+					display:none;
+				}
+			}
+
+			label {
+			    font-size: 0.875rem;
+			    font-weight: normal;
+			    line-height: 1.8;
+			    color: #393939;
+			}
+		}
+	}
+	
+	.mro-darksearch{
+		.lightbutton{
+			font-size: 20px;
+				    width: 100%;
+				    margin-top: 1em;
+			@include breakpoint(medium) {
+				font-size: 0.9rem;
+				    width: auto;
+				    margin-top: 0px;
+			}
+		}
+	}
+
+	.mro-barcodingradio{
+		display: inline-block;
+
+
+		input[type="radio"] {
+			  display: none;
+			}
+
+			label {
+			  display: inline-block;
+			  background-color: #efeff3;
+			  padding: 4px 11px;
+			  font-family: Arial;
+			  font-size: 16px;
+			  cursor: pointer;
+			  border: 1px solid ;
+			  border-color: darken( #efeff3, 10% );
+			  border-radius: 5px;
+			  margin-left: 0px;
+			  margin-right: .5em;
+			  color: $black;
+			  margin-bottom: 1em;
+			}
+
+			input[type="radio"]:checked+label {
+			  background-color: #fff;
+			  border-color: darken( #efeff3, 20% );
+			  color: $primary-color;
+			}
+
+			input[type="radio"]:hover+label {
+			  background-color: #fff;
+			  border-color: darken( #efeff3, 30% );
+			  color: $primary-color;
+			}
+
+		@include breakpoint(medium) {
+			input[type="radio"] {
+			  display: none;
+			}
+
+			label {
+			  display: inline-block;
+			  background-color: #efeff3;
+			  padding: 4px 11px;
+			  font-family: Arial;
+			  font-size: 16px;
+			  cursor: pointer;
+			  border: 1px solid ;
+			  border-color: darken( #efeff3, 10% );
+			  border-radius: 5px;
+			  margin-left: 0px;
+			  margin-right: .5em;
+
+			}
+
+			input[type="radio"]:checked+label {
+			  background-color: #fff;
+			  border-color: darken( #efeff3, 20% );
+			  color: $primary-color;
+			}
+
+			input[type="radio"]:hover+label {
+			  background-color: #fff;
+			  border-color: darken( #efeff3, 30% );
+			  color: $primary-color;
+			}
+		}
+	}
+}
+
+/* FORM - END */
+
+
+
+/* MRO Content - END*/
+
+/* MRO Footer */
+
+.mro-footer-wrapper{
+border-bottom: 3px solid #a6b2c7;
+border-top: 1px solid #efeff3;
+
+	.mro-footer{
+
+		.mro-footerlogo{
+			    padding: 3em 0em 3em;
+		    margin: 0 auto;
+		    position: relative;
+		    text-align: center;
+		    display: block;
+		}
+
+		.mro-footer-bottom{
+			border-top: 1px solid #d2d2d5;
+			padding: 3em 0em;
+			font-size: 14px;
+
+
+			.mro-footer-bottom-left{
+				text-align: center;
+			}
+
+			.mro-footer-bottom-right{
+				text-align: center;
+			}
+
+			@include breakpoint(medium) {
+
+				p{
+				margin-bottom: 0px;
+			}
+
+				.mro-footer-bottom-left{
+					text-align: left;
+				}
+
+				.mro-footer-bottom-right{
+					text-align: right;
+					color: $primary-color;
+					a{
+						color: $secondary-color;
+					}
+				}
+			  }
+
+			  span{
+			  	margin:0px .5em;
+			  }
+
+			  .mro-usa{
+			  	    margin: 0px .5em 0px 0;
+			  }
+		}
+
+	}
+
+}
+
+/* MRO Footer - END */

@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MRO Live Shipping Management - Where Productivity Takes Flight</title>
+	<link rel="shortcut icon" type="image/png" href="{% static 'favicon.ico' %}"/>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{% static 'dist/assets/css/app.css' %}">
+    <link href="{% static 'dist/assets/fontawesome/css/all.css' %}" rel="stylesheet">
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.common-material.min.css" />
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.material.min.css" />
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.material.mobile.min.css" />
+    <script src="https://kendo.cdn.telerik.com/2020.1.114/js/jszip.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/2.4.0/jszip.js"></script>
+    <script src="https://kendo.cdn.telerik.com/2017.2.621/js/jquery.min.js"></script>
+    <script src="https://kendo.cdn.telerik.com/2017.2.621/js/kendo.all.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>	
+	<script type="text/javascript" src="{% static 'jquery-1.12.4.js' %}"></script>
+	<script src="{% static 'jquery.bootstrap.modal.forms.min.js' %}"></script>
+	<script type="text/javascript" src="{% static 'jquery_tab_submit.js' %}"></script>	
+	<style>
+ 		textarea {
+		    width: 560px;
+            height: 20px !important;
+		}
+	    .subhead {
+			color:white;
+			text-decoration:bold;
+			font-size: large;
+            margin-left: 65px;
+		}
+        .k-pager-wrap .k-dropdown {
+            width: 100px;	    
+        }
+		.k-grid-toolbar { 
+			background-color:#284a8a !important; 
+		}
+		.k-button { 
+			background-color:#284a8a !important; 
+		}
+		.centered {
+		  /*top: 50%;*/
+		  left: 50%;
+		  height: 100%;
+		  /* bring your own prefixes */
+		  transform: translateX(-50%);
+		}
+		.total_rows {
+		 padding-left:5px;
+		 display:inline;
+		 text-align:left;
+		 border:none;
+		 outline:none;
+		 background-color:#284a8a!important;
+		 color:white;
+		 text-decoration:bold;
+		 height:25px;
+		 width: 45px;
+		}
+		.sel_rows {
+        display:inline;
+		text-align:right;
+		border:none;
+		outline:none;
+		background-color:#284a8a!important;
+		color:white;
+		text-decoration:bold;
+		height:25px;
+		width: 55px;
+		}
+		.counter_wrap {
+		width:auto;
+		float:right;
+		margin-top:-45px;
+		margin-bottom: 5px;
+		z-index:1000!important;
+		color: white;
+		}
+		.k-grid td {
+		    font-size:11pt;
+			line-height:1.0em;
+		}
+		.k-grid-header th.k-header {
+		    font-size:6pt;
+			line-height:1.0em;
+		}
+    </style>
+  </head>
+  <body>
+    <audio src="{% static 'error-trombone.mp3' %}" id="sad_trombone"></audio>
+    <script type="text/javascript">
+			$(document).ready(
+				function () {
+                $("#entry_date").kendoDatePicker();
+			    error = $("#error").val();
+
+				if (error) {
+                   $("#sad_trombone").get(0).play();
+				}
+				var mgmtForm = $("#ship_form");
+				$("input").click(function(e){
+					var id_clicked = e.target.id;
+					if (id_clicked == 'is_search') {
+						e.preventDefault();				
+						$('#search_stock').val('1');
+						mgmtForm.submit();	
+					}
+					if (id_clicked == 'update_smd') {
+						e.preventDefault();				
+						$('#is_update').val('1');
+						mgmtForm.submit();	
+					}
+					else if (id_clicked == 'launch_update') {
+						e.preventDefault();
+						$('#launch_update').val('1');
+						mgmtForm.submit();			    	
+					//	var selected_task = $('#task_selector').val();
+						//console.log('You selected task: ' + selected_task);						
+					//	$('#task_sel').val(selected_task);
+					//	mgmtForm.submit();
+					}
+				});
+		    })
+    </script>
+<div class="mro-header-wrapper">
+	<section id="mrotop"></section>
+	<div class="grid-container mro-header">
+		<div class="grid-x medium-margin-collapse align-middle hide-for-medium" style="float:left;">
+			<div class="cell large-1 medium-2 small-12 mro-menu-button">
+				<a data-toggle="offCanvas"><i class="fas fa-bars"></i></a>
+			</div>
+			<div class="cell large-11 medium-10 small-12 show-for-medium"><hr/></div>
+		</div>
+		<div class="grid-x grid-padding-x align-middle">
+			<div class="cell medium-7 small-12 mro-headerlogo">
+				<a href="" alt="MRO Live - Homepage">
+					<img style="max-width:361px;max-height:150px;" src="{% static 'dist/assets/img/mro-live_header.png' %}" alt="MROLive - Where Productivity Takes Flight">
+				</a>
+			</div>
+			<!--div class="cell medium-5 small-12 mro-clientlogo show-for-medium">
+				<a href="#" alt="MRO Live - Client Logo">
+				  <img style="max-width:150px;" src="../../..{{ logo_url }}" alt="{{ user_name }}">
+				</a>			
+			</div-->
+		</div>
+		<div class="grid-x medium-margin-collapse align-middle show-for-medium">
+			<div class="cell large-1 medium-2 small-12 mro-menu-button">
+				<a data-toggle="offCanvas">Menu <i class="fas fa-bars"></i></a>
+			</div>
+			<div class="cell large-11 medium-10 small-12 show-for-medium"><hr/></div>
+		</div>
+		<!--div class="cell medium-7 small-12 mro-clientlogo hide-for-medium mro-mobileclient">
+			  <a href="#" alt="MRO Live - Client Logo">
+				<img style="max-width:150px;" src="../../..{{ logo_url }}" alt="{{ user_name }}">
+			  </a>      
+		</div-->
+	</div>
+</div>
+
+<!-- Off-canvas Menu -->
+
+<div class="off-canvas position-left" id="offCanvas" data-off-canvas>
+
+<!-- Close button -->
+<button class="close-button" aria-label="Close menu" type="button" data-close>
+  <span aria-hidden="true">&times;</span>
+</button>
+
+<!-- Menu -->
+<ul class="vertical mro-menu menu">
+	<li class="mro-menu-logo">
+		<a href="http://mrolive.com/" target="_blank">
+			<img src="{% static 'dist/assets/img/MROlive-logo.png' %}" alt="Where Productivity Takes Flight" alt="MRO Live - Where Productivity Takes Flight">
+		</a>
+	</li>
+	{% if op_apps %}
+	<div class="subhead">Operations</div>
+	{% endif %}
+	{% for app in op_apps %}
+      <li><a target="_blank" href="../{{ app.ml_apps_id.code }}/{{ quapi_id }}">{{ app.ml_apps_id.name }}</a></li>
+    {% endfor %}
+	{% if mgmt_apps %}
+	<div class="subhead">Management</div>
+	{% endif %}
+	{% for app in mgmt_apps %}
+      <li><a target="_blank" href="../{{ app.ml_apps_id.code }}/{{ quapi_id }}">{{ app.ml_apps_id.name }}</a></li>
+    {% endfor %}
+	{% if dash_apps %}
+	<div class="subhead">Dashboards</div>
+	{% endif %}
+	{% for app in dash_apps %}
+      <li><a target="_blank" href="../{{ app.ml_apps_id.code }}/{{ quapi_id }}">{{ app.ml_apps_id.name }}</a></li>
+    {% endfor %}
+	{% if setup_apps %}
+	<div class="subhead">Setup</div>
+	{% endif %}
+	{% for app in setup_apps %}
+      <li><a target="_blank" href="../{{ app.ml_apps_id.code }}/{{ quapi_id }}">{{ app.ml_apps_id.name }}</a></li>
+    {% endfor %}
+    <li><a href="/login">Logout</a></li><li><a href="/portal/pass-reset/">Reset Password</a></li>
+</ul>
+</div>
+<!-- Off-canvas Menu - END -->
+<div class="grid-container mro-top-section">
+  <div class="grid-x grid-padding-x">
+	  <div class="mro-top-section-wrapper mro-search">
+		<div class="mro-top-section" style="width:100%;">
+		  <form method="POST" id="ship_form" name="ship_form"> 
+			  <input type="hidden" name="session_id" id="session_id" value="{{session_id}}"/>
+			  <input type="hidden" name="launch_update" id="launch_update" value="0"/>
+			  <input type="hidden" name="search_stock" id="search_stock" value="0"/>
+			  
+			  <div class="mro-lightsearch">
+				<div class="medium-12 small-7 cell hide-for-medium">
+				</div>
+				<div class="medium-12 small-7 cell hide-for-medium">
+				</div>
+				<div class="cell large-6 medium-6 small-12">
+				  <h1><span style="padding-left:5px;font-size:14px;">SHIPPING MANAGEMENT</span>
+				  
+				  {%  if msg %}<div style="font-weight: bold; color:green; font-size: 12px;">{{ msg }}</div>{%  endif %}
+				</div>
+				<div class="grid-x grid-padding-x align-middle">
+					{% csrf_token %}
+					<div class="cell large-6 medium-6 small-12">
+					  <label>SM#</label>
+					  <input type="text" id="order" name="order" value="{{ order }}" placeholder="1A2389..." />					  
+					</div>
+					<div class="cell large-6 medium-6 small-12">
+                      <label>Status</label>	
+				      <select name="status" id="status" style="background-color:#cacaca;">
+						<option value=""> -- No Selection -- </option>
+						{% for sstatus in status_vals %}						
+						{% if sstatus.wos_auto_key == new_status %}
+						<option value="{{ sstatus.wos_auto_key }}" selected>{{ sstatus.name }}</option>
+						{% else %}
+						<option value="{{ sstatus.wos_auto_key }}">{{ sstatus.name }}</option>
+						{% endif %}							
+						{% endfor %}
+					  </select>
+					</div>
+					<div class="cell large-6 medium-6 small-12">
+					  <label>Order</label>
+					  <!--input type="text" id="get_manager" name="get_manager" value="{{ get_manager }}" placeholder="ABLAKEY..." /-->
+					  {{ form.wo_number }}					  
+					</div>
+					<div class="cell large-6 medium-6 small-12">
+                      <label>User</label>	
+				      <select name="user_id" id="user_id" style="background-color:#cacaca;">
+					    <option value=""> -- No Selection -- </option>
+						<option value="unassigned">Unassigned</option>
+						{% for user in users %}						
+						{% if user.user_name == user_id %}
+						<option value="{{ user.user_name }}" selected>{{ user.user_name }}</option>
+						{% else %}
+						<option value="{{ user.user_name }}">{{ user.user_name }}</option>
+						{% endif %}							
+						{% endfor %}
+					  </select>
+					</div>
+					<div class="cell large-6 medium-6 small-12">
+                      <label>Ship Via</label>	
+				      <select name="ship_via" id="ship_via" style="background-color:#cacaca;">
+						<option value=""> -- No Selection -- </option>
+						{% for ship_via in ship_via_codes %}						
+						{% if ship_via.code == ship_via %}
+						<option value="{{ ship_via.ship_via_code }}" selected>{{ ship_via.ship_via_code }}</option>
+						{% else %}
+						<option value="{{ ship_via.ship_via_code }}">{{ ship_via.ship_via_code }}</option>
+						{% endif %}							
+						{% endfor %}
+					  </select>
+					</div>
+					<div class="cell large-6 medium-6 small-12">
+					  <label>Company</label>
+					  <!--input type="text" id="get_manager" name="get_manager" value="{{ get_manager }}" placeholder="ABLAKEY..." /-->
+					  {{ form.customer }}					  
+					</div>
+					<div class="cell large-6 medium-6 small-12">
+					  <label>Part Number</label>
+					  <!--input type="text" id="wo_number" name="wo_number" value="{{ wo_number }}" placeholder="10034-COR-02..." /-->
+					  {{ form.part_number }}					  
+					</div>
+					<div class="cell large-6 medium-6 small-12">
+					  <label>Description</label>
+					  <input type="text" id="description" value="{{ description }}" placeholder="7-2A Coupling..." />				  
+					</div>
+					<div class="cell large-6 medium-6 small-12">
+                      <label>Priority</label>	
+				      <select name="priority" id="priority" style="background-color:#cacaca;">
+						<option value=""> -- No Selection -- </option>
+						{% for priority in priorities %}						
+						{% if priority.code == priority %}
+						<option value="{{ priority.code }}" selected>{{ priority.code }}</option>
+						{% else %}
+						<option value="{{ priority.code }}">{{ priority.code }}</option>
+						{% endif %}							
+						{% endfor %}
+					  </select>
+					</div>
+					<div class="cell large-6 medium-6 small-12">
+					  <label>Location</label>
+					  <input type="text" id="location" name="location" value="{{ location }}" placeholder="7-2A Coupling..." />				  
+					</div>
+					<div class="cell large-6 medium-6 small-12">
+					  <label>WHS</label>
+					  <input type="text" id="warehouse" name="warehouse" value="{{ whs }}" placeholder="7-2A Coupling..." />						  
+					</div>
+					<div class="cell large-6 medium-6 small-12">
+					  <label>Scan Date</label>
+					  <!--input type="text" id="wo_number" name="wo_number" value="{{ wo_number }}" placeholder="10034-COR-02..." /-->
+					  {{ form.entry_date }}				  
+					</div>
+					  <div class="large-6 small-12 cell">
+						<div class="grid-x grid-padding-x align-middle mro-searchbuttonbox">
+						  <div class="cell large-6 medium-6 small-12 mro-searchbuttonbox">
+							<input class="primary button shadow" type="submit" value="Search" name="is_search" id="is_search"/>
+						  </div>
+						</div>
+					  </div>
+				  </div>
+				</div>
+				</div>
+			  </form>
+		</div>      
+	</div>
+  </div>
+</div>
+<script>
+$(function() {
+    $("#updateModal").modal();//if you want you can have a timeout to hide the window after x seconds
+});
+</script>
+    <!-- Modal -->
+    {% if launch_update == 'T' and not error %}
+    <div class="modal fade" id="updateModal" role="dialog">
+        <div class="modal-dialog" style="width:70%;">
+          <!-- Modal content-->
+          <div class="modal-content">
+            <div class="modal-header">
+              <button type="button" class="close" data-dismiss="modal">&times;</button>
+              <h4 class="modal-title">Update Shipping</h4>
+            </div>
+            <div class="modal-body">
+                <form method="POST" id="update_form" name="update_form">
+                  {% csrf_token %}
+				  <input type="hidden" name="session_id" id="session_id" value="{{ session_id }}"/>
+				  <input type="hidden" name="user_auto_key" id="user_auto_key" value="{{ sysur_auto_key }}"/>
+				  <input type="hidden" name="is_update" id="is_update" value="1"/>
+				  <input type="hidden" name="entry_date" id="entry_date" value="{{ entry_date }}"/>		  
+				  <input type="hidden" name="status"  id="status" value="{{ status }}"/>
+				  <input type="hidden" name="part_number" id="part_number" value="{{ part_number }}"/>
+				  <input type="hidden" name="description" id="description" value="{{ description }}"/>
+				  <input type="hidden" name="user_id"  id="user_id" value="{{ user_id }}"/>
+				  <input type="hidden" name="customer" id="customer" value="{{ customer }}"/>
+                  <input type="hidden" name="order" id="order" value="{{ order }}"/>
+				  <input type="hidden" name="ship_via"  id="ship_via" value="{{ ship_via }}"/>
+				  <input type="hidden" name="term"  id="term" value="{{ term }}"/>
+				  <input type="hidden" name="location" id="location" value="{{ location }}"/>
+                  <input type="hidden" name="whs" id="whs" value="{{ whs }}"/> 
+				  {% for smd in smds_list %}
+				     <input type="hidden" name="smd_sels[]" id="smd_sels[]" value="{{ smd }}" checked="checked"/>
+				  {% endfor %}
+				  <div class="mro-lightsearch">
+					<div class="grid-x grid-padding-x">
+						<div class="large-6 small-12 cell" style="width:100%;">
+						  <div class="grid-x grid-padding-x align-middle">	
+						  	<!--div class="cell large-4 medium-6 small-12">
+							  <label>Shipments:</label>
+							  <input readonly=1 type="text" name="ship_list" id="ship_list" value="{{ smds_list }}"/>
+							</div-->
+							<div class="cell large-6 medium-6 small-12">
+							  <label>Tote</label>
+							  <input id="tote" name="tote" type="text"/>
+							</div>
+							<div class="cell large-6 medium-6 small-12">
+							  <label>Notes</label>
+							  <textarea id="notes" name="notes"></textarea>
+							</div>							
+							<div class="cell large-6 medium-6 small-12">
+							  <label>User</label>	
+							  <select name="user_update" id="user_update" style="background-color:#cacaca;">
+								<option value=""> -- No Selection -- </option>
+								{% for user in users %}						
+								<option value="{{ user.user_name }}">{{ user.user_name }}</option>						
+								{% endfor %}
+							  </select>
+							</div>			
+							<div class="cell large-4 medium-6 small-12">
+								<input style="" class="primary button shadow" type="submit" value="Update" name="modal_update" id="modal_update" onclick="this.disabled=true,this.form.submit();"/>
+							</div>
+							<div class="cell large-4 medium-6 small-12">  
+							   <button class="secondary button shadow" class="close" data-dismiss="modal" name="update_cancel" id="update_cancel" value="1" type="submit">Cancel</button>
+							</div>		
+						  </form>  
+						  </div>
+						</div>
+						</div>
+					  </div>
+					</div>
+				  </div>
+			  </div>
+		</div>
+	</div>
+	{% endif %}
+	<!-- Modal Error Pop-up -->    
+<script>
+$(function() {
+    $("#errorModal").modal();//if you want you can have a timeout to hide the window after x seconds
+});
+</script>
+    <!-- Modal -->
+    {%  if error %}
+      <div class="modal fade" id="errorModal" role="dialog" data-backdrop="static">
+        <div class="modal-dialog">
+          <!-- Modal content-->
+          <div class="modal-content">
+		    <form method="POST" id="modal_error_form" name="modal_error_form">
+            <div class="modal-header">
+              <button type="button" class="close" id="x_button" data-dismiss="modal">&times;</button>
+              <h4 class="modal-title">Application Message:</h4>
+            </div>
+            <div class="modal-body">
+			    {%  if error %}<input type="hidden" id="error" name="error" value="{{ error }}"/><div style="font-weight: bold; color:red; font-size: 22px;">{{ error }}</div>{%  endif %}
+                <button class="secondary button shadow" id="ok_button" style="float:right; margin-top:-20px;" type="button" data-dismiss="modal">OK</button>
+                <div><br/><br/></div>			
+            </div>
+			</form>
+          </div>                
+       </div>
+      </div>
+	  {% endif %}  
+    <!-- End modal error popup --> 
+	<div class="mro-bottom-section-wrapper mro-table">
+      <div class="grid-container mro-bottom-section">
+	      <div class="grid-x grid-padding-x">
+			{% if total_rows > 0 %}
+			<div style="top:62px;z-index:1000;left:830px;position: relative;color: white;">	
+              <input type="button" id="select_all" class="secondary button shadow" value="SELECT ALL"/>			
+			  <input type="button" id="launch_update" name="launch_update" class="primary button shadow" value="UPDATE"/>
+			    <input type="text" class="sel_rows" id="sel_rows" name="sel_rows" size="4" value="{{ sel_rows }}" readonly>of     <input type="text" class="total_rows" id="total_rows" name="total_rows" value="{{ total_rows }}" size="5" readonly>
+			</div>
+			<div class="centered results_grid" id="results_grid" name="results_grid">			
+				<script>
+				
+				kendo.ui.Grid.prototype._positionColumnResizeHandle= function() {
+				  var that = this,
+					  indicatorWidth = that.options.columnResizeHandleWidth,
+					  lockedHead = that.lockedHeader ? that.lockedHeader.find("thead:first") : $();
+
+				  that.thead.add(lockedHead).on("mousemove" + ".kendoGrid", "th", function (e) {
+					var th = $(this);
+					if (th.hasClass("k-group-cell") || th.hasClass("k-hierarchy-cell")) {
+					  return;
+					}
+					that._createResizeHandle(th.closest("div"), th);
+				  });
+				};
+				var oldPageSize = 0;
+				$( "#select_all" ).click(function() {
+					var grid = $("#results_grid").data("kendoGrid");
+					if (grid.dataSource.data().length === grid.select().length) {
+						grid.clearSelection();
+						$("input[type=hidden][class='woos']").remove();	
+						$('#sel_rows').val(0);
+					} 
+					else {
+						grid.select("tr");
+					};
+				});
+				function onChange(e) {
+					//$('.woos').remove();
+					var rows = e.sender.select();
+					var grid = $("#results_grid").data("kendoGrid");
+					var currentPage = grid.dataSource.page();
+					//console.log('current page: ' + currentPage + 'selected: ' + rows.length);
+					//first it goes to woos_first and then onchange again, it goes to woos
+					$("input[type=hidden][uipage='" + currentPage + "']").attr('class', 'woos_stale'); 
+					rows.each(function(e) {
+						var dataItem = grid.dataItem(this);					
+						var length = $('input[type=hidden][value=' + dataItem.id + ']').length;
+						//console.log('Your row id: ' + dataItem.id + ' has length: ' + length);	
+						if (length != 0) {
+						   $('input[type=hidden][value=' + dataItem.id + ']').attr('class', 'woos');  
+						}
+						if (!length) {
+							var inputWoo = '<input type="hidden" uipage="' + currentPage + '" name="woos_list[]" id="woos_list[]" class="woos" value="' + dataItem.id + '" checked="checked"/>';				
+						}
+						$('#search_stock').after(inputWoo);
+						
+					var count = $("input[type=hidden][class='woos']").length;
+					$('#sel_rows').val(count);					
+					$("input[type=hidden][uipage='" + currentPage + "'][class='woos_stale']").remove();				
+					});
+				};
+				$(document).ready(
+					function () {
+					
+						var dataSourceArguments = {
+							//autoBind: !options,
+							pageSize: 100,
+							serverPaging: true,
+							//serverFiltering: true,
+							serverSorting: true,
+							transport: {
+								read: {
+									url: '/portal/json',
+									dataType: "json",
+									data: {'session_id': '{{ session_id }}' } // the parameter I need to send to the server
+								}
+							},
+							schema: {
+								total: "count",
+								data: "results",
+								model: { id: "id" }
+							}
+						}						
+						var dsg = new kendo.data.DataSource(dataSourceArguments);
+						var options = localStorage["grid-options"];
+						$("#results_grid").kendoGrid({   					    
+							toolbar: ["excel"],
+							excel: {
+								fileName: "shipping-management-export.xlsx",
+								proxyURL: "https://demos.telerik.com/kendo-ui/service/export",
+								allPages: true
+							},
+							dataSource: dsg,
+							resizable: true,
+							sortable: true,
+							reorderable: true,
+							columnMenu: true,
+							selectable: "multiple, row",
+							persistSelection: true,
+							navigatable: false,
+							change: onChange,
+							pageable: {
+								refresh: true,
+								pageSizes: true,
+								buttonCount: 5,
+							},
+							columns: [
+								{
+								  field: 'stm_auto_key',
+								  title: 'STM',
+								  width: "1.3cm",
+								},
+								{
+								  field: 'customer',
+								  title: 'Company',
+								  width: "2cm",
+								},
+								{
+								  field: 'wo_number',
+								  title: 'Order#',
+								  width: "2cm",
+								},
+								{
+								  field: 'si_number',
+								  title: 'SM#',
+								  width: "1.3cm",
+								},
+								{
+								  field: 'priority',
+								  title: 'Priority',
+								  width: "2cm",
+								},
+								{
+								  field: 'due_date',
+								  title: 'Due Date',
+								  template: '#= kendo.toString(kendo.parseDate(due_date), "MM/dd/yyyy")#',
+								  width: "2cm",	
+								  
+								},
+								{
+								  field: 'start_date',
+								  title: 'Scan Date',
+								  template: '#= kendo.toString(kendo.parseDate(start_date), "MM/dd/yyyy")#',
+								  width: "2.2cm",	
+								  
+								},
+								{
+								  field: 'part_number',
+								  title: 'PN',
+								  width: "1.3cm",
+								},
+								{
+								  field: 'description',
+								  title: 'Desc',
+								  width: "1.5cm",
+								},
+								{
+								  field: 'serial_number',
+								  title: 'S/N',
+								  width: "1.3cm",
+								},
+								{
+								  field: 'qty_reserved',
+								  title: 'QTY',
+								  width: "1.3cm",
+								},
+								{
+								  field: 'status',
+								  title: 'Status',
+								  width: "1.8cm",
+								},
+								{
+								  field: 'user_id',
+								  title: 'User',
+								  width: "1.5cm",
+								},
+								{
+								  field: 'stock_line',
+								  title: 'S/L',
+								  width: "1.3cm",
+								},
+								{
+								  field: 'location_code',
+								  title: 'LOC',
+								  width: "1.3cm",
+								},
+								{
+								  field: 'wh_code',
+								  title: 'WHS',
+								  width: "1.3cm",
+								},
+								//{
+								  //field: 'cart',
+								  //title: 'TOTE',
+								 // width: screen.availWidth*0.05
+								//},
+								//{
+								  //field: 'notes',
+								  //title: 'NOTES',
+								  //width: screen.availWidth*0.05
+								//},
+							]
+						});
+						$("select[data-role='dropdownlist']").kendoDropDownList({
+							dataTextField: "pageSize",
+							dataValueField: "sizeValue",
+							dataSource:[
+								{pageSize: 10},
+								{pageSize: 25},
+								{pageSize: 100},
+								{pageSize: 500},
+								{pageSize: 2000},
+								{pageSize: 'All', sizeValue:1000}
+							],
+						});
+						
+						var grid = $("#results_grid").data("kendoGrid");
+
+						if (options) {
+							var pers_options = JSON.parse(options);
+
+							if (pers_options.excel.fileName == 'shipping-management-export.xlsx') {
+								grid.setOptions(pers_options);
+								grid.setOptions({
+									'dataSource':dsg,
+								});
+							}
+						}
+						 
+						window.onbeforeunload = function() {
+							localStorage["grid-options"] = kendo.stringify(grid.getOptions());
+
+							return;
+						}
+					});
+				  </script>	
+			</div>	
+			{% endif %}
+		  </div>
+        <div class="grid-x mro-pagination-section">
+          <div class="cell large-5 medium-6 small-12 ">
+            <a class="mrotop" href="#mrotop" data-smooth-scroll><span>^</span> Back to Top</a>
+          </div>
+        </div>		  
+	    </div>
+	  </div>
+   
+				
+<div class="mro-footer-wrapper">
+	<div class="grid-container mro-footer">
+		<div class="grid-x">
+			<div class="cell small-12">
+				<img class="mro-footerlogo" src="{% static 'dist/assets/img/mro-live_header.png' %}" alt="Where Productivity Takes Flight" alt="MRO Live - Where Productivity Takes Flight">
+			</div>
+		</div>
+
+		<div class="grid-x mro-footer-bottom">
+			<div class="cell medium-5 small-12 mro-footer-bottom-left">
+				<p>Copyright &copy; 2024 MRO Live <span>|</span> <img class="mro-usa" src="{% static 'dist/assets/img/usa.png' %}" alt="Based in USA">Based in USA</p>
+			</div>
+		</div>
+	</div>
+</div><script src="{% static 'dist/assets/js/app.js' %}"></script>
+</body>
+</html>

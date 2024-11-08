@@ -1,0 +1,75 @@
+<div class="mro-top-section-wrapper mro-search">
+  <div class="mro-top-section">
+    <div class="grid-x grid-padding-x hide-for-medium">
+      <div class="medium-12 small-7 cell hide-for-medium mro-mobileclient">
+        {{> client-logo}}
+      </div>
+    </div>
+    <div class="mro-lightsearch">
+      <div class="grid-x grid-padding-x align-middle">
+        <div class="large-12 cell">
+          <h1>Racking</h1>
+        </div>
+        <div class="cell large-5 medium-6 small-12">
+            <p class="mro-barcodingradio-title">Mode: </p>
+            <fieldset class="mro-barcodingradio">
+              <input type="radio" name="barcodingradio" value="radio1" id="radio1"><label for="radio1" required>Update</label>
+              <input type="radio" name="barcodingradio" value="radio2" id="radio2"><label for="radio2">Transfer Cart</label>
+              <input type="radio" name="barcodingradio" value="radio3" id="radio3"><label for="radio3">Validate</label>
+            </fieldset>
+          </div>
+          <div class="cell large-7 medium-6 show-for-large">
+            <hr/>
+          </div>
+          <div class="cell large-auto medium-6 small-12">
+            <label>Emp ID</label>
+            <input type="text" placeholder="Emp ID...">
+          </div>
+          <div class="cell large-auto medium-6 small-12">
+            <label>WHS</label>
+            <input type="text" placeholder="WIP...">
+          </div>
+          <div class="cell large-auto medium-6 small-12">
+            <label>Location</label>
+            <input type="text" placeholder="Location...">
+          </div>
+          <div class="cell large-auto medium-6 small-12">
+            <label>WO #</label>
+            <input type="text" placeholder="Number...">
+          </div>
+          <div class="cell large-auto medium-6 small-12 mro-searchbuttonbox">
+            <a href="#" class="primary button shadow">Search</a>
+          </div>
+      </div>
+    </div>
+    <div class="mro-darksearch">
+      <div class="grid-x grid-padding-x">
+          <div class="large-9 small-12 cell">
+            <div class="grid-x grid-padding-x align-middle">
+              <div class="cell large-3 medium-6 small-12">
+                <label>Cart</label>
+                <input type="text" placeholder="Cart...">
+              </div>
+              <div class="cell large-3 medium-6 small-12">
+                <label>Record</label>
+                <input type="text" placeholder="Record...">
+              </div>
+              <div class="cell large-6 medium-6 small-12">
+                <hr/>
+              </div>
+            </div>
+          </div>
+          <div class="large-3 small-12 cell">
+            <div class="grid-x grid-padding-x align-middle mro-searchbuttonbox">
+              <div class="cell large-6 medium-6 small-12">
+                <a href="#" class="lightbutton button shadow">Update</a>
+              </div>
+              <div class="cell large-6 medium-6 small-12">
+                <a href="#" class="mro-clearselection">Clear Selections</a>
+              </div>
+            </div>
+          </div>
+      </div>
+    </div>
+  </div>
+</div>

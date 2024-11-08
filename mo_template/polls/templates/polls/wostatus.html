@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+{% load static %}
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>MROLive Barcoding - WO Status Update for Quantum Control</title>
+    <link href="{% static '_screen.css' %}" rel="stylesheet" type="text/css" />
+	<script type="text/javascript" src="{% static 'jquery-1.12.4.js' %}"></script>
+	<script type="text/javascript" src="{% static 'jquery_tab_submit.js' %}"></script>
+    <script type="text/javascript" src="{% static 'field_focus.js' %}"></script> 	
+   </head>
+  <body style="background:none;" onload='setFocusToTextBox()'>
+    <div id="container" style="width:1400px;">
+      <div id="contentWrap" style="border:none;">
+   	    <div class="contentLeft" style="width:1280px;margin-left:-50px;">
+			<div style="float:left;margin-top:-85px;">
+			  <img style="width:250px;height:250px;" src = "{% static 'logo-django-site.jpg' %}" />
+			</div>
+			<form method="POST" id="base_form" name="base_form" onsubmit='setFocusToTextBox()'> 
+			    {% csrf_token %}
+				<div style="font-weight:bold;float:right;margin-right:135px;margin-top:30px;padding:5px;">
+				  <span>Emp ID: </span><!--input type="text" id="user_id" name="user_id" value="{{ user_id }}"/-->
+					<select name="user_id">
+						<option value=""> -- No Selection -- </option>
+					    {% for emp in emp_vals %}						
+						{% if emp.user_auto_key == user_id %}
+						<option value="{{ emp.user_auto_key }}" selected>{{ emp.user_id }}</option>
+						{% else %}
+						<option value="{{ emp.user_auto_key }}">{{ emp.user_id }}</option>
+						{% endif %}						
+					    {% endfor %}
+					</select>				  
+				  <span>Status: </span>
+				  <input type="hidden" name="clear_form" id="clear_form" value="0"/>
+					<select name="status_selector">
+						<option value=""> -- No Selection -- </option>
+					{% for sstatus in status_vals %}
+						
+						{% if sstatus.wos_auto_key == new_status %}
+						<option value="{{ sstatus.wos_auto_key }}" selected>{{ sstatus.name }}</option>
+						{% else %}
+						<option value="{{ sstatus.wos_auto_key }}">{{ sstatus.name }}</option>
+						{% endif %}
+						
+					{% endfor %}
+					</select>
+			      <span>Location: </span><input type="text" id="location" name="location" value="{{ new_location }}"/>
+				  <span>WO#: </span><input type="text" id="wo_number" name="wo_number"/>
+				  <div style="padding:2px;margin-top:20px;"><input class="btn" type="submit" value="Update" name="wo_update" id="wo_update" style="float:left;margin-left:15px;">
+				  </div>
+				</form>	
+					<form method="POST" id="clear_form" name="clear_form"> 
+					  {% csrf_token %}
+					  <input type="hidden" name="clear_form" id="clear_form" value="1"/>
+					  {%  for woo in all_woos %}
+					  <input type="hidden" name="woos_to_clear[]" id="{{ woo.id }}" value="{{ woo.id }}"/>
+					  {%  endfor %}
+					  {%  if all_woos %}
+						  <input class="btn" type="submit" name="clear" id="clear" value="Clear List" style="margin-left:15px;">
+					  {%  endif %}  
+					</form>			  
+				</div>
+				{%  if all_woos %}
+				<div style="float:left;margin-top:5px;margin-left:35px">
+					<table cellpadding="2" style="border-collapse: collapse; border: 1px solid gray; color:#000044">
+						<tr style="border: 1px solid gray; padding:25px; font-weight: bold; font-size: 13px;">
+							<!--td style="border: 1px solid gray;">
+								Remove <br/>from List
+							</td-->
+							<td style="border: 1px solid gray;">WO Number</td>
+							<td style="border: 1px solid gray;">Status</td>
+							<td style="border: 1px solid gray;">Due Date</td>
+							<td style="border: 1px solid gray;">SL#</td>
+							<td style="border: 1px solid gray;">Part Number</td>
+							<td style="border: 1px solid gray;">Description</td>
+							<td style="border: 1px solid gray;">Serial No.</td>
+							<td style="border: 1px solid gray;">Location</td>
+							<td style="border: 1px solid gray;">Update</td>
+						</tr>
+						{%  for woo in all_woos %}
+						<tr style="border: 1px solid gray; padding:25px; font-size: 12px;">					
+							<!--td style="border: 1px solid gray;">
+								<input type="checkbox" id="remove_woo" name="remove_woo" value="{{ woo.id }}"/>
+							</td-->
+							<td style="border: 1px solid gray;">{{ woo.wo_number }}</td>
+							<td style="border: 1px solid gray;">{{ woo.status }}</td>
+							<td style="border: 1px solid gray;">{{ woo.due_date }}</td>
+							<td style="border: 1px solid gray;">{{ woo.stock_line }}</td>
+							<td style="border: 1px solid gray;">{{ woo.part_number }}</td>
+							<td style="border: 1px solid gray;">{{ woo.description }}</td> 
+							<td style="border: 1px solid gray;">{{ woo.serial_number }}</td>
+							<td style="border: 1px solid gray;">{{ woo.location_code }}</td>
+							<td style="border: 1px solid gray;">{{ woo.update_stamp }}</td>
+						</tr>                
+						{% endfor %}
+					</table>
+				</div>
+				{%  endif %}			
+			{%  if error %}<div style="margin-left:30px;margin-top:0px;font-weight: bold; color:red; font-size: 10px;"> {{ error }}</div>{%  endif %}
+			{%  if msg %}<div style="margin-left:30px;margin-top:0px;font-weight: bold; color:red; font-size: 10px;"> {{ msg }}</div>{%  endif %}
+	    </div>
+      </div>
+   </div>
+  </body>
+</html>

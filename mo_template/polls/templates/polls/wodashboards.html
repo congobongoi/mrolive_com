@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+{% load static %}
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>MROLive WO Dashboard</title>
+    <link href="{% static '_screen.css' %}" rel="stylesheet" type="text/css" />
+	<script type="text/javascript" src="{% static 'jquery-1.12.4.js' %}"></script>
+	<script type="text/javascript" src="{% static 'jquery_tab_submit.js' %}"></script>
+    <script type="text/javascript" src="{% static 'field_focus.js' %}"></script>
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.common-material.min.css" />
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.material.min.css" />
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.material.mobile.min.css" />
+    <script src="https://kendo.cdn.telerik.com/2020.1.114/js/jszip.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/2.4.0/jszip.js"></script>
+    <script src="https://kendo.cdn.telerik.com/2017.2.621/js/jquery.min.js"></script>
+    <script src="https://kendo.cdn.telerik.com/2017.2.621/js/kendo.all.min.js"></script>
+   </head>
+  <body style="background:none;" onload='setFocusWOOnLoad()'>
+    <div id="container" style="width:1400px;">
+      <div id="contentWrap" style="border:none;">
+   	    <div class="contentLeft" style="width:1280px;margin-left:-50px;">
+			<div style="float:left;margin-top:-20px;margin-left:90px;padding-top:15px;">
+			  <img style="width:250px;height:250px;" src = "{% static 'logo-django-site.jpg' %}" />
+			</div>
+			<form method="POST" id="base_form" name="base_form" onsubmit='setFocusToTextBox()'> 
+			    {% csrf_token %}
+				<div style="font-weight:bold;float:right;margin-right:0px;margin-top:-210px;padding:0px;">
+				  <input type="hidden" name="active_user" id="active_user" value="{{ user_id }}"/>
+				  <input type="hidden" name="active_mgr" id="active_mgr" value="{{ manager }}"/>
+				  <input type="hidden" name="active_due_date" id="active_due_date" value="{{ new_due_date }}"/>
+				  <input type="hidden" name="active_rank" id="active_rank" value="{{ rank }}"/>
+				  <input type="hidden" name="update_session" id="update_session" value="{{ update_session }}"/>
+				  <span>Customer: </span><input type="text" id="customer" name="customer" value="{{ customer }}"/> 					  
+				  <span>Status: </span>
+				  <input type="text" list="selection_list" id="new_status" name="new_status" value="{{ new_status }}"/>
+				  <input type="hidden" id="status_key" name="status_key" value="{{ status_key }}"/>
+					<datalist id="selection_list">
+						<option value=""> -- Select a Status -- </option>
+						{% for sstatus in status_vals %}						
+							{% if sstatus.wos_auto_key == new_status %}
+							<option data-value="{{ sstatus.wos_auto_key }}" value="{{ sstatus.name }}" selected>{{ sstatus.name }}</option>
+							{% else %}
+							<option data-value="{{ sstatus.wos_auto_key }}" value="{{ sstatus.name }}">{{ sstatus.name }}</option>
+							{% endif %}							
+						{% endfor %}
+					</datalist>
+				  <span>Manager: </span><input type="text" id="get_manager" name="get_manager" value="{{ get_manager }}"/> 	
+			      <span>Due Date: </span><input type="text" id="get_due_date" name="get_due_date" value="{{ get_due_date }}"/>
+				  <span>WO#: </span><input type="text" id="wo_number" name="wo_number" value="{{ wo_number }}"/> 
+				  <span style="padding-left:5px;margin-top:0px;">
+				  <input class="btn" type="submit" value="Search" name="search" id="search" style="">
+				  <!--a href="/polls/3/wo-dashboard"><input class="btn" type="button" value="Refresh" name="" id="refresh" style=""></a-->
+				  </span>	                					  
+				</div>
+	        </form>
+			<!--form method="POST" id="clear_form" name="clear_form"> 
+			  {% csrf_token %}
+			  <input type="hidden" name="clear_form" id="clear_form" value="1"/>
+			  {%  for woo in all_woos %}
+			  <input type="hidden" name="woos_to_clear[]" id="{{ woo.id }}" value="{{ woo.id }}"/>
+			  {%  endfor %}
+			  {%  if all_woos %}
+			      <input class="btn" type="submit" name="clear" id="clear" value="Clear List" style="margin-top:50px;">
+		      {%  endif %}  
+		    </form-->
+				{%  if all_woos %}
+				<div style="float:left;margin-top:5px;margin-left:70px">
+					<div class="results_grid" id="results_grid" name="results_grid">
+					<span style="float:right;margin-top:-30px;margin-right:10px;color:white;text-decoration:bold;">
+					    <!--input type="text" id="sel_rows" name="sel_rows" size="4" value="{{ sel_rows }}" style="text-align:right;border:none;outline:none;background-color:#3f51b5;color:white;text-decoration:bold;" readonly-->
+					    Total Rows: <input type="text" id="total_rows" name="total_rows" value="{{ total_rows }}" size="5" style="text-align:left;border:none;outline:none;background-color:#3f51b5;color:white;text-decoration:bold;" readonly>
+			        </span>
+					</div>
+			<script>
+			function onChange(e) {
+			    //$('.woos').remove();
+				var rows = e.sender.select();
+				var grid = $("#results_grid").data("kendoGrid");
+				var currentPage = grid.dataSource.page();
+				console.log('current page: ' + currentPage + 'selected: ' + rows.length);
+				//first it goes to woos_first and then onchange again, it goes to woos
+				$("input[type=hidden][uipage='" + currentPage + "']").attr('class', 'woos_stale'); 
+				rows.each(function(e) {
+					var dataItem = grid.dataItem(this);					
+					var length = $('input[type=hidden][value=' + dataItem.id + ']').length;
+					//console.log('Your row id: ' + dataItem.id + ' has length: ' + length);	
+					if (length != 0) {
+					   $('input[type=hidden][value=' + dataItem.id + ']').attr('class', 'woos');  
+					}
+                    if (!length) {
+						var inputWoo = '<input type="hidden" uipage="' + currentPage + '" name="woos_list[]" id="woos_list[]" class="woos" value="' + dataItem.id + '" checked="checked"/>';				
+					}
+					$('#sel_rows').after(inputWoo);
+				var count = $("input[type=hidden][class='woos']").length;
+				$('#sel_rows').val(count);					
+			    $("input[type=hidden][uipage='" + currentPage + "'][class='woos_stale']").remove();				
+				});
+			};
+			$(document).ready(
+			    function () {
+                $("#get_due_date").kendoDatePicker();
+					var dataSourceArguments = {
+					    autoBind: false,
+						pageSize: 7,
+						serverPaging: true,
+						//serverFiltering: true,
+						serverSorting: true,
+						transport: {
+							read: {
+								url: '/polls/json',
+								dataType: "json",
+								data: { 'user_id': '{{ user_id }}','session_id': '{{ session_id }}','is_wos': '1' } // the parameter I need to send to the server
+							}
+						},
+						schema: {
+							total: "count",
+							data: "results",
+							model: { id: "id" }
+						}
+					}						
+					var dsg = new kendo.data.DataSource(dataSourceArguments);
+					$("#results_grid").kendoGrid({
+					    toolbar: ["excel"],
+						excel: {
+							fileName: "wo-dashboards-export.xlsx",
+							proxyURL: "https://demos.telerik.com/kendo-ui/service/export",
+							allPages: true
+						},
+						dataSource: dsg,
+						//filterable: true,
+						resizable: true,
+                        sortable: true,
+						reorderable: true,
+                        selectable: "multiple, row",
+						persistSelection: true,
+                        navigatable: true,
+						change: onChange,
+						pageable: {
+							refresh: true,
+							pageSizes: true,
+							buttonCount: 5,
+							pageSize: 10,
+						},
+                        columns: [
+							{
+							  field: 'wo_number',
+							  title: 'WO#',
+							},
+							{
+							  field: 'customer',
+							  title: 'Cust',
+							},
+							{
+							  field: 'part_number',
+							  title: 'Part Number',
+							},
+							{
+							  field: 'description',
+							  title: 'Description',
+							},
+														{
+							  field: 'status',
+							  title: 'Status',
+							},
+							{
+							  field: 'time_status',
+							  title: 'Time',
+							},
+							{
+							  field: 'due_date',
+							  title: 'Due Date',
+                              template: '#= kendo.toString(kendo.parseDate(due_date), "MM/dd/yyyy")#'							  
+							},
+							{
+							  field: 'rank',
+							  title: 'Rank',
+							},
+							{
+							  field: 'location_code',
+							  title: 'Loc',
+							},
+							{
+							  field: 'time_loc',
+							  title: 'Time',
+							},
+							{
+							  field: 'serial_number',
+							  title: 'Serial #',
+							},
+							{
+                              field: 'wo_type',
+							  title: 'WO Type',
+							},
+							{
+                              field: 'manager',
+							  title: 'Manager',
+							},
+					    ],				
+					});
+					$("select[data-role='dropdownlist']").kendoDropDownList({
+						dataTextField: "pageSize",
+						dataValueField: "sizeValue",
+						dataSource: [
+							{pageSize: 5},
+							{pageSize: 10},
+							{pageSize: 25},
+							{pageSize: 100},
+							{pageSize: 500},
+							{pageSize: 2000},
+							{pageSize: 'All', sizeValue:1000},
+						],
+					});
+				});
+			  </script>	
+        </div>
+		{% endif %}
+      </div>
+   </div>
+  </body>
+</html>

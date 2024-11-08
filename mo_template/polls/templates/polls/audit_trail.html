@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+{% load static %}
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>MROLive Audit Trails</title>
+    <link href="{% static '_screen.css' %}" rel="stylesheet" type="text/css" />
+	<script type="text/javascript" src="{% static 'jquery-1.12.4.js' %}"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+	<script type="text/javascript" src="{% static 'jquery_tab_submit.js' %}"></script>
+    <script type="text/javascript" src="{% static 'field_focus.js' %}"></script>	
+   </head>
+  <body style="background:none;" onload='setFocusToTextBox()'>
+    <div id="container" style="width:1400px;">
+      <div id="contentWrap" style="border:none;">
+   	    <div class="contentLeft" style="width:1280px;margin-left:-50px;">
+			<div style="float:left;margin-top:-85px;margin-left:150px;">
+			  <img style="width:250px;height:250px;" src = "{% static 'logo-django-site.jpg' %}" />
+			</div>
+			<form method="POST" id="base_form" name="base_form" onsubmit='setFocusToTextBox()'> 
+			    {% csrf_token %}
+				<div style="float:left;font-weight:bold;">
+				    <div style="margin-bottom:40px;">
+					  <span>App: </span>
+					  <select name="app_selector" id="app_selector" class="app_selector">
+						<option value=""> -- Select App -- </option>
+						{% for app in app_set %}
+							{% if app.id == active_app.id %}
+							<option value="{{ app.id }}" selected>{{ app.name }}</option>
+							{% else %}
+							<option value="{{ app.id }}">{{ app.name }}</option>
+							{% endif %}						
+						{% endfor %}
+					  </select>
+					</div>
+			    </div>
+				<div style="float:left;font-weight:bold;margin-right:135px;margin-top:0px;padding:5px;">
+				    <div style="margin-bottom:40px;">
+					  <span>Emp ID: </span><input type="text" id="user_id" name="user_id" value="{{ user_id }}" size="25"/>	
+					  <input type="hidden" name="clear_form" id="clear_form" value="0"/>
+					  <span>Date From: </span><input type="text" id="date_from" name="date_from" value="{{ date_from }}" size="25"/>
+					  <span>Date To: </span><input type="text" id="date_to" name="date_to" value="{{ date_to }}" size="25"/>
+					</div>
+				  <div style="padding:2px;margin-top:20px;"><input class="btn" type="submit" value="Search" name="adt_submit" id="adt_submit" style="float:left;margin-left:15px;">
+				  </div>
+				</form>			  
+				</div>
+			{%  if msg %}<div style="margin-left:30px;margin-top:20px;font-weight: bold; color:green; font-size: 10px;">{{ msg }}</div>{%  endif %}
+			{%  if error %}<div style="margin-left:30px;margin-top:20px;font-weight: bold; color:red; font-size: 10px;">{{ error }}</div>{%  endif %}
+				{%  if adt_recs %}
+				<div style="margin-top:5px;">
+					<table cellpadding="5" style="margin:auto; border-collapse: collapse; border: 1px solid gray; color:#000044">
+						<tr style="border: 1px solid gray; padding:25px; font-weight: bold; font-size: 13px;">
+							<!--td style="border: 1px solid gray;">
+								Remove <br/>from List
+							</td-->
+							<td style="border: 1px solid gray;">User</td>
+							<td style="border: 1px solid gray;">Create Date</td>
+							<td style="border: 1px solid gray;">App</td>
+							<td style="border: 1px solid gray;">Changed Field(s)</td>
+							<td style="border: 1px solid gray;">New Value(s)</td>
+							<td style="border: 1px solid gray;">Description</td>
+						</tr>
+						{%  for adt in adt_recs %}
+						<tr style="border: 1px solid gray; padding:25px; font-size: 12px;">					
+							<!--td style="border: 1px solid gray;">
+								<input type="checkbox" id="remove_woo" name="remove_woo" value="{{ woo.id }}"/>
+							</td-->
+							<td style="border: 1px solid gray;">{{ adt.user_id.user_id }}</td>
+							<td style="border: 1px solid gray;">{{ adt.create_date }}</td>
+							<td style="border: 1px solid gray;">{{ adt.ml_apps_id.name }}</td>
+							<td style="border: 1px solid gray;">{{ adt.field_changed }}</td>
+							<td style="border: 1px solid gray;">{{ adt.new_val }}</td>
+							<td style="border: 1px solid gray;">{{ adt.description }}</td> 
+						</tr>               
+						{% endfor %}
+					</table>
+				</div>
+				{%  endif %}			
+	    </div>
+      </div>
+   </div>
+  </body>
+</html>

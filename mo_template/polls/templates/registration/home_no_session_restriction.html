@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MRO Live Apps Home - Where Productivity Takes Flight</title>
+    <link rel="shortcut icon" href="{% static 'dist/assets/img/favicon.ico' %}"/>
+    <link rel="stylesheet" href="{% static 'dist/assets/css/app.css' %}">
+    <link href="{% static 'dist/assets/fontawesome/css/all.css' %}" rel="stylesheet">
+	<link rel="shortcut icon" type="image/png" href="{% static 'favicon.ico' %}"/>
+	<style>
+        .quapi_selector {
+			margin: 0 0 1rem;
+			padding: 0.25rem;
+			-webkit-appearance: none;
+			-moz-appearance: none;
+			appearance: none;
+			border: 0.5px solid #cacaca;
+			border-radius: 0;
+			background-color: #cacaca;
+			font-family: inherit;
+			font-weight: normal;
+        }	
+		
+	    .quapi_selector select {
+			margin: 0 0 1rem;
+			padding: 0.25rem;
+			-webkit-appearance: none;
+			-moz-appearance: none;
+			appearance: none;
+			border: 0.5px solid #cacaca;
+			border-radius: 0;
+			background-color: #cacaca;
+			font-family: inherit;
+			font-weight: normal;
+			}
+        .app_selector {
+			margin: 0 0 1rem;
+			padding: 0.25rem;
+			-webkit-appearance: none;
+			-moz-appearance: none;
+			appearance: none;
+			border: 0.5px solid #cacaca;
+			border-radius: 0;
+			background-color: #cacaca;
+			font-family: inherit;
+			font-weight: normal;
+        }			
+	    .app_selector select {
+			margin: 0 0 1rem;
+			padding: 0.25rem;
+			-webkit-appearance: none;
+			-moz-appearance: none;
+			appearance: none;
+			border: 0.5px solid #cacaca;
+			border-radius: 0;
+			background-color: #cacaca;
+			font-family: inherit;
+			font-weight: normal;
+			}
+			
+	</style>
+  </head>
+<body>
+<div class="mro-header-wrapper">
+	<section id="mrotop"></section>
+	<div class="grid-container mro-header">
+		<div class="grid-x grid-padding-x align-middle">
+			<div class="cell medium-7 small-12 mro-headerlogo">
+				<a href="" alt="MRO Live - Portal Page">
+					<img style="max-width:361px;max-height:150px;" src="{% static 'dist/assets/img/mro-live_header.png' %}" alt="MROLive - Where Productivity Takes Flight">
+				</a>
+			</div>
+		</div>
+	</div>
+</div>
+<!-- Off-canvas Menu - END -->
+    <div class="grid-container mro-top-section">
+      <div class="grid-x grid-padding-x">
+          <div class="mro-top-section-wrapper mro-search">
+            <div class="mro-top-section">
+              <div class="mro-lightsearch" style="width:100%;">
+			  	<form method="POST" id="app_options" name="app_sel">
+                <div class="grid-x grid-padding-x">			
+                  <div class="medium-12 small-5 cell">
+				  </div>
+                  <div class="medium-12 small-5 cell">
+				  </div>
+				  <div class="cell large-auto medium-6 small-12">
+				    {% if error %}
+					<h2 style="font-weight: bold; color:red; font-size: 16px;">Hello {{ user.username }}. {{ error }}</h2>
+					<!--a href="1">Log off of all sessions.</a-->
+					{% endif %}
+					{% if user.is_authenticated and not error %}
+					<h1>Welcome {{ user.username }}!</h1>
+					{%  endif %}
+				  </div>
+                  <div class="medium-12 small-5 cell">
+				  </div>
+                  <div class="medium-12 small-5 cell">
+				  </div>
+			        {%  if user_id %}
+					{% csrf_token %}
+				  <div class="cell large-auto medium-6 small-12">
+				  <label>Your Applications</label>							
+					<select name="app_selector" style="background-color:#cacaca;">
+						<option value=""> -- No Selection -- </option>
+						{% for app in app_set %}						
+						{% if app.id == app_sel %}
+						<option value="{{ app.ml_apps_id.id }}" selected>{{ app.ml_apps_id.name }}</option>
+						{% else %}
+						<option value="{{ app.ml_apps_id.id }}">{{ app.ml_apps_id.name }}</option>
+						{% endif %}						
+						{% endfor %}
+					</select>
+				  </div>
+				  <div class="cell large-auto medium-6 small-12">
+					<label>Your Connections</label>	
+					<select name="quapi_selector" style="background-color:#cacaca;">
+						<option value=""> -- No Selection -- </option>
+						{% for quapi in quapi_set %}						
+						{% if quapi.quapi_id.id == quapi_sel %}
+						<option value="{{ quapi.quapi_id.id }}" selected>{{ quapi.quapi_id.name }} / {{ quapi.quapi_id.host }} &nabla;</option>
+						{% else %}
+						<option value="{{ quapi.quapi_id.id }}">{{ quapi.quapi_id.name }} / {{ quapi.quapi_id.host }}</option>
+						{% endif %}						
+						{% endfor %}
+					</select> 
+				  </div>
+                    <div class="large-auto small-12 cell">
+                      <div class="grid-x grid-padding-x align-middle mro-searchbuttonbox">
+						<div class="cell large-auto medium-6 small-12 mro-searchbuttonbox">
+						  <input class="primary button shadow" type="submit" value="Go" name="app_go" id="app_go" onclick="this.disabled=true,this.form.submit();"/>
+						</div>
+				      </div>
+					</div>
+			    </form>
+				{% endif %}
+              </div>
+            </div>
+          </div>        
+		</div>
+    </div>
+<div class="mro-footer-wrapper">
+	<div class="grid-container mro-footer">
+		<div class="grid-x" style="padding-bottom:250px;">
+		</div>
+		<div class="grid-x mro-footer-bottom">
+			<div class="cell medium-5 small-12 mro-footer-bottom-left">
+				<p>Copyright &copy; 2021 MRO Live <span>|</span> <img class="mro-usa" src="{% static 'dist/assets/img/usa.png' %}" alt="Based in USA">Based in USA</p>
+			</div>
+		</div>
+	</div>
+</div><script src="{% static 'dist/assets/js/app.js' %}"></script>
+</body>
+</html>

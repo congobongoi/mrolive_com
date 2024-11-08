@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+{% load static %}
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>MROLive Admin | App Management</title>
+    <link href="{% static '_screen.css' %}" rel="stylesheet" type="text/css" />
+	<link rel="shortcut icon" href="{% static 'dist/assets/img/favicon.ico' %}"/>
+	<script type="text/javascript" src="{% static 'jquery-1.12.4.js' %}"></script>
+	<script type="text/javascript" src="{% static 'jquery_tab_submit.js' %}"></script>
+	<script src="{% static 'jquery.bootstrap.modal.forms.min.js' %}"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+   </head>
+  <body style="background:none;"> 
+    <div id="container" style="width:1400px;">
+      <div id="contentWrap" style="border:none;">
+   	    <div class="contentLeft" style="width:1280px;margin-left:-50px;">
+		  <div style="float:left;margin-top:-85px;">
+			<img style="width:250px;height:250px;" src = "{% static 'logo-django-site.jpg' %}" />
+		  </div>
+		  <div>
+			{% if user.is_authenticated and user.is_superuser %}
+			</h3>Welcome {{ user.username }}!</h3>
+			</h4>Select an App and User to Assign Permissions</h4>
+
+		  </div>
+				<form method="POST" id="app_create" name="app_create">
+					{% csrf_token %}
+					<div style="font-weight:bold;float:left;margin-right:0px;margin-top:0px;padding:5px;">
+					  <div>	
+                        <!--input type="text" list="app_set" id="app_selected" name="app_selected" value="{{ app_selected }}"/-->					  
+                        <h4>MROLive Apps</h4>					
+						<select name='app_selected' id="app_selected">
+							<option value=""> -- Select App -- </option>
+							{% for app in app_set %}						
+							{% if app.id == app_sel %}
+							<option value="{{ app.id }}" selected>{{ app.name }}</option>
+							{% else %}
+							<option value="{{ app.id }}">{{ app.name }}</option>
+							{% endif %}						
+							{% endfor %}
+					    </select> 
+					  </div>
+					  <div>	
+					    <h4>MROLive Users</h4>	
+						<!--input type="text" list="user_set" id="user_selected" name="user_selected" value="{{ user_selected }}"/-->
+						<select id="user_selected" name='user_selected'>
+							<option value=""> -- Select User -- </option>
+							{% for user in users %}						
+							{% if user.id == user_sel %}
+							<option value="{{ user.id }}" selected>{{ user.first_name }} {{ user.last_name }} - {{ user.username }}</option>
+							{% else %}
+							<option value="{{ user.id }}">{{ user.first_name }} {{ user.last_name }} - {{ user.username }}</option>
+							{% endif %}						
+							{% endfor %}
+					    </select>
+					  </div>
+			          {%  if quapi_set %}
+					  <div>
+						<h4>Schema</h4>
+						<select name="quapi_selector">
+							<option value=""> -- Select Schema -- </option>
+							{% for quapi in quapi_set %}						
+							{% if quapi.id == quapi_sel %}
+							<option value="{{ quapi.id }}" selected>{{ quapi.schema }} / {{ quapi.host }}</option>
+							{% else %}
+							<option value="{{ quapi.id }}">{{ quapi.schema }} / {{ quapi.host }}</option>
+							{% endif %}						
+							{% endfor %}
+					    </select> 
+					  </div>
+					
+	                {% endif %}
+					<div style="margin-top:25px;">
+					  <input class="btn" type="submit" value="Add Permission" name="app_go" id="app_go"/>
+					</div>
+				  </div>
+			    </form>
+			<div style="float:left;margin-top:0px;margin-left:335px">
+			{%  if error %}<span style="font-weight: bold; color:red; font-size: 16px;">{{ error }}</span>{%  endif %}  
+			{%  if user_perms %}
+			    <h4>User Permissions Table</h4>
+				<table cellpadding="2" style="border-collapse: collapse; border: 1px solid gray; color:#000044">
+					<tr style="border: 1px solid gray; padding:25px; font-weight: bold; font-size: 13px;">
+						<td style="border: 1px solid gray;">User ID</td>
+						<td style="border: 1px solid gray;">User Name</td>
+						<td style="border: 1px solid gray;">App</td>
+						<td style="border: 1px solid gray;">Global Access (1/0)</td>
+					</tr>
+					{%  for perm in user_perms %}
+					<tr style="border: 1px solid gray; padding:25px; font-size: 12px;">					
+						<td style="border: 1px solid gray;">{{ perm.dj_user_id }}</td>
+						<td style="border: 1px solid gray;">{{ perm.dj_username }}</td>
+						<td style="border: 1px solid gray;">{{ perm.ml_apps_id.name }}</td>
+						<td style="border: 1px solid gray;">{{ perm.global_access }}</td>
+					</tr>                
+					{% endfor %}
+		    {% endif %}
+				</table>
+			{%  if user_schema %}
+			    <h4>User Schema Table</h4>
+				<table cellpadding="2" style="border-collapse: collapse; border: 1px solid gray; color:#000044">
+					<tr style="border: 1px solid gray; padding:25px; font-weight: bold; font-size: 13px;">
+						<td style="border: 1px solid gray;">Name</td>
+						<td style="border: 1px solid gray;">User Name</td>
+						<td style="border: 1px solid gray;">Host</td>
+						<td style="border: 1px solid gray;">Schema</td>
+					</tr>
+					{%  for schem in user_schema %}
+					<tr style="border: 1px solid gray; padding:25px; font-size: 12px;">					
+						<td style="border: 1px solid gray;">{{ schem.quapi_id.name}}</td>
+						<td style="border: 1px solid gray;">{{ schem.dj_username }}</td>
+						<td style="border: 1px solid gray;">{{ schem.quapi_id.host }}</td>
+						<td style="border: 1px solid gray;">{{ schem.quapi_id.schema }}</td>
+					</tr>                
+					{% endfor %}
+				</table>
+	        {% endif %}
+			</div>
+			{% else %}
+			  <p>Please click to login:</p>
+			  <a href="{% url 'login' %}">login</a>
+			{% endif %}
+			</div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

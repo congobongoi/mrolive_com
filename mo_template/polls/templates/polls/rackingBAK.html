@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+{% load static %}
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>MROLive Barcoding for Stock Carts, Location and Warehouse | Quantum Control</title>
+    <link href="{% static '_screen.css' %}" rel="stylesheet" type="text/css" />
+	<script type="text/javascript" src="{% static 'jquery-1.12.4.js' %}"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+	<script type="text/javascript" src="{% static 'jquery_tab_submit.js' %}"></script>
+    <script type="text/javascript" src="{% static 'field_focus.js' %}"></script>	
+   </head>
+  <body style="background:none;" onload='setFocusToTextBox()'>
+    <div id="container" style="width:1400px;">
+      <div id="contentWrap" style="border:none;">
+   	    <div class="contentLeft" style="width:1280px;margin-left:-50px;">
+			<div style="float:left;margin-top:-85px;margin-left:150px;">
+			  <img style="width:250px;height:250px;" src = "{% static 'logo-django-site.jpg' %}" />
+			</div>
+			<form method="POST" id="base_form" name="base_form" onsubmit='setFocusToTextBox()'> 
+			    {% csrf_token %}
+				<div style="float:left;font-weight:bold;">
+				    <div style="margin-bottom:40px;">
+					  <span>Mode: </span>
+					  <select name="mode_selector" id="mode_selector" class="mode_selector">
+						<option value=""> -- Select Mode -- </option>
+						{% for mmod in modes %}
+							{% if mmod.code == active_mode %}
+							<option value="{{ mmod.code }}" selected>{{ mmod.name }}</option>
+							{% else %}
+							<option value="{{ mmod.code }}">{{ mmod.name }}</option>
+							{% endif %}						
+						{% endfor %}
+					  </select>
+					</div>
+			    </div>
+				<div style="float:left;font-weight:bold;margin-right:135px;margin-top:0px;padding:5px;">
+				    <div style="margin-bottom:40px;">
+					  <span>Emp ID: </span><input type="text" id="user_id" name="user_id" value="{{ user_id }}" size="25"/>	
+					  <span id="stat_selector">Status: 
+					    <input type="hidden" name="clear_form" id="clear_form" value="0"/>
+						<input type="hidden" name="lookup_recs" id="lookup_recs" value="{{ lookup_recs}}"/>
+							<select name="status_selector" id="status_selector">
+								<option value=""> -- No Selection -- </option>
+								{% for sstatus in status_vals %}						
+								{% if sstatus.wos_auto_key == new_status %}
+								<option value="{{ sstatus.wos_auto_key }}" selected>{{ sstatus.name }}</option>
+								{% else %}
+								<option value="{{ sstatus.wos_auto_key }}">{{ sstatus.name }}</option>
+								{% endif %}							
+								{% endfor %}
+							</select>
+					    </span>
+					  <span>WHS: </span><input type="text" id="warehouse" name="warehouse" value="{{ warehouse }}" size="25"/>
+					</div>
+                    <div style="margin-bottom:40px;">					  
+					  <span>LOC: </span><input type="text" id="location" name="location" value="{{ location }}" size="25"/>					
+					  <span>Cart: </span><input type="text" id="rack" name="rack" value="{{ rack }}" size="25"/>
+					  <span>Record: </span><input type="text" id="wo_number" name="wo_number" size="25"/>
+					</div>
+				  <div style="padding:2px;margin-top:20px;"><input class="btn" type="submit" value="Update" name="wo_update" id="wo_update" style="float:left;margin-left:15px;">
+				  </div>
+				</form>	
+					<!--form method="POST" id="assign_rack" name="assign_rack"> 
+					  {% csrf_token %}
+					  <input type="hidden" name="rerack" id="rerack" value="1"/>
+					  <input type="hidden" name="rack_user" id="rack_user" value="{{ rack_user }}"/>
+					  <input type="hidden" name="new_rack" id="new_rack" value="{{ new_rack }}"/>
+					  {%  if all_woos %}
+					  <input class="btn" type="submit" name="assignage" id="assignage" value="Assign to Rack" style="margin-left:15px;">
+					  {%  endif %} 
+					</form-->	
+					<form method="POST" id="clear_formage" name="clear_formage"> 
+					  {% csrf_token %}
+					  <input type="hidden" name="clear_form" id="clear_form" value="1"/>
+					  <input type="hidden" name="user_logged" id="user_logged" value="{{ user_logged }}"/>
+					  <input type="hidden" name="sel_mode" id="sel_mode" value="{{ sel_mode }}"/>
+					  {%  if all_woos %}
+					  <input class="btn" type="submit" name="clear" id="clear" value="Clear List" style="margin-left:20px;margin-top:-5px;">
+					  {%  endif %} 
+					</form>			  
+				</div>
+			{%  if msg %}<div style="margin-left:30px;margin-top:20px;font-weight: bold; color:green; font-size: 10px;">{{ msg }}</div>{%  endif %}
+			{%  if error %}<div style="margin-left:30px;margin-top:20px;font-weight: bold; color:red; font-size: 10px;">{{ error }}</div>{%  endif %}
+				{%  if all_woos %}
+				<div style="margin-top:285px;">
+					<table cellpadding="5" style="margin:auto; border-collapse: collapse; border: 1px solid gray; color:#000044">
+						<tr style="border: 1px solid gray; padding:25px; font-weight: bold; font-size: 13px;">
+							<!--td style="border: 1px solid gray;">
+								Remove <br/>from List
+							</td-->
+							<td style="border: 1px solid gray;">Order #</td>
+							<td style="border: 1px solid gray;">Status</td>
+							<td style="border: 1px solid gray;">Customer</td>
+							<td style="border: 1px solid gray;">SL#</td>
+							<td style="border: 1px solid gray;">Part Number</td>
+							<td style="border: 1px solid gray;">Description</td>
+							<td style="border: 1px solid gray;">Serial No.</td>
+							<td style="border: 1px solid gray;">Ctrl #</td>
+							<td style="border: 1px solid gray;">Ctrl ID</td>
+							<td style="border: 1px solid gray;">Cart</td>
+							<td style="border: 1px solid gray;">Location</td>
+							<td style="border: 1px solid gray;">Warehouse</td>
+							<!--td style="border: 1px solid gray;">Update</td-->
+						</tr>
+						{%  for woo in all_woos %}
+						<tr style="border: 1px solid gray; padding:25px; font-size: 12px;">					
+							<!--td style="border: 1px solid gray;">
+								<input type="checkbox" id="remove_woo" name="remove_woo" value="{{ woo.id }}"/>
+							</td-->
+							<td style="border: 1px solid gray;">{{ woo.wo_number }}</td>
+							<td style="border: 1px solid gray;">{{ woo.status }}</td>
+							<td style="border: 1px solid gray;">{{ woo.customer }}</td>
+							<td style="border: 1px solid gray;">{{ woo.stock_line }}</td>
+							<td style="border: 1px solid gray;">{{ woo.part_number }}</td>
+							<td style="border: 1px solid gray;">{{ woo.description }}</td> 
+							<td style="border: 1px solid gray;">{{ woo.serial_number }}</td>
+							<td style="border: 1px solid gray;">{{ woo.ctrl_number }}</td>
+							<td style="border: 1px solid gray;">{{ woo.ctrl_id }}</td>
+							<td style="border: 1px solid gray;">{{ woo.rack }}</td>
+							<td style="border: 1px solid gray;">{{ woo.location_code }}</td>
+							<td style="border: 1px solid gray;">{{ woo.wh_code }}</td>
+							<!--td style="border: 1px solid gray;">{{ woo.update_stamp }}</td-->
+						</tr>               
+						{% endfor %}
+					</table>
+				</div>
+				{%  endif %}			
+	    </div>
+      </div>
+   </div>
+  </body>
+</html>

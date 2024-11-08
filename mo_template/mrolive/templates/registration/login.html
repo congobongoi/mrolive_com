@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MROLive Portal User Login - Where Productivity Takes Flight</title>
+    <link rel="stylesheet" href="{% static 'dist/assets/css/app.css' %}">
+    <link href="{% static 'dist/assets/fontawesome/css/all.css' %}" rel="stylesheet">
+	<link rel="shortcut icon" type="image/png" href="{% static 'favicon.ico' %}"/>
+  </head>
+<body>
+<div class="mro-header-wrapper">
+	<section id="mrotop"></section>
+	<div class="grid-container mro-header">
+		<div class="grid-x grid-padding-x align-middle">
+			<div class="cell medium-7 small-12 mro-headerlogo">
+				<a href="" alt="MRO Live - Homepage">
+					<img style="max-width:361px;max-height:150px;" src="{% static 'dist/assets/img/mro-live_header.png' %}" alt="MROLive - Where Productivity Takes Flight">
+				</a>
+			</div>
+			<div class="cell medium-5 small-12 mro-clientlogo show-for-medium">
+				<a href="#">MROLive Portal - Where Productivity Takes Flight</a>			
+			</div>
+		</div>
+	</div>
+</div>
+<!-- Off-canvas Menu - END -->
+    <div class="grid-container mro-top-section">
+      <div class="grid-x grid-padding-x">
+          <div class="mro-top-section-wrapper mro-search">
+            <div class="mro-top-section">
+              <div class="mro-lightsearch">
+                <div class="grid-x grid-padding-x">
+				  <div class="medium-12 small-7 cell hide-for-medium">
+				  </div>
+				  <div class="medium-12 small-7 cell hide-for-medium">
+				  </div>
+				  <div class="cell large-auto medium-6 small-12">
+					<h1>Login</h1>
+				  </div>
+                  <div class="cell large-6 medium-6 small-12" style="width:100%;">
+					{% block content %}
+					  {% if form.errors %}
+						<p style="color:red">Your username and password didn't match. Please try again.</p>
+					  {% endif %}
+					  
+					  {% if next %}
+						{% if user.is_authenticated %}
+						  <p>Your account doesn't have access to this page. To proceed,
+						  please login with an account that has access.</p>
+						{% else %}
+						  <p>Please login to see this page.</p>
+						{% endif %}
+					  {% endif %}
+					  
+					  <form method="post" action="{% url 'login' %}">
+						{% csrf_token %}
+					    <div class="cell large-6 medium-6 small-12">
+                          <label>{{ form.username.label_tag }}</label>
+							     {{ form.username }}
+					    </div>
+                        <div class="cell large-6 medium-6 small-12">
+                          <label>{{ form.password.label_tag }}</label>
+							     {{ form.password }}
+						</div>
+						<div class="cell large-6 medium-6 small-12 mro-searchbuttonbox">
+						  <input class="primary button shadow" type="submit" value="Login" id="login"/>
+						</div>
+						<input type="hidden" name="next" value="{{ next }}" />
+					  </form>
+					  
+					  {# Assumes you setup the password_reset view in your URLconf #}
+					  <!--p><a href="{% url 'password_reset' %}">Lost password?</a></p-->
+					  
+					{% endblock %}
+                  </div>
+              </div>
+            </div>
+          </div>
+      </div>
+    </div>
+<div class="mro-footer-wrapper">
+	<div class="grid-container mro-footer">
+		<div class="grid-x">
+		</div>
+
+		<div class="grid-x mro-footer-bottom">
+			<div class="cell medium-5 small-12 mro-footer-bottom-left">
+				<p>Copyright &copy; 2021 MRO Live <span>|</span> <img class="mro-usa" src="{% static 'dist/assets/img/usa.png' %}" alt="Based in USA">Based in USA</p>
+			</div>
+			<div class="cell medium-7 small-12 mro-footer-bottom-right">
+				<p><img src="{% static 'dist/assets/img/sectigo.png' %}" /> | Have Questions, Comments, or Concerns? <a href="mailto:Admin@MROLive.com">Get In Touch at Admin@MROLive.com</a></p>
+			</div>
+		</div>
+	</div>
+</div><script src="{% static 'dist/assets/js/app.js' %}"></script>
+</body>
+</html>

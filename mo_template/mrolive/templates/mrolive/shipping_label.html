@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+	<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, post-check=0, pre-check=0" /> 
+	<meta http-equiv="Pragma" content="no-cache" />
+    <meta charset="utf-8" />
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MRO Live - Shipping Label - Where Productivity Takes Flight</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+	<link rel="shortcut icon" type="image/png" href="{% static 'favicon.ico' %}"/>
+    <link rel="stylesheet" href="{% static 'dist/assets/css/app.css' %}">
+    <link href="{% static 'dist/assets/fontawesome/css/all.css' %}" rel="stylesheet">
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.common-material.min.css" />
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.material.min.css" />
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.material.mobile.min.css" />
+    <script src="https://kendo.cdn.telerik.com/2020.1.114/js/jszip.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/2.4.0/jszip.js"></script>
+    <script src="https://kendo.cdn.telerik.com/2017.2.621/js/jquery.min.js"></script>
+    <script src="https://kendo.cdn.telerik.com/2017.2.621/js/kendo.all.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>	
+	<script type="text/javascript" src="{% static 'jquery-1.12.4.js' %}"></script>
+    <script type="text/javascript" src="{% static 'field_focus.js' %}"></script>
+	<script src="{% static 'jquery.bootstrap.modal.forms.min.js' %}"></script>
+	<script type="text/javascript" src="{% static 'jquery_tab_submit.js' %}"></script>
+    <style>
+		#barcode {
+			width: 1004px;
+			margin: auto;
+			padding:12px;
+			font-size:16pt;
+			display:block;
+		}
+		/*tbody th, tbody td {
+		  padding:1px;
+		}
+		text {
+		  display:none;
+		}
+		svg g text {
+		    float:left;
+		}
+		table {
+		  padding:0px;
+		  border:none;
+		  margin:0px;
+		}
+		table tr,td {
+		  font-size:10pt;
+		  padding:0px;
+		  border:none;
+		  margin:0px;
+		  background-color:white;
+		}
+        thead, tbody, tfoot {
+		  padding:0px;
+		  border:none;
+		  margin:0px;
+		  background-color:white;
+		}*/
+    </style>
+  </head>
+<body>
+  <div id="barcode" class="barcode" name="barcode">
+    <div style="padding:10px;margin-left:410px;">
+	  <a href="../smd-management/{{quapi_id}}">
+	    <img style="width:180px;" src="{% static 'logo.jpg' %}"/>
+	  </a>
+    </div>
+	<div style="margin-left:20px;">
+	    User scan date: {{scan_time}}
+	</div>
+	<table style="border: 1px solid;margin:15px;padding:15px;" cellpadding="5" cellspacing="5">		    
+	  <tr style="border: 1px solid;margin:5px;width:1000px;">
+		<td style="border: 1px solid;font-weight:bold;width:13%;">SM# 
+		</td>
+		<td style="border: 1px solid;font-weight:bold;width:13%;">ORDER# 
+		</td>
+		<td style="border: 1px solid;font-weight:bold;width:13%;">STM 
+		</td>
+		<td style="border: 1px solid;font-weight:bold;width:13%;">PN 
+		</td>
+		<td style="border: 1px solid;font-weight:bold;width:13%;">DESC 
+		</td>
+		<td style="border: 1px solid;font-weight:bold;width:13%;">LOC 
+		</td>
+		<td style="border: 1px solid;font-weight:bold;width:12%;">S/N 
+		</td>
+		<td style="border: 1px solid;font-weight:bold;width:12%;">SL 
+		</td>
+		<td style="border: 1px solid;font-weight:bold;width:10%;">QTY 
+		</td>
+		<td style="border: 1px solid;font-weight:bold;width:11%;">TOTE
+		</td>
+		<!--td style="border: 1px solid;font-weight:bold;width:11%;">NOTES
+		</td>
+		<td style="border: 1px solid;font-weight:bold;width:11%;">USER
+		</td-->
+	  </tr>
+      {% for smd in smds %}	
+		  <tr style="border: 1px solid;width:1000px;">
+			<td style="border: 1px solid;">{{smd.si_number}}</td>
+			<td style="border: 1px solid;">{{smd.wo_number}}</td>
+			<td style="border: 1px solid;">{{smd.stm_auto_key}}</td>
+			<td style="border: 1px solid;">{{smd.part_number}}</td>
+			<td style="border: 1px solid;">{{smd.description}}</td>
+			<td style="border: 1px solid;">{{smd.location_code}}</td>
+			<td style="border: 1px solid;">{{smd.serial_number}}</td>
+			<td style="border: 1px solid;">{{smd.stock_line}}</td>
+			<td style="border: 1px solid;">{{smd.qty_reserved}}</td>
+			<td style="border: 1px solid;">{{smd.cart}}</td>
+			<!--td style="border: 1px solid;">
+			{{smd.notes}}<br/>
+			</td>
+			<td style="border: 1px solid;">
+			{{smd.user_id}}<br/>
+			</td-->
+		  </tr>
+	  {% endfor %}
+	</table>
+  </div>
+    <script src="{% static 'dist/assets/js/app.js' %}"></script>
+</body>
+</html>

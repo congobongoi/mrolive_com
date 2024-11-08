@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MRO Live Apps Connections/Apps Routing - Where Productivity Takes Flight</title>
+    <link rel="shortcut icon" href="{% static 'dist/assets/img/favicon.ico' %}"/>
+    <link rel="stylesheet" href="{% static 'dist/assets/css/app.css' %}">
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.common-material.min.css" />
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.material.min.css" />
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.material.mobile.min.css" />
+	<script src="https://kendo.cdn.telerik.com/2017.2.621/js/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>	
+	<script type="text/javascript" src="{% static 'jquery-1.12.4.js' %}"></script>
+    <link href="{% static 'dist/assets/fontawesome/css/all.css' %}" rel="stylesheet">
+	<link rel="shortcut icon" type="image/png" href="{% static 'favicon.ico' %}"/>
+	<style>
+        input::-webkit-calendar-picker-indicator {
+              opacity: 100;
+        }
+		.mro-top-section .mro-barcodingradio {
+			display: block;
+		}	
+        .mro-top-section .mro-barcodingradio label,a {
+		    margin:auto;
+			width:100%;
+			color:#FFF;
+			background-color:#284a8a;           			
+			border-radius:3px;	
+            text-decoration:none;			
+        }
+        .app-heading {
+		    margin:auto;
+			text-align: center;
+			width:100%;
+			font-size:15pt;
+			color:#FFF;
+			background-color:#284a8a; 
+            border: 1px solid;
+            border-color: #d2d2dd;			
+			border-radius:3px;
+        }
+        .app-toggle {
+            visibility:hidden;
+        }			
+	</style>
+  </head>
+<body>
+    <audio src="{% static 'error-trombone.mp3' %}" id="sad_trombone"></audio>
+    <script type="text/javascript">
+			$(document).ready(
+				function () {
+			    error = $("#error").val();
+				if (error) {
+                   $("#sad_trombone").get(0).play();
+				}
+				appForm = $("#app_options");
+				appForm.on("change", "#quapi_selector", function(evt){
+				//var active_mode = $('#app_selector').find(":selected").val();
+				quapi_id = $('#quapi_selector').val();
+                //$('#app_sel').attr('href',function() { return $('#app_sel').attr("href") + quapi_id });				
+                //console.log('Quapi submit.');
+                //$('.app-toggle').css('visibility','visible');				
+				evt.preventDefault();			
+			    appForm.submit();
+			    });
+		    })
+    </script>
+<div class="mro-header-wrapper">
+	<section id="mrotop"></section>
+	<div class="grid-container mro-header">
+		<div class="grid-x grid-padding-x align-middle">
+			<div class="cell medium-7 small-12 mro-headerlogo">
+				<a href="" alt="MRO Live - Portal Page">
+					<img style="max-width:361px;max-height:150px;" src="{% static 'dist/assets/img/mro-live_header.png' %}" alt="MROLive - Where Productivity Takes Flight">
+				</a>
+			</div>
+		</div>
+	</div>
+</div>
+<!-- Off-canvas Menu - END -->
+    <div class="grid-container mro-top-section">
+      <div class="grid-x grid-padding-x">
+          <div class="mro-top-section-wrapper mro-search">
+            <div class="mro-top-section">
+			  <form method="POST" id="app_options" name="app_sel">
+				<div class="mro-lightsearch" style="width:100%;">
+                <div class="grid-x grid-padding-x">			
+                  <div class="medium-12 small-5 cell">
+				  </div>
+                  <div class="medium-12 small-5 cell">
+				  </div>
+				  <div class="cell large-auto medium-6 small-12">
+				    {% if sess_error or lic_error %}
+					<h2 style="font-weight: bold; color:black; font-size: 16px;">Hello {{ user.username }}! {{ lic_error }} {{ sess_error }}</h2>
+						{% if sess_error %}
+						<a href="../../login/route/1" style="text-decoration:underline;color:black;font-size: 16px">Log off all sessions.</a>
+						{% endif %}
+					{% endif %}
+					{% if error %}
+					<h2 style="font-weight: bold; color:black; font-size: 16px;">{{ error }}</h2>
+					{%  endif %}
+					{% if user.is_authenticated and not error and not sess_error and not lic_error %}
+					<h1>Welcome {{ user.username }}!</h1>
+					{%  endif %}
+				  </div>
+                  <div class="medium-12 small-5 cell">
+				  </div>
+                  <div class="medium-12 small-5 cell">
+				  </div>
+			        {%  if user_id %}
+					{% csrf_token %}
+
+				  <div class="cell large-auto medium-6 small-12">
+					<!--label>Your Connections</label-->	
+					<select name="quapi_selector" id="quapi_selector" class="quapi_selector" style="background-color:#284a8a;color:white;">
+						<option value=""> -- No Selection -- </option>
+						{% for quapi in quapi_set %}						
+							{% if quapi.quapi_id.id == quapi_sel %}
+							<option value="{{ quapi.quapi_id.id }}" selected>{{ quapi.quapi_id.name }} / {{ quapi.quapi_id.host }} </option>
+							{% else %}
+							<option value="{{ quapi.quapi_id.id }}">{{ quapi.quapi_id.name }} / {{ quapi.quapi_id.host }} </option>
+                            {% endif %}							
+						{% endfor %}
+					</select> 
+				  </div>
+				</div>
+				</div>
+				<div class="mro-darksearch" style="width:100%;">
+                <div class="grid-x grid-padding-x">
+                  {% if quapi_sel %}	
+                  {% if op_apps %}				  
+				  <div class="cell large-auto medium-6 small-12">
+                      <div class="app-heading">Operations</div>					  
+					  <fieldset class="mro-barcodingradio">
+					  {% for app in op_apps %}                      
+						<input type="radio" onclick="javascript:window.location.href='../../portal/{{ app.ml_apps_id.code }}/{{quapi_sel}}'" class="app_selector" name="app_selector" id="radio{{ app.ml_apps_id.name }}" value="{{ app.ml_apps_id.id }}">
+						<label for="radio{{ app.ml_apps_id.name }}">{{ app.ml_apps_id.name }}</label>
+					  {% endfor %}  
+                      </fieldset>
+				  </div>
+				  {% endif %}
+				  {% if mgmt_apps %}
+				  <div class="cell large-auto medium-6 small-12">
+					<div class="app-heading">Management</div>					
+					  <fieldset class="mro-barcodingradio">
+					  {% for app in mgmt_apps %}
+						<input type="radio" onclick="javascript:window.location.href='../../portal/{{ app.ml_apps_id.code }}/{{quapi_sel}}'" class="app_selector" name="app_selector" id="radio{{ app.ml_apps_id.name }}" value="{{ app.ml_apps_id.id }}">
+						<label for="radio{{ app.ml_apps_id.name }}">{{ app.ml_apps_id.name }}</label>
+					  {% endfor %}  
+                      </fieldset>
+				  </div>
+				  {% endif %}
+				  {% if dash_apps %}
+				  <div class="cell large-auto medium-6 small-12">
+					<div class="app-heading">Dashboards</div>					
+					  <fieldset class="mro-barcodingradio">
+					  {% for app in dash_apps %}
+						<input type="radio" onclick="javascript:window.location.href='../../portal/{{ app.ml_apps_id.code }}/{{quapi_sel}}'" class="app_selector" name="app_selector" id="radio{{ app.ml_apps_id.name }}" value="{{ app.ml_apps_id.id }}">
+						<label for="radio{{ app.ml_apps_id.name }}">{{ app.ml_apps_id.name }}</label>
+					  {% endfor %}  
+                      </fieldset>
+				  </div>
+				  {% endif %}
+				  {% if setup_apps %}
+				  <div class="cell large-auto medium-6 small-12">
+					<div class="app-heading">Setup</div>					
+					  <fieldset class="mro-barcodingradio">
+					  {% for app in setup_apps %}
+						<input type="radio" onclick="javascript:window.location.href='../../portal/{{ app.ml_apps_id.code }}/{{quapi_sel}}'" class="app_selector" name="app_selector" id="radio{{ app.ml_apps_id.name }}" value="{{ app.ml_apps_id.id }}">
+						<label for="radio{{ app.ml_apps_id.name }}">{{ app.ml_apps_id.name }}</label>
+					  {% endfor %}  
+                      </fieldset>
+				  </div>
+				  {% endif %}
+				{% endif %}
+				{% endif %}
+			    </form>
+              </div>
+            </div>
+          </div>        
+		</div>
+    </div>
+<div class="mro-footer-wrapper">
+	<div class="grid-container mro-footer">
+		<div class="grid-x" style="padding-bottom:250px;">
+		</div>
+		<div class="grid-x mro-footer-bottom">
+			<div class="cell medium-5 small-12 mro-footer-bottom-left">
+				<p>Copyright &copy; 2023 MRO Live <span>|</span> <img class="mro-usa" src="{% static 'dist/assets/img/usa.png' %}" alt="Based in USA">Based in USA</p>
+			</div>
+		</div>
+	</div>
+</div><script src="{% static 'dist/assets/js/app.js' %}"></script>
+</body>
+</html>

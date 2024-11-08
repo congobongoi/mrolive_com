@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+{% load static %}
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>MROLIve Product Template Creation Utility for Quantum Control</title>
+    <link href="{% static '_screen.css' %}" rel="stylesheet" type="text/css" />
+   </head>
+  <body>
+    <div id="container">
+      <div id="contentWrap" style="border:none;">
+   	    <div class="contentLeft">
+		  <h3>Results from Creation of Product Template from MO#: {{ mo_number }}</h3>
+		  {% if msg != "No errors found." %}<p><h4>There were errors that prevented the creation of your PT: {{ msg }}</h4></p>
+		  {% else %}<h4>You have successfully created
+		     Product Template(s): {{ opm_auto_key }} | 
+     		  Revision(s): {{ revision }} | Part Number(s): {{ part_number }} | Part Description(s): {{ part_desc }}.</h4>
+		  {% endif %}
+		  <a href="{% url 'polls:detail' 1 %}">Create Another Product Template?</a>
+		</div>
+	  </div>
+	</div>
+  </body>
+</html>

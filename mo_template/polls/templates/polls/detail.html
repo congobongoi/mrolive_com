@@ -1,0 +1,29 @@
+ <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+{% load static %}
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>MROLIve Product Template Creation Utility for Quantum Control</title>
+    <link href="{% static '_screen.css' %}" rel="stylesheet" type="text/css" />
+   </head>
+  <body>
+    <div id="container">
+      <div id="contentWrap" style="border:none;">
+   	    <div class="contentLeft" style="width:900px;">
+		    {% if question.id != 2 %}
+			<h3>Create New Product Template from Manufacturing Order</h3>
+			<form action="{% url 'polls:vote' question.id %}" method="post">
+			{% csrf_token %}
+					<strong>Manufacturing Order#:</strong>
+					<input name="mo_number" type="text" id="mo_number">
+					<input type="submit" value="Create">
+			</form>
+			{% else %}
+			<h3>You have successfully closed the connection to Quantum/Oracle.</h3>
+			<a href="{% url 'polls:detail' 1 %}">Create Another Product Template?</a>
+			{% endif %}
+	  </div>
+    </div>
+   </div>
+  </body>
+</html>
