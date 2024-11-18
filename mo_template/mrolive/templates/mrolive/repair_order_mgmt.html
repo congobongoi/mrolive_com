@@ -31,19 +31,64 @@
         .k-pager-wrap .k-dropdown {
             width: 100px;	    
         }
-		.k-grid-toolbar { 
+		.k-header .k-grid-toolbar {
 			background-color:#284a8a !important;
-            max-height: 37px;			
+            max-height: 37px;		
+		}
+		/* Make toolbar sticky to the top of page when scrolling down */
+		.k-grid-toolbar {
+			position: sticky !important;
+            top: 0 !important;
+            z-index: 1000 !important;
+            background-color: #284a8a !important;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1) !important;
+		}
+		.k-grid-header {
+			position: sticky !important;
+			top: 4.5em !important;
+			z-index: 1000 !important;
+		}
+		@media (max-width: 560px) {
+			.k-grid-header {
+				position: sticky !important;
+				top: 7.7em !important;
+				z-index: 1000 !important;
+			}
+		}
+		.k-toolbar .k-widget .k-toolbar-resizable {
+			border-color:#284a8a !important;
+			background-color:#284a8a !important;
+		}
+		.k-toolbar {
+			background-color: #284a8a;
+			border-color: #284a8a;
+		}
+		.toolbar-buttons {
+			display: flex;
+			align-items: baseline;
+			justify-content: flex-end;
+			color: white;
+		}
+		.align-buttons {
+			float: right;
+			margin-top: 4px;
+    		margin-bottom: -18px;
 		}
 		.k-button { 
 			background-color:#284a8a !important; 
 		}
 		.centered {
-		  /*top: 50%;*/
-		  left: 50%;
-		  height: 100%;
-		  /* bring your own prefixes */
-		  transform: translateX(-50%);
+			/*top: 50%;*/
+			left: 50%;
+			height: 100%;
+			/* bring your own prefixes */
+			transform: translateX(-50%);
+		}
+		/* Match Grid container size to width under 1200px view width */
+		@media (max-width: 1200px) {
+			.centered {
+				width: 100%;
+			}
 		}
 		.total_rows {
 		 padding-left:5px;
@@ -89,6 +134,11 @@
 		.k-grid-header th.k-header {
 		    font-size:6pt;
 			line-height:1.0em;
+		}
+		@media (max-width: 40em) {
+			.mro-top-section .mro-lightsearch {
+				padding-right: 32px !important;
+			}
 		}
     </style>
   </head>
@@ -218,9 +268,11 @@
 				</div>
 				<div class="cell large-4 medium-6 small-12">
 				  <h1><span style="padding-left:5px;font-size:14px;">STOCK SEARCH</span>
-				  <div>
-				  <a class="sublink" href="../repair-order-edit/{{quapi_id}}">EDIT ROs</a>
-				  </div>
+					<!-- Double check that these lines were meant to be deleted.
+					<div>
+				  		<a class="sublink" href="../repair-order-edit/{{quapi_id}}">EDIT ROs</a>
+				  	</div> 
+					-->
 				  </h1>			  
 				  {%  if msg %}<div style="font-weight: bold; color:green; font-size: 12px;">{{ msg }}</div>{%  endif %}
 				</div>
@@ -593,16 +645,14 @@ $(function() {
        </div>
       </div>
 	  {% endif %}  
-    <!-- End modal error popup --> 
+    <!-- End modal error popup -->
+	<script type="text/x-kendo-template" id="template">
+		<div id="toolbar"></div>
+	</script> 
 	<div class="mro-bottom-section-wrapper mro-table">
       <div class="grid-container mro-bottom-section">
 	      <div class="grid-x grid-padding-x">	
-			{% if all_woos %}	
-			<div style="top:62px;z-index:1000;left:830px;position: relative;color: white;">	
-              <input type="button" id="select_all" class="secondary button shadow" value="SELECT ALL"/>			
-			  <input type="button" id="update" name="update" class="primary button shadow" value="UPDATE"/>
-			    <input type="text" class="sel_rows" id="sel_rows" name="sel_rows" size="4" value="{{ sel_rows }}" readonly>of     <input type="text" class="total_rows" id="total_rows" name="total_rows" value="{{ total_rows }}" size="5" readonly>
-			</div>	
+			{% if all_woos %}
 			<div class="centered grid" id="grid" name="grid">
 			  <!--div class="counter_wrap">
 		         
@@ -613,7 +663,8 @@ $(function() {
 			  <input type="text" class="sel_rows" id="sel_rows" name="sel_rows" size="4" value="{{ sel_rows }}" readonly>of     <input type="text" class="total_rows" id="total_rows" name="total_rows" value="{{ total_rows }}" size="5" readonly>
 			</div-->	
 
-			<!--/script-->					
+			<!--/script-->
+								
 			<script>
 			kendo.ui.Grid.prototype._positionColumnResizeHandle= function() {
 			  var that = this,
@@ -629,24 +680,7 @@ $(function() {
 			  });
 			};
 			var oldPageSize = 0;
-			$( "#select_all" ).click(function() {
-			  //alert( "Handler for .click() called." );
-			    var grid = $("#grid").data("kendoGrid");
-				//oldPageSize = grid.dataSource.pageSize();
-				//grid.dataSource.pageSize(grid.dataSource.data().length);
 
-				if (grid.dataSource.data().length === grid.select().length) {
-					grid.clearSelection();
-					$("input[type=hidden][class='woos_stale']").remove(); 
-					$("input[type=hidden][class='woos']").remove();	
-					$('#sel_rows').val(0);
-				} 
-				else {
-					grid.select("tr");
-				};
-
-				//grid.dataSource.pageSize(oldPageSize);
-			});
 			function onChange(e) {
 			    //$('.woos').remove();
 				var rows = e.sender.select();
@@ -708,8 +742,8 @@ $(function() {
 					}						
 					var dsg = new kendo.data.DataSource(dataSourceArguments);
 					var options = localStorage["grid-options"];
-					$("#grid").kendoGrid({  					
-					    toolbar: ["excel"],
+					$("#grid").kendoGrid({
+						toolbar: kendo.template($("#template").html()),
 						excel: {
 							fileName: "ro-management-export.xlsx",
 							proxyURL: "https://demos.telerik.com/kendo-ui/service/export",
@@ -729,47 +763,55 @@ $(function() {
 							pageSizes: true,
 							buttonCount: 5,
 						},
+						// Auto Fit Columns to resize columns to fit data on load
+						dataBound: function() {
+							for (var i = 0; i < this.columns.length; i++) {
+								this.autoFitColumn(i);
+							}
+						},
+						mobile: true,
+						// Disable width to allow for dataBound function to work
                         columns: [
 							{
 							  field: 'wo_number',
 							  title: 'Cust. Order',
-							  width: "2.3cm",
+							//   width: "2.3cm",
 							},
 							{
 							  field: 'due_date',
 							  title: 'Due Date',
                               template: '#= kendo.toString(kendo.parseDate(due_date), "MM/dd/yyyy")#',
-                              width: "2cm",					  
+                            //   width: "2cm",					  
 							},
 							{
 							  field: 'part_number',
 							  title: 'Part Number',
-							  width: "2.4cm",
+							//   width: "2.4cm",
 							},
 							{
 							  field: 'description',
 							  title: 'Description',
-							  width: "2.4cm",
+							//   width: "2.4cm",
 							},
 							{
 							  field: 'stock_line',
 							  title: 'SL',
-							  width: "1.5cm",
+							//   width: "1.5cm",
 							},
 							{
 							  field: 'serial_number',
 							  title: 'Serial',
-							  width: "2cm",	
+							//   width: "2cm",	
 							},
 							{
                               field: 'condition_code',
 							  title: 'CUR CD',
-							  width: "2cm",	
+							//   width: "2cm",	
 							},
 							{
                               field: 'cond_level_gsix',
 							  title: 'BUY CD',
-							  width: "2cm",	
+							//   width: "2cm",	
 							},
 							//{
 							  //field: 'rack',
@@ -779,27 +821,27 @@ $(function() {
 							{
 							  field: 'status',
 							  title: 'Status',
-							  width: "2cm",	
+							//   width: "2cm",	
 							},
 							{
 							  field: 'quantity',
 							  title: 'QTY OH',
-							  width: "2cm",	
+							//   width: "2cm",	
 							},
 							{
 							  field: 'location_code',
 							  title: 'Loc',
-							  width: "1.6cm",	
+							//   width: "1.6cm",	
 							},
 							{
 							  field: 'customer',
 							  title: 'Customer',
-							  width: "2cm",	
+							//   width: "2cm",	
 							},
 							{
 							  field: 'vendor',
 							  title: 'Last Vendor',
-							  width: "2.2cm",	
+							//   width: "2.2cm",	
 							},
 							//{
 							  //field: 'sub_wo_gate',
@@ -808,6 +850,7 @@ $(function() {
 							//},
 					    ]
 					});
+
 					$("select[data-role='dropdownlist']").kendoDropDownList({
 						dataTextField: "pageSize",
 						dataValueField: "sizeValue",
@@ -839,15 +882,83 @@ $(function() {
 
 						return;
 					}
+
+					$("#grid").find("#toolbar").kendoToolBar({
+						items: [
+							{
+								template: `
+								<a class="k-button k-button-icontext k-grid-excel" href="\#"><span class="k-icon k-i-excel"></span>Export to Excel</a>`
+							},
+							{
+								template: `
+									<div class="toolbar-buttons">
+										<input type="button" id="select_all" name="select_all" class="secondary button shadow" value="SELECT ALL"/>
+										<input type="button" id="update" name="update" class="primary button shadow" value="UPDATE"/>
+										<input type="text" class="sel_rows" id="sel_rows" name="sel_rows" size="4" value="{{ sel_rows }}" readonly>of     <input type="text" class="total_rows" id="total_rows" name="total_rows" value="{{ total_rows }}" size="5" readonly>
+									</div>`,
+								attributes: {"class":"align-buttons"}
+							},
+						]
+					});
+
+					$( "#select_all" ).click(function() {
+					//   alert( "Handler for .click() called." );
+						var grid = $("#grid").data("kendoGrid");
+						//oldPageSize = grid.dataSource.pageSize();
+						//grid.dataSource.pageSize(grid.dataSource.data().length);
+
+						if (grid.dataSource.data().length === grid.select().length) {
+							grid.clearSelection();
+							$("input[type=hidden][class='woos_stale']").remove(); 
+							$("input[type=hidden][class='woos']").remove();	
+							$('#sel_rows').val(0);
+						} 
+						else {
+							grid.select("tr");
+						};
+
+						//grid.dataSource.pageSize(oldPageSize);
+					});
+
+					// Enable select on click to allow for mobile selection of different rows
+					$("#grid tbody").on("click", "tr", function(e) {
+						var rowElement = this;
+						var row = $(rowElement);
+						var grid = $("#grid").getKendoGrid();
+
+						if (row.hasClass("k-state-selected")) {
+							var selected = grid.select();
+
+							selected = $.grep(selected, function(x) {
+								var itemToRemove = grid.dataItem(row);
+								var currentItem = grid.dataItem(x);
+								return itemToRemove.stm_auto_key != currentItem.stm_auto_key
+							})
+
+							grid.clearSelection();
+							$('#sel_rows').val(0);
+							grid.select(selected);
+							e.stopPropagation();
+
+						} else {
+							grid.select(row)
+							e.stopPropagation();
+						}
+					});
 				});
 			  </script>	
 	            </div>	
 			{% endif %}
 		  </div>
         <div class="grid-x mro-pagination-section">
-          <div class="cell large-5 medium-6 small-12 ">
+          <!-- <div class="cell large-5 medium-6 small-12">
             <a class="mrotop" href="#mrotop" data-smooth-scroll><span>^</span> Back to Top</a>
-          </div>
+          </div> -->
+			<div class="cell large-4 medium-4 small-4"></div>
+        	<div class="cell large-4 medium-4 small-4 grid-x align-center">
+            	<a class="mrotop" href="#mrotop" data-smooth-scroll><span>^</span> Back to Top</a>
+          	</div>
+		  	<div class="cell large-4 medium-4 small-4"></div>	
         </div>		  
 	    </div>
 	  </div>
