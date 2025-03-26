@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+	<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, post-check=0, pre-check=0" /> 
+	<meta http-equiv="Pragma" content="no-cache" />
+    <meta charset="utf-8" />
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MRO Live - Manifest - Where Productivity Takes Flight</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+	<link rel="shortcut icon" type="image/png" href="{% static 'favicon.ico' %}"/>
+    <link rel="stylesheet" href="{% static 'dist/assets/css/app.css' %}">
+    <link href="{% static 'dist/assets/fontawesome/css/all.css' %}" rel="stylesheet">
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.common-material.min.css" />
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.material.min.css" />
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.material.mobile.min.css" />
+    <script src="https://kendo.cdn.telerik.com/2020.1.114/js/jszip.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/2.4.0/jszip.js"></script>
+    <script src="https://kendo.cdn.telerik.com/2017.2.621/js/jquery.min.js"></script>
+    <script src="https://kendo.cdn.telerik.com/2017.2.621/js/kendo.all.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>	
+	<script type="text/javascript" src="{% static 'jquery-1.12.4.js' %}"></script>
+    <script type="text/javascript" src="{% static 'field_focus.js' %}"></script>
+	<script src="{% static 'jquery.bootstrap.modal.forms.min.js' %}"></script>
+	<script type="text/javascript" src="{% static 'jquery_tab_submit.js' %}"></script>
+    <style>
+		#barcode {
+			width: 1004px;
+			margin: auto;
+			padding:12px;
+			font-size:16pt;
+			display:block;
+		}
+		div.square {
+		  border: solid 1.5px #000;
+		  width: 50px;
+		  height: 50px;
+		  float: right;
+		}
+		table.instructions {
+		  border: none;
+		}
+		tr.instructions {
+		  border: none;
+		  padding: 5px;
+		}
+		text {
+		  display: none;
+		}
+    </style>
+   </head>
+  <body>
+	<div id="barcode">	
+    <div style="padding:10px;margin-left:490px;">
+	  <a href="../barcoding/{{quapi_id}}">
+	    <img style="width:180px;" src="{% static 'logo.jpg' %}"/>
+	  </a>
+    </div>
+	<table style="border:1px solid;">		    
+	  <tr style="border:1px solid;width:1000px;">
+		<td style="border:1px solid;">
+		</td>
+		<td style="border:1px solid;">STOCK LINE 
+		</td>
+		<td style="border:1px solid;">PN 
+		</td>
+		<td style="border:1px solid;">DESC 
+		</td>
+		<td style="border:1px solid;">QTY OH 
+		</td>
+		<td style="border:1px solid;">UOM
+		</td>
+		<td style="border:1px solid;">COND 
+		</td>
+		<td style="border:1px solid;">SN 
+		</td>
+		<td style="border:1px solid;">CONSIG
+		</td>
+		<td style="border:1px solid;">REMARKS
+		</td>
+	  </tr>
+      {% for stm in stm_recs %}	
+		  <tr style="border:1px solid;width:1000px;">
+			<td style="border:1px solid;"><div style="margin-bottom:-22px;width:200px;height:63px;" id={{stm.stm_auto_key}}></div>
+			<span style="font-size:9pt;padding-left:85px;">{{stm.stm_auto_key}}</span></td>
+			<td style="border:1px solid;"><span>{{stm.stock_line}}</span></td>
+			<td style="border:1px solid;"><span>{{stm.part_number}}</span></td>
+			<td style="border:1px solid;">{{stm.description}}</td>
+			<td style="border:1px solid;">{{stm.quantity}}</td>
+			<td style="border:1px solid;">{{stm.uom_code}}</td>
+			<td style="border:1px solid;">{{stm.condition_code}}</td>
+			<td style="border:1px solid;">{{stm.serial_number}}</td>
+			<td style="border:1px solid;">{{stm.consignment_code}}</td>
+			<td style="border:1px solid;">{{stm.remarks}}</td>
+		  </tr>
+	  {% endfor %}
+	</table>
+	<script>
+		// Import DejaVu Sans font for embedding
+
+		// NOTE: Only required if the Kendo UI stylesheets are loaded
+		// from a different origin, e.g. cdn.kendostatic.com
+		kendo.pdf.defineFont({
+			"DejaVu Sans"             : "https://kendo.cdn.telerik.com/2016.2.607/styles/fonts/DejaVu/DejaVuSans.ttf",
+			"DejaVu Sans|Bold"        : "https://kendo.cdn.telerik.com/2016.2.607/styles/fonts/DejaVu/DejaVuSans-Bold.ttf",
+			"DejaVu Sans|Bold|Italic" : "https://kendo.cdn.telerik.com/2016.2.607/styles/fonts/DejaVu/DejaVuSans-Oblique.ttf",
+			"DejaVu Sans|Italic"      : "https://kendo.cdn.telerik.com/2016.2.607/styles/fonts/DejaVu/DejaVuSans-Oblique.ttf",
+			"WebComponentsIcons"      : "https://kendo.cdn.telerik.com/2017.1.223/styles/fonts/glyphs/WebComponentsIcons.ttf"
+		});
+	</script>
+    <script>
+		function setOptions(e) {
+			var validValue = $('#validValue');
+			try {
+				var barcode = $('#{{ element }}').data('kendoBarcode');
+				barcode.setOptions({
+					value: {{ element }},
+					checksum: true,
+					text: {
+						visible: true
+					},
+					type: "Code128"
+				})
+				validValue.hide();
+			} catch (e) {
+				validValue.text(e.message).show();
+			}
+		}
+		$('#type').kendoDropDownList({
+			dataSource: [
+			 { type: 'Code128', value: "Howdy Yall!" },
+			],
+			change: setOptions,
+			dataTextField: "type",
+			dataValueField: "type"
+		});
+		$('#type,#label,#text').change(setOptions);
+    </script>
+   <script>
+	{% for stm in stm_recs %}
+		//var dum = $('#{{stm.stm_auto_key}}');
+		$('#{{stm.stm_auto_key}}').kendoBarcode({
+			value:'C{{stm.stm_auto_key}}',
+			type:'Code128',
+			background:"transparent",
+		});				
+	{% endfor %}
+   </script>
+  </body>
+</html>

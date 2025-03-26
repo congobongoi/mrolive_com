@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MRO Live - E-Signoff - Where Productivity Takes Flight</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{% static 'dist/assets/css/app.css' %}">
+    <link href="{% static 'dist/assets/fontawesome/css/all.css' %}" rel="stylesheet">
+	<link rel="shortcut icon" type="image/png" href="{% static 'favicon.ico' %}"/>
+	<script type="text/javascript" src="{% static 'jquery-1.12.4.js' %}"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+	<script type="text/javascript" src="{% static 'jquery_tab_submit.js' %}"></script>
+    <script type="text/javascript" src="{% static 'field_focus.js' %}"></script>
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.common-material.min.css" />
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.material.min.css" />
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.material.mobile.min.css" />
+    <script src="https://kendo.cdn.telerik.com/2020.1.114/js/jszip.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/2.4.0/jszip.js"></script>
+    <script src="https://kendo.cdn.telerik.com/2017.2.621/js/jquery.min.js"></script>
+    <script src="https://kendo.cdn.telerik.com/2017.2.621/js/kendo.all.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>	
+	<style>
+	    .subhead {
+			color:white;
+			text-decoration:bold;
+			font-size: large;
+            margin-left: 65px;
+		}
+		.k-grid td{
+			white-space: nowrap;
+			text-overflow: none;
+		}
+        .k-pager-wrap .k-dropdown {
+            width: 100px;	    
+        }
+		.k-grid-toolbar { 
+			background-color:#284a8a !important; 
+		}
+		.k-button { 
+			background-color:#284a8a !important; 
+		}
+		.msg_label {
+		   color:green;
+		   font-weight:bold;
+		   font-size:12px;
+		}
+		
+		@media screen and (max-width: 900px) {
+		   #grid_wrap {
+			  visibility: hidden;
+		   }
+		   #update_button {
+		      visibility: hidden;
+		   }
+		   #task_sel {
+		      visibility: visible;
+		   }
+		   .msg_label {
+		      color: white;
+		   }
+		}
+		.centered {
+		  /*top: 50%;*/
+		  left: 50%;
+		  height: 100%;
+		  /* bring your own prefixes */
+		  transform: translateX(-50%);
+		}
+		
+		textarea {
+		    width: 247px;
+            height: 88px !important;
+		}
+		
+		.total_rows {
+		 padding-left:5px;
+		 display:inline;
+		 text-align:left;
+		 border:none;
+		 outline:none;
+		 background-color:#284a8a!important;
+		 color:white;
+		 text-decoration:bold;
+		 height:25px;
+		 width: 45px;
+		}
+		.sel_rows {
+        display:inline;
+		text-align:right;
+		border:none;
+		outline:none;
+		background-color:#284a8a!important;
+		color:white;
+		text-decoration:bold;
+		height:25px;
+		width: 55px;
+		}
+		.counter_wrap {
+		width:auto;
+		float:right;
+		margin-top:-45px;
+		margin-bottom: 5px;
+		z-index:1000!important;
+		color: white;
+		}
+		.save_buttons {
+		margin-top: -45px;
+	    padding-right: 5px;
+		float:right;
+		z-index:1000!important;
+		}
+    </style>
+</head>
+<body onload='setFocusToTextBox()'>
+    <audio src="{% static 'error-trombone.mp3' %}" id="my_audio"></audio>
+    <script type="text/javascript">
+		$(document).ready(
+			function () {
+			error = $("#error").val();
+			if (error) {
+			   $("#my_audio").get(0).play();
+			}
+		var baseForm = $("#base_form");	
+		//ONCHANGE value in override_selector field
+		baseForm.on("change", "#task_selector", function(evt){
+			//set all other field's values to zero except user_id			
+			var option = $('option:selected', this).attr('data-value');		
+			$('#description').val(option);
+		});
+		$("input").click(function(e){
+			var id_clicked = e.target.id;
+			if (id_clicked == 'task_search') {
+				e.preventDefault();				
+				$('#is_search').val('1');
+				baseForm.submit();	
+			}
+		});
+		})
+    </script>
+<div class="mro-header-wrapper">
+	<section id="mrotop"></section>
+	<div class="grid-container mro-header">
+		<div class="grid-x medium-margin-collapse align-middle hide-for-medium" style="float:left;">
+			<div class="cell large-1 medium-2 small-12 mro-menu-button">
+				<a data-toggle="offCanvas"><i class="fas fa-bars"></i></a>
+			</div>
+			<div class="cell large-11 medium-10 small-12 show-for-medium"><hr/></div>
+		</div>
+		<div class="grid-x grid-padding-x align-middle">
+			<div class="cell medium-7 small-12 mro-headerlogo">
+				<a href="" alt="MRO Live - Homepage">
+					<img style="max-width:361px;max-height:150px;" src="{% static 'dist/assets/img/mro-live_header.png' %}" alt="MROLive - Where Productivity Takes Flight">
+				</a>
+			</div>
+			<!--div class="cell medium-5 small-12 mro-clientlogo show-for-medium">
+				<a href="#" alt="MRO Live - Client Logo">
+				  <img style="max-width:150px;" src="../../..{{ logo_url }}" alt="{{ user_name }}">
+				</a>			
+			</div-->
+		</div>
+		<div class="grid-x medium-margin-collapse align-middle show-for-medium">
+			<div class="cell large-1 medium-2 small-12 mro-menu-button">
+				<a data-toggle="offCanvas">Menu <i class="fas fa-bars"></i></a>
+			</div>
+			<div class="cell large-11 medium-10 small-12 show-for-medium"><hr/></div>
+		</div>
+		<!--div class="cell medium-7 small-12 mro-clientlogo hide-for-medium mro-mobileclient">
+			  <a href="#" alt="MRO Live - Client Logo">
+				<img style="max-width:150px;" src="../../..{{ logo_url }}" alt="{{ user_name }}">
+			  </a>      
+		</div-->
+	</div>
+</div>
+<!-- Modal Error Pop-up -->
+<script>
+$(function() {
+    $("#errorModal").modal();//if you want you can have a timeout to hide the window after x seconds
+});
+</script>
+    <!-- Modal -->
+    {%  if error %}
+      <div class="modal fade" id="errorModal" role="dialog" data-backdrop="static">
+        <div class="modal-dialog">
+          <!-- Modal content-->
+          <div class="modal-content">
+		    <form method="POST" id="modal_error_form" name="modal_error_form">
+            <div class="modal-header">
+              <button type="button" class="close" id="x_button" data-dismiss="modal">&times;</button>
+              <h4 class="modal-title">Application Message:</h4>
+            </div>
+            <div class="modal-body">
+			    {%  if error %}<input type="hidden" id="error" name="error" value="{{ error }}"/><div style="font-weight: bold; color:red; font-size: 22px;">{{ error }}</div>{%  endif %}
+                <button class="secondary button shadow" id="ok_button" style="float:right; margin-top:-20px;" type="button" data-dismiss="modal">OK</button>
+                <div><br/><br/></div>			
+            </div>
+			</form>
+          </div>                
+       </div>
+      </div>
+	  {% endif %}  
+<!-- End modal error popup -->
+
+<!-- Off-canvas Menu -->
+
+<div class="off-canvas position-left" id="offCanvas" data-off-canvas>
+
+<!-- Close button -->
+<button class="close-button" aria-label="Close menu" type="button" data-close>
+  <span aria-hidden="true">&times;</span>
+</button>
+
+<!-- Menu -->
+<ul class="vertical mro-menu menu">
+	<li class="mro-menu-logo">
+		<a href="http://mrolive.com/" target="_blank">
+			<img src="{% static 'dist/assets/img/MROlive-logo.png' %}" alt="Where Productivity Takes Flight" alt="MRO Live - Where Productivity Takes Flight">
+		</a>
+	</li>
+	{% if op_apps %}
+	<div class="subhead">Operations</div>
+	{% endif %}
+	{% for app in op_apps %}
+      <li><a target="_blank" href="../{{ app.ml_apps_id.code }}/{{ quapi_id }}">{{ app.ml_apps_id.name }}</a></li>
+    {% endfor %}
+	{% if mgmt_apps %}
+	<div class="subhead">Management</div>
+	{% endif %}
+	{% for app in mgmt_apps %}
+      <li><a target="_blank" href="../{{ app.ml_apps_id.code }}/{{ quapi_id }}">{{ app.ml_apps_id.name }}</a></li>
+    {% endfor %}
+	{% if dash_apps %}
+	<div class="subhead">Dashboards</div>
+	{% endif %}
+	{% for app in dash_apps %}
+      <li><a target="_blank" href="../{{ app.ml_apps_id.code }}/{{ quapi_id }}">{{ app.ml_apps_id.name }}</a></li>
+    {% endfor %}
+	{% if setup_apps %}
+	<div class="subhead">Setup</div>
+	{% endif %}
+	{% for app in setup_apps %}
+      <li><a target="_blank" href="../{{ app.ml_apps_id.code }}/{{ quapi_id }}">{{ app.ml_apps_id.name }}</a></li>
+    {% endfor %}
+    <li><a href="/login">Logout</a></li><li><a href="/portal/pass-reset/">Reset Password</a></li>
+</ul>
+
+</div>
+
+<!-- Off-canvas Menu - END -->
+    <div class="grid-container mro-top-section">
+      <div class="grid-x grid-padding-x">
+          <div class="mro-top-section-wrapper mro-search">
+            <div class="mro-top-section" style="width:100%;">
+			  <form method="POST" id="base_form" name="base_form" onsubmit='setFocusToTextBox()'> 
+			  <input type="hidden" name="clear_form" id="clear_form" value="0"/>
+			  <input type="hidden" name="session_id" id="session_id" value="{{session_id}}"/>
+			  <input type="hidden" name="show_status" id="show_status" value="{{ show_status }}"/>
+			  <input type="hidden" name="is_search" id="is_search" value="0"/>
+			  <input type="hidden" name="options_pagesize" id="options_pagesize"/>
+			  <input type="hidden" name="options_col" id="options_col"/>
+              <div class="mro-lightsearch">
+			    <div class="medium-12 small-7 cell hide-for-medium">
+				</div>
+				<div class="medium-12 small-7 cell hide-for-medium">
+				</div>
+				<div class="cell large-6 medium-6 small-12">
+				  <h1>E-Signoff</h1>
+				  {%  if msg %}<div class="msg_label">{{ msg }}</div>{%  endif %}
+				  {%  if warning_msg %}<div class="msg_label">{{ warning_msg }}</div>{%  endif %}
+				</div>
+                <div class="grid-x grid-padding-x align-middle">
+				    {% csrf_token %}
+                    <div class="cell large-6 medium-6 small-12">
+                      <label>Record</label>
+                      {{ form.wo_number }}				  
+                    </div>
+				    <div class="cell large-4 medium-6 small-12 mro-searchbuttonbox">
+					  <input class="primary button shadow" type="submit" value="Search" name="task_search" id="task_search" onclick="this.disabled=true,this.form.submit();"/>
+				    </div>
+					{% if wtms %}
+					<div id="update_button" class="cell large-4 medium-6 small-12 mro-searchbuttonbox">
+					  <input class="primary button shadow" type="submit" value="Sign-off" name="task_update" id="task_update" onclick="this.disabled=true,this.form.submit();"/>
+					</div>
+					{%  endif %}
+                </div>
+			  </div>
+			  {% if wtms %}
+			  <div id="task_sel" class="mro-darksearch">
+				<div class="grid-x grid-padding-x align-middle">
+                    <div class="cell large-6 medium-6 small-12">
+                      <label>Tasks: </label>
+					  <select style="background-color:#284a8a;color:white;" name="task_selector" id="task_selector">
+					  <option value=""> -- No Selection -- </option>
+					  {% for task in wtms  %}						
+						{% if task.wot_auto_key == active_task %}
+						<option data-value="{{ task.wot_description }}" value="{{ task.wot_auto_key }}" selected>{{ task.wot_sequence }}. {{ task.task_master_desc }}</option>
+						{% else %}
+						<option data-value="{{ task.wot_description }}" value="{{ task.wot_auto_key }}">{{ task.wot_sequence }}. {{ task.task_master_desc }}</option>
+						{% endif %}							
+						{% endfor %}
+				  	  </select>
+                    </div>				  
+					<div class="cell large-6 medium-6 small-12">	
+					  <label>Description: </label> 
+					      <textarea name="description" id="description" readonly></textarea>
+					</div>
+					<div class="cell large-4 medium-6 small-12 mro-searchbuttonbox">
+					  <input class="primary button shadow" type="submit" value="Sign-off" name="task_update" id="task_update" onclick="this.disabled=true,this.form.submit();"/>
+					</div>
+				</div>
+			  </div>
+			  {% endif %}
+		</form>
+		</div>
+	    </div>        
+      </div>
+    </div>
+    {% if total_rows %}	
+    <div id="grid_wrap" class="mro-bottom-section-wrapper mro-table">
+	
+      <div class="grid-container mro-bottom-section">
+	      <div class="grid-x grid-padding-x">
+		    <div class="centered results_grid" id="results_grid" name="results_grid">
+				<div class="counter_wrap">					  
+					<button type="button" id="select_all" class="secondary button shadow" style="margin-left:-45px;padding:9px;">SELECT ALL</button>
+					<input type="text" class="sel_rows" id="sel_rows" name="sel_rows" size="4" value="{{ sel_rows }}" readonly>
+					of     <input type="text" class="total_rows" id="total_rows" name="total_rows" value="{{ total_rows }}" size="5" readonly>
+				</div>	
+			<script>
+			kendo.ui.Grid.prototype._positionColumnResizeHandle= function() {
+			  var that = this,
+				  indicatorWidth = that.options.columnResizeHandleWidth,
+				  lockedHead = that.lockedHeader ? that.lockedHeader.find("thead:first") : $();
+
+			  that.thead.add(lockedHead).on("mousemove" + ".kendoGrid", "th", function (e) {
+				var th = $(this);
+				if (th.hasClass("k-group-cell") || th.hasClass("k-hierarchy-cell")) {
+				  return;
+				}
+				that._createResizeHandle(th.closest("div"), th);
+			  });
+			};
+			var oldPageSize = 0;
+			$( "#select_all" ).click(function() {
+			    var grid = $("#results_grid").data("kendoGrid");
+				if (grid.dataSource.data().length === grid.select().length) {
+					grid.clearSelection();
+					$("input[type=hidden][class='woos']").remove();	
+					$('#sel_rows').val(0);
+				} 
+				else {
+					grid.select("tr");
+				};
+			});
+			function onChange(e) {
+				var rows = e.sender.select();
+				var grid = $("#results_grid").data("kendoGrid");
+				var currentPage = grid.dataSource.page();
+				//console.log('current page: ' + currentPage + 'selected: ' + rows.length);
+				//first it goes to woos_first and then onchange again, it goes to woos
+				$("input[type=hidden][uipage='" + currentPage + "']").attr('class', 'woos_stale'); 
+				rows.each(function(e) {
+					var dataItem = grid.dataItem(this);	                  					
+					var length = $('input[type=hidden][value=' + dataItem.wot_auto_key + ']').length;	
+					if (length != 0) {
+					   $('input[type=hidden][value=' + dataItem.wot_auto_key + ']').attr('class', 'woos'); 					   
+					}
+                    if (!length) {
+						var inputWoo = '<input type="hidden" uipage="' + currentPage + '" name="woos_list[]" id="woos_list[]" class="woos" value="' + dataItem.id + '" checked="checked"/>';
+						$('#session_id').after(inputWoo);						
+					}
+				var count = $("input[type=hidden][class='woos']").length;
+				$('#sel_rows').val(count);					
+			    $("input[type=hidden][uipage='" + currentPage + "'][class='woos_stale']").remove();				
+				});	
+			};
+			$(document).ready(
+			    function () {
+					var baseForm = $("#base_form");	
+                    baseUrl = "http://127.0.0.1:8000/portal/e-signoff/1"					
+					var dataSourceArguments = {
+						autoBind: false,
+					    pageSize: 25,
+						serverPaging: true,
+						serverSorting: true,
+						transport: {
+							read: {
+								url: '/portal/task-json',
+								dataType: 'json',
+								data: {'session_id': '{{ session_id }}'} // the parameter I need to send to the server
+							},
+						},
+						batch: true,
+						schema: {
+							total: "count",
+							data: "results",
+							model: { 
+							    id: "wot_auto_key",
+							}
+						}
+					}						
+					var dsg = new kendo.data.DataSource(dataSourceArguments);
+					function selectFirstRow(event) {
+					    event.sender.select("tr:eq(0)");
+					}
+					$("#results_grid").kendoGrid({
+					    toolbar: ["excel"],
+						excel: {
+							fileName: "e-signoff-export.xlsx",
+							proxyURL: "https://demos.telerik.com/kendo-ui/service/export",
+							allPages: true
+						},
+						dataSource: dsg,
+						sortable: true,
+						reorderable: true,
+						resizable: true,
+						change: onChange,
+                        selectable: "multiple, row",
+						persistSelection: true,
+                        navigatable: true,
+						pageable: {
+							refresh: true,
+							pageSizes: true,
+							buttonCount: 5
+						},
+                        columns: [
+						{% if options_col %}
+							{% for col in options_col %}
+								{						
+								  field: '{{ col.field }}',
+								  title: '{{ col.name }}',
+								  width: {{ col.width }},
+								  {% if col.template %}
+								  template: '{{ col.template }}',	
+								  {% endif %}
+								},
+							{% endfor %}	
+                        {% else %}
+							{
+							  field: 'wot_sequence',
+							  title: 'Seq',
+							  width: 30,
+							  editable: false,
+							},						
+							{
+							  field: 'task_master_desc',
+							  title: 'Title',
+							  width: screen.availWidth*0.14,
+							},						
+							{
+							  field: 'wot_description',
+							  title: 'Desc',
+							  width: screen.availWidth*0.14,
+							  editable: false,
+							},
+							{
+							  field: 'wot_status',
+							  title: 'Status',
+							  width: 80,
+							  editable: false,
+							},
+							
+						{% endif %}
+					    ],
+					});
+					$("select[data-role='dropdownlist']").kendoDropDownList({
+						dataTextField: "pageSize",
+						dataValueField: "sizeValue",
+						dataSource: [
+							{pageSize: 10},
+							{pageSize: 25},
+							{pageSize: 100},
+							{pageSize: 500},
+							{pageSize: 2000},
+							{pageSize: 'All', sizeValue:1000},
+						],
+					});
+                    var grid = $("#results_grid").data("kendoGrid");				
+					var counter='<div style="margin: 5px 0px;" class = "save_buttons"><a href="#" class="secondary button shadow" id="save">Set Grid</a><a href="#" class="secondary button shadow" id="load">Reset Grid</a></div><div style="margin:5px 0px;" class="counter_wrap">TOTAL: <input type="text" class="total_rows" id="total_rows" name="total_rows" value="{{ total_rows }}" size="5" readonly></div>';
+					baseForm.on('submit', function(evt){
+					    var pageSize = $('.k-input').text();	
+                        var cols = grid.getOptions().columns;
+						var colOptions = kendo.stringify(cols);					
+						$("#options_col").val(colOptions);						
+						$("#options_pagesize").val(pageSize);
+					});
+				});
+			  </script>	
+			    </div>	
+	    </div>
+        <div class="grid-x mro-pagination-section">
+          <div class="cell large-5 medium-6 small-12 ">
+            <a class="mrotop" href="#mrotop" data-smooth-scroll><span>^</span> Back to Top</a>
+          </div>
+        </div>
+	  </div>
+    </div>
+    {% endif %}
+	
+<div class="mro-footer-wrapper">
+	<div class="grid-container mro-footer">
+		<div class="grid-x">
+			<div class="cell small-12">
+				<img class="mro-footerlogo" src="{% static 'dist/assets/img/mro-live_header.png' %}" alt="Where Productivity Takes Flight" alt="MRO Live - Where Productivity Takes Flight">
+			</div>
+		</div>
+
+		<div class="grid-x mro-footer-bottom">
+			<div class="cell medium-5 small-12 mro-footer-bottom-left">
+				<p>Copyright &copy; 2022 MRO Live <span>|</span> <img class="mro-usa" src="{% static 'dist/assets/img/usa.png' %}" alt="Based in USA">Based in USA</p>
+			</div>
+			<!--div class="cell medium-7 small-12 mro-footer-bottom-right">
+				<p><img src="{% static 'dist/assets/img/sectigo.png' %}" /> | Have Questions, Comments, or Concerns? <a href="mailto:Sales@MROLive.com">Get In Touch at Sales@MROLive.com</a></p>
+			</div-->
+		</div>
+	</div>
+</div><script src="{% static 'dist/assets/js/app.js' %}"></script>
+<script type="text/javascript">		
+	function myFunction(x) {
+	  if (x.matches) { // If media query matches
+		update_button = document.getElementById("update_button")
+		if (update_button) {
+			update_button.style.visibility = "hidden";
+			}
+		grid_wrap = document.getElementById("grid_wrap")
+		if (grid_wrap) {
+			grid_wrap.style.visibility = "hidden";
+			}
+		task_sel = document.getElementById("task_sel")
+		if (task_sel) {
+			task_sel.style.visibility = "visible";
+			}
+		task_sel2 = document.getElementById("task_sel2")
+		if (task_sel2) {
+			task_sel2.style.visibility = "visible";
+			}
+	  } 
+	  else {
+		update_button = document.getElementById("update_button")
+		if (update_button) {
+			update_button.style.visibility = "visible";
+			}
+		grid_wrap = document.getElementById("grid_wrap")
+		if (grid_wrap) {
+			grid_wrap.style.visibility = "visible";
+			grid_wrap.style.margin = "-250px 0 0 0";
+			}
+		task_sel = document.getElementById("task_sel")
+		if (task_sel) {
+			task_sel.style.visibility = "hidden";
+			}
+		task_sel2 = document.getElementById("task_sel2")
+		if (task_sel2) {
+			task_sel2.style.visibility = "hidden";
+			}
+	  }
+	}
+
+	var x = window.matchMedia("(max-width: 920px)")
+	myFunction(x) // Call listener function at run time
+	x.addListener(myFunction) // Attach listener function on state changes
+</script>
+  </body>
+</html>

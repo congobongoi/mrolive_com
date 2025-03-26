@@ -6,9 +6,8 @@
     <meta http-equiv="x-ua-compatible" content="ie=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MRO Live RO Management - Where Productivity Takes Flight</title>
-																			   
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
 	<link rel="shortcut icon" type="image/png" href="{% static 'favicon.ico' %}"/>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
     <link rel="stylesheet" href="{% static 'dist/assets/css/app.css' %}">
     <link href="{% static 'dist/assets/fontawesome/css/all.css' %}" rel="stylesheet">
     <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.common-material.min.css" />
@@ -19,12 +18,9 @@
     <script src="https://kendo.cdn.telerik.com/2017.2.621/js/jquery.min.js"></script>
     <script src="https://kendo.cdn.telerik.com/2017.2.621/js/kendo.all.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>	
-	<!--script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script-->
 	<script type="text/javascript" src="{% static 'jquery-1.12.4.js' %}"></script>
-    <script type="text/javascript" src="{% static 'field_focus.js' %}"></script>
 	<script src="{% static 'jquery.bootstrap.modal.forms.min.js' %}"></script>
-	<script type="text/javascript" src="{% static 'jquery_tab_submit.js' %}"></script>
-	<script src="https://demos.telerik.com/kendo-ui/content/shared/js/console.js"></script>
+	<script type="text/javascript" src="{% static 'jquery_tab_submit.js' %}"></script>	
 	<style>
 	    .subhead {
 			color:white;
@@ -126,7 +122,7 @@
 		color: white;
 		}
 		.save_buttons {
-		margin-top: 0px;
+		margin-top: -45px;
 	    padding-right: 5px;
 		float:right;
 		z-index:1000!important;
@@ -168,7 +164,7 @@
 					console.log('got here');
 					mgmtForm.submit();	
 				}
-			});		
+			});
 		})
     </script>
 <div class="mro-header-wrapper">
@@ -248,7 +244,6 @@
     <li><a href="/login">Logout</a></li><li><a href="/portal/pass-reset/">Reset Password</a></li>
 </ul>
 </div>
-
 <!-- Off-canvas Menu - END -->
     <div class="grid-container mro-top-section">
       <div class="grid-x grid-padding-x">
@@ -258,7 +253,6 @@
 				  <input type="hidden" name="active_user" id="active_user" value="{{ user_id }}"/>
 				  <input type="hidden" name="update_session" id="update_session" value="{{ update_session }}"/>
 				  <input type="hidden" name="search_user" id="search_user" value="{{ search_user }}"/> 
-				  <input type="hidden" name="col_data" id="col_data" value=""/>
 				  <input type="hidden" name="clear_form" id="clear_form" value="0"/>
 				  <input type="hidden" name="session_id" id="session_id" value="{{session_id}}"/>
 				  <input type="hidden" name="show_user" id="show_user" value="{{show_user}}"/>
@@ -564,44 +558,6 @@ $(function() {
 		</div>
 	</div>
 	{% endif %}
-    <div class="mro-top-section-wrapper mro-table">
-      <div class="grid-container mro-top-section">
-	    <div class="grid-x grid-padding-x">
-		  <script>		
-					$("input").click(function (e) {
-					    id_clicked = e.target.id
-						if (id_clicked == 'save_opts') {
-						    var grid = $("#grid").data("kendoGrid");
-							e.preventDefault();				
-							$('#options_save').val('1');
-							var pageSize = $('.k-input').text();
-							var cols = grid.getOptions().columns;					
-							var colOptions = kendo.stringify(cols);
-							$.ajax({// initialize an AJAX request
-								type: "POST",
-								url: '{% url "save_grid_options" %}',
-								data: {
-								    'page_size': pageSize,
-								    'col_options': colOptions,
-									'quapi_id': {{ quapi_id }},
-									'csrfmiddlewaretoken':$('input[name=csrfmiddlewaretoken]').val(),
-									},
-
-								success: function (data) {
-									
-									//data.forEach(function (data) {
-									    //col_data += data
-									
-								    //});
-								    $("#col_data").val(data); // replace the col options
-						        }
-						});	
-					} 
-		  </script>
-		</div>
-      </div>
-    </div>
-	
 <script>
 $(function() {
     $("#myModal").modal();//if you want you can have a timeout to hide the window after x seconds
@@ -695,11 +651,6 @@ $(function() {
       <div class="grid-container mro-bottom-section">
 	      <div class="grid-x grid-padding-x">	
 			{% if all_woos %}
-																																				  
-																																			 
-																								  
-																																																																																											  
-		  
 			<div class="centered grid" id="grid" name="grid">
 			  <!--div class="counter_wrap">
 		         
@@ -727,24 +678,7 @@ $(function() {
 			  });
 			};
 			var oldPageSize = 0;
-										
-											   
-											   
-											   
-																																		
 
-																 
-						   
-																						
-																			   
-						   
-	  
-		  
-					   
-	  
-
-											
-	  
 			function onChange(e) {
 			    //$('.woos').remove();
 				var rows = e.sender.select();
@@ -829,121 +763,95 @@ $(function() {
 						},
 						// Auto Fit Columns to resize columns to fit data on load
 						dataBound: function() {
-						    
-						    //console.log('The options:' + {{options_col}});
-							var options_col = $("#col_data").val();
-						    if (!options_col) {
-								for (var i = 0; i < this.columns.length; i++) {
-									this.autoFitColumn(i);
-								}
-						    }
+							for (var i = 0; i < this.columns.length; i++) {
+								this.autoFitColumn(i);
+							}
 						},
 						mobile: true,
 						// Disable width to allow for dataBound function to work
-						//console.log('The options:' + {{options_col}});
-						var options_col = $("#col_data").val();
-						if (options_col) {
-							for col in options_col {
-								{						
-								  field: col.field,
-								  title: col.name,
-								  width: col.width,
-								  template: col.template,
-								},
-							}
-                        }
-                        else {						
-							columns: [
-								{
-								  field: 'wo_number',
-								  title: 'Cust. Order',
-								//   width: "2.3cm",
-								},
-								{
-								  field: 'due_date',
-								  title: 'Due Date',
-								  template: '#= kendo.toString(kendo.parseDate(due_date), "MM/dd/yyyy")#',
-								//   width: "2cm",					  
-								},
-								{
-								  field: 'part_number',
-								  title: 'Part Number',
-								//   width: "2.4cm",
-								},
-								{
-								  field: 'description',
-								  title: 'Description',
-								//   width: "2.4cm",
-								},
-								{
-								  field: 'stm_auto_key',
-								  title: 'STM',
-								//   width: "2.3cm",
-								},
-								{
-								  field: 'stock_line',
-								  title: 'SL',
-								//   width: "1.5cm",
-								},
-								{
-								  field: 'serial_number',
-								  title: 'Serial',
-								//   width: "2cm",	
-								},
-								{
-								  field: 'condition_code',
-								  title: 'CUR CD',
-								//   width: "2cm",	
-								},
-								{
-								  field: 'cond_level_gsix',
-								  title: 'BUY CD',
-								//   width: "2cm",	
-								},
-			  
-							 
-									 
-											
-					  
-								{
-								  field: 'stm_auto_key',
-								  title: 'STM',
-								  //   width: "2cm",
-								},							
-								{
-								  field: 'status',
-								  title: 'Status',
-								//   width: "2cm",	
-								},
-								{
-								  field: 'quantity',
-								  title: 'QTY OH',
-								//   width: "2cm",	
-								},
-								{
-								  field: 'location_code',
-								  title: 'Loc',
-								//   width: "1.6cm",	
-								},
-								{
-								  field: 'customer',
-								  title: 'Customer',
-								//   width: "2cm",	
-								},
-								{
-								  field: 'vendor',
-								  title: 'Last Vendor',
-								//   width: "2.2cm",	
-								},
-								//{
-								  //field: 'sub_wo_gate',
-								  //title: 'Gate',
-								  //width: "1.8cm",
-								//},
-							]
-						
-						}
-					
+                        columns: [
+							{
+							  field: 'wo_number',
+							  title: 'Cust. Order',
+							//   width: "2.3cm",
+							},
+							{
+							  field: 'due_date',
+							  title: 'Due Date',
+                              template: '#= kendo.toString(kendo.parseDate(due_date), "MM/dd/yyyy")#',
+                            //   width: "2cm",					  
+							},
+							{
+							  field: 'part_number',
+							  title: 'Part Number',
+							//   width: "2.4cm",
+							},
+							{
+							  field: 'description',
+							  title: 'Description',
+							//   width: "2.4cm",
+							},
+							{
+							  field: 'stm_auto_key',
+							  title: 'STM',
+							//   width: "2.3cm",
+							},
+							{
+							  field: 'stock_line',
+							  title: 'SL',
+							//   width: "1.5cm",
+							},
+							{
+							  field: 'serial_number',
+							  title: 'Serial',
+							//   width: "2cm",	
+							},
+							{
+                              field: 'condition_code',
+							  title: 'CUR CD',
+							//   width: "2cm",	
+							},
+							{
+                              field: 'cond_level_gsix',
+							  title: 'BUY CD',
+							//   width: "2cm",	
+							},
+							{
+							  field: 'stm_auto_key',
+							  title: 'STM',
+							  //   width: "2cm",
+							},							
+							{
+							  field: 'status',
+							  title: 'Status',
+							//   width: "2cm",	
+							},
+							{
+							  field: 'quantity',
+							  title: 'QTY OH',
+							//   width: "2cm",	
+							},
+							{
+							  field: 'location_code',
+							  title: 'Loc',
+							//   width: "1.6cm",	
+							},
+							{
+							  field: 'customer',
+							  title: 'Customer',
+							//   width: "2cm",	
+							},
+							{
+							  field: 'vendor',
+							  title: 'Last Vendor',
+							//   width: "2.2cm",	
+							},
+							//{
+							  //field: 'sub_wo_gate',
+							  //title: 'Gate',
+							  //width: "1.8cm",
+							//},
+					    ]
 					});
 
 					$("select[data-role='dropdownlist']").kendoDropDownList({
@@ -955,9 +863,9 @@ $(function() {
 							{pageSize: 100},
 							{pageSize: 500},
 							{pageSize: 2000},
-							{pageSize: 'All', sizeValue:10000}
+							{pageSize: 'All', sizeValue:1000}
 						],
-					});				
+					});
 									
 					var grid = $("#grid").data("kendoGrid");
 					var baseForm = $("#base_form");
@@ -995,8 +903,6 @@ $(function() {
 							{
 								template: `
 									<div class="toolbar-buttons">
-										<input type="button" class="secondary button shadow save_buttons" id="save_opts" value="SAVE"/>
-										<!--a href="#" class="secondary button shadow" id="save">SET GRID</a-->
 										<input type="button" id="select_all" name="select_all" class="secondary button shadow" value="SELECT ALL"/>
 										<input type="button" id="update" name="update" class="primary button shadow" value="UPDATE"/>
 										<input type="text" class="sel_rows" id="sel_rows" name="sel_rows" size="4" value="{{ sel_rows }}" readonly>of     <input type="text" class="total_rows" id="total_rows" name="total_rows" value="{{ total_rows }}" size="5" readonly>
@@ -1004,8 +910,8 @@ $(function() {
 								attributes: {"class":"align-buttons"}
 							},
 						]
-					});	
-					
+					});
+
 					$( "#select_all" ).click(function() {
 					//   alert( "Handler for .click() called." );
 						var grid = $("#grid").data("kendoGrid");
@@ -1055,18 +961,18 @@ $(function() {
 	            </div>	
 			{% endif %}
 		  </div>
-        <!--div class="grid-x mro-pagination-section">
+        <div class="grid-x mro-pagination-section">
           <!-- <div class="cell large-5 medium-6 small-12">
             <a class="mrotop" href="#mrotop" data-smooth-scroll><span>^</span> Back to Top</a>
           </div> -->
-			<!--div class="cell large-4 medium-4 small-4"></div>
+			<div class="cell large-4 medium-4 small-4"></div>
         	<div class="cell large-4 medium-4 small-4 grid-x align-center">
             	<a class="mrotop" href="#mrotop" data-smooth-scroll><span>^</span> Back to Top</a>
           	</div>
 		  	<div class="cell large-4 medium-4 small-4"></div>	
         </div>		  
 	    </div>
-	  </div-->
+	  </div>
    
 				
 <div class="mro-footer-wrapper">

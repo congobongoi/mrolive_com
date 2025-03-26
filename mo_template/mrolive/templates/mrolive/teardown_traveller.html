@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+	<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, post-check=0, pre-check=0" /> 
+	<meta http-equiv="Pragma" content="no-cache" />
+    <meta charset="utf-8" />
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MRO Live - Teardown Traveller - Where Productivity Takes Flight</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+	<link rel="shortcut icon" type="image/png" href="{% static 'favicon.ico' %}"/>
+    <link rel="stylesheet" href="{% static 'dist/assets/css/app.css' %}">
+    <link href="{% static 'dist/assets/fontawesome/css/all.css' %}" rel="stylesheet">
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.common-material.min.css" />
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.material.min.css" />
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.material.mobile.min.css" />
+    <script src="https://kendo.cdn.telerik.com/2020.1.114/js/jszip.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/2.4.0/jszip.js"></script>
+    <script src="https://kendo.cdn.telerik.com/2017.2.621/js/jquery.min.js"></script>
+    <script src="https://kendo.cdn.telerik.com/2017.2.621/js/kendo.all.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>	
+	<script type="text/javascript" src="{% static 'jquery-1.12.4.js' %}"></script>
+    <script type="text/javascript" src="{% static 'field_focus.js' %}"></script>
+	<script src="{% static 'jquery.bootstrap.modal.forms.min.js' %}"></script>
+	<script type="text/javascript" src="{% static 'jquery_tab_submit.js' %}"></script>
+    <style>
+		#barcode {
+			width: 998px;
+			height: auto;
+			margin: auto;
+		}
+		table.instructions {
+		  border: none;
+		}
+		tr.instructions {
+		  border: none;
+		  padding: 5px;
+		}
+		text {
+		  display: none;
+		}
+		tbody th, tbody td {
+			padding: 5px;
+		}
+        @page { counter-increment: page }
+		#pageNumber { 
+		  content: counter(page) 
+		}
+		@page {
+		  size: auto;
+		  margin: 11mm 17mm 17mm 17mm;
+		}
+		@media screen {
+		  footer {
+			display: none;
+		  }
+		}
+		@media print {
+		  footer {
+			position: fixed;
+			bottom: 15px;
+			left: 0px;
+			font-size:12pt;
+			color: black;
+			width: 100%;
+		  }
+		}
+	  .content-block {
+			page-break-inside: avoid;
+	    }		  
+    </style>
+   </head>
+  <body>
+	<div id="barcode" class="barcode" name="barcode">	
+	  <div class="mro-menu-logo" style="background-color:white;">
+		<a href="../teardown/{{quapi_id}}" target="_blank">
+		  <img src="{% static 'dist/assets/img/mro-live_header.png' %}" style="height:150px;" alt="Where Productivity Takes Flight" alt="MRO Live - Where Productivity Takes Flight">
+		</a>
+	  </div>		  
+      <div class="content-block" class="header">
+	    <div style="border:1px solid;">
+			<div style="padding:5px;font-size:12pt;float:left;margin-top:30px;">WO:{{si_number}}</div>
+			<div style="width:40%;margin:auto;text-align:center;">
+				<h5>MRO LIVE</h5>
+				<h6>FAA Repair Station #:1MRO<br/>
+				Component Traveller</h6>
+			</div>
+			<div style="font-size:12pt;float:right;margin-top:-65px;width:20%;height:65px;" class="{{element}}" id="{{element}}" name="{{element}}"></div>
+	    </div>
+	    <div style="border:1px solid;padding-bottom:80px;">
+		  <span style="float:left;padding:3px;width:200px;">PN: {{part_number}}</span>
+		  <!--span style="float:right;width:170px;">Work Request: Internal</span-->	
+		  <span style="float:left;padding:3px;width:100%;">Desc: {{description}}</span>
+	      <span style="float:right;width:100px;">Qty: {{qty}}</span>	
+		  <span style="float:left;padding:3px;width:100px;">SN: {{serial_number}}</span>			
+        </div>
+	  </div>
+        <table width="100%" style="background-color:white;">	
+		  {% for task in task_list %}  
+		  <tr style="background-color:white;">
+		    <td>
+			   <table class="content-block" style="background-color:white;border:1px solid;padding:0px;margin-bottom:0px 0;font-size:12pt;box-shadow: 10px 10px 6px -6px #111;">
+				  <tr class="content-block" style="background-color:white;margin-left:0px;padding:0px;">
+					<td style="width:80%">
+					  <div style="margin-left:-5px;">SEQ: {{task.wot_sequence}}.</div>
+					  <div style="margin-left:5px;">{{task.task_master_desc}}</div>			  
+					</td>
+					
+				  </tr>
+				  <tr class="content-block" style="border:1px solid;">
+					<td>
+					   <div style="float:left;padding-left:15px;height:55px;width: 25%;" id="{{task.wot_auto_key}}s" name="{{task.wot_auto_key}}s"></div>
+					   <div style="float:left;padding-left:15px;height:55px;width: 25%;" id="{{task.wot_auto_key}}c" name="{{task.wot_auto_key}}c"></div>
+					</td>
+					<td>
+					  <table style="height:100%;width: 25%;float:right;padding:0px;">
+						<tr style="border:1px solid;max-height:25px;">
+						   <td style="border:1px solid;">TECHNICIAN</td>
+						   <td style="border:1px solid;">INSPECTOR</td>
+						</tr>
+						<tr style="border:1px solid;">
+						   <td style="border:1px solid;height:35px;">{{ task.sysur_signoff }}</td>
+						   <td style="border:1px solid;height:35px;">{{ task.sysur_signoff2 }}</td>
+						</tr>			
+					  </table>
+					</td>
+				  </tr>
+				</table>
+			</td>
+		  </tr>
+		  {% endfor %}		  
+		</table>
+		<footer>
+		  <div style="width:20%;float:left;"> 
+			{{timestamp}}
+		  </div>
+		  <div style="width:60%;margin-left:auto;margin-right:auto;text-align:center;height:55px;width:150px;" class="{{element}}" id="{{element}}" name="{{element}}"></div>		  
+	    </footer>
+	</div>
+	<script>
+		// Import DejaVu Sans font for embedding
+
+		// NOTE: Only required if the Kendo UI stylesheets are loaded
+		// from a different origin, e.g. cdn.kendostatic.com
+		kendo.pdf.defineFont({
+			"DejaVu Sans"             : "https://kendo.cdn.telerik.com/2016.2.607/styles/fonts/DejaVu/DejaVuSans.ttf",
+			"DejaVu Sans|Bold"        : "https://kendo.cdn.telerik.com/2016.2.607/styles/fonts/DejaVu/DejaVuSans-Bold.ttf",
+			"DejaVu Sans|Bold|Italic" : "https://kendo.cdn.telerik.com/2016.2.607/styles/fonts/DejaVu/DejaVuSans-Oblique.ttf",
+			"DejaVu Sans|Italic"      : "https://kendo.cdn.telerik.com/2016.2.607/styles/fonts/DejaVu/DejaVuSans-Oblique.ttf",
+			"WebComponentsIcons"      : "https://kendo.cdn.telerik.com/2017.1.223/styles/fonts/glyphs/WebComponentsIcons.ttf"
+		});
+	</script>
+	<script>
+		function setOptions(e) {
+			var validValue = $('#validValue');
+			try {
+				var barcode = $('#{{ element }}').data('kendoBarcode');
+				barcode.setOptions({
+					value: {{ element }},
+					checksum: true,
+					text: {
+						visible: true
+					},
+					type: "Code128"
+				})
+				validValue.hide();
+			} catch (e) {
+				validValue.text(e.message).show();
+			}
+		}
+		$('#type').kendoDropDownList({
+			dataSource: [
+			 { type: 'Code128', value: "Howdy Yall!" },
+			],
+			change: setOptions,
+			dataTextField: "type",
+			dataValueField: "type"
+		});		
+		$(document).ready(function () {		
+	        $("#{{element}}").kendoBarcode({
+				value: '{{ element }}',
+				type: 'Code128',
+				background: "transparent"
+			});
+			{% for task in task_list %}
+				$("#{{task.wot_auto_key}}c").kendoBarcode({
+					value:'{{ task.wot_auto_key }}c',
+					type:'Code128',
+					background:"transparent"
+				});			
+			{% endfor %}
+			{% for task in task_list %}
+				$("#{{task.wot_auto_key}}s").kendoBarcode({
+					value:'{{ task.wot_auto_key }}s',
+					type:'Code128',
+					background:"transparent"
+				});			
+			{% endfor %}
+		});
+		$('#type,#label,#text').change(setOptions);
+    </script>
+    <script src="{% static 'dist/assets/js/app.js' %}"></script>
+  </body>
+</html>

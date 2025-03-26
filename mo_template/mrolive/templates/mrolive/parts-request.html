@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MRO Live - Parts Request - Where Productivity Takes Flight</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+	<link rel="shortcut icon" type="image/png" href="{% static 'favicon.ico' %}"/>
+    <link rel="stylesheet" href="{% static 'dist/assets/css/app.css' %}">
+    <link href="{% static 'dist/assets/fontawesome/css/all.css' %}" rel="stylesheet">
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.common-material.min.css" />
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.material.min.css" />
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.material.mobile.min.css" />
+    <script src="https://kendo.cdn.telerik.com/2020.1.114/js/jszip.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/2.4.0/jszip.js"></script>
+    <script src="https://kendo.cdn.telerik.com/2017.2.621/js/jquery.min.js"></script>
+    <script src="https://kendo.cdn.telerik.com/2017.2.621/js/kendo.all.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>	
+	<script type="text/javascript" src="{% static 'jquery-1.12.4.js' %}"></script>
+    <script type="text/javascript" src="{% static 'field_focus.js' %}"></script>
+	<script src="{% static 'jquery.bootstrap.modal.forms.min.js' %}"></script>
+	<script type="text/javascript" src="{% static 'jquery_tab_submit.js' %}"></script>
+    <script type="text/javascript">
+		function setFocusPartOnLoad(){
+			document.getElementById('part_number').focus();
+		}
+    </script>
+	<style>
+ 		textarea {
+		    width: 560px;
+            height: 20px !important;
+		}
+	    .subhead {
+			color:white;
+			text-decoration:bold;
+			font-size: large;
+            margin-left: 65px;
+		}
+	    .username {
+	        text-align:left;
+			border:none;
+			outline:none;
+			background-color:#FFFFFF;
+			color:black;
+			text-decoration:bold;
+		}
+        .mro-top-section .mro-lightsearch .left-tab h1{
+		    float:left;
+			margin-left:-28px;
+			padding-left:10px;
+			border-top-left-radius:30px;
+			border-top-right-radius:0px;
+		    }
+	    .mro-top-section .mro-lightsearch .left-tab h1:before {
+		    display:hidden!important;
+			position:unset!important;
+			background: none;
+		}
+        @media screen and (max-width: 600px) {
+		    select{
+			    height: 1.5rem;
+				/*padding: 5px;*/
+				margin: 1px;
+				color: white;
+				background-color:#284a8a;
+			}
+			.mro_logo {
+			    margin-left:auto;
+				margin-right:auto;
+				display: block;
+			}
+			.mro-top-section .mro-lightsearch .left-tab h1:after {
+				content: '';
+				background: #284a8a;
+				margin-left:15px;
+				-webkit-clip-path: polygon(0 0, 0% 100%, 100% 100%);
+				clip-path: polygon(0 0, 0% 100%, 100% 100%);
+				-webkit-clip-path: polygon(0 0, 0% 100%, 100% 100%);
+				clip-path: polygon(0 0, 0% 100%, 100% 100%);
+				display: block;
+				position: absolute;
+				height: 100%;
+				width: 70px;
+				top: 0px;
+				z-index: 0;
+				left:100px;
+			}
+			.mro-top-section .mro-lightsearch {
+			    border-top-right-radius:0px;   
+                border-top-left-radius:0px;			
+			}
+			.message-box {
+			font-weight: bold; 
+			font-size: 10px;
+			color: #fff;
+		   }
+		}
+        .mode_selector {
+			margin: 0 0 1rem;
+			padding: 0.25rem;
+			/*-webkit-appearance: none;
+			-moz-appearance: none;
+			appearance: none;*/
+			border: 0.5px solid ##284a8a;
+			/*border-radius: 0;*/
+			font-family: inherit;
+			font-weight: normal;
+        }	
+		
+	    .mode_selector select {
+			margin: 0 0 1rem;
+			padding: 0.25rem;
+			/*-webkit-appearance: none;
+			-moz-appearance: none;
+			appearance: none;*/
+			border: 0.5px solid ##284a8a;
+			/*border-radius: 0;*/
+			font-family: inherit;
+			font-weight: normal;
+			}
+	    .username {
+	        text-align:left;
+			border:none;
+			outline:none;
+			background-color:#FFFFFF;
+			color:black;
+			text-decoration:bold;
+		}
+        .k-pager-wrap .k-dropdown {
+            width: 100px;	    
+        }
+		.k-grid-toolbar { 
+			background-color:#284a8a !important; 
+		}
+		.k-button { 
+			background-color:#284a8a !important; 
+		}
+		.centered {
+		  /*top: 50%;*/
+		  left: 50%;
+		  height: 100%;
+		  /* bring your own prefixes */
+		  transform: translateX(-50%);
+		}
+		.total_rows {
+		 padding-left:5px;
+		 display:inline;
+		 text-align:left;
+		 border:none;
+		 outline:none;
+		 background-color:#284a8a!important;
+		 color:white;
+		 text-decoration:bold;
+		 height:25px;
+		 width: 45px;
+		}
+		.sel_rows {
+        display:inline;
+		text-align:right;
+		border:none;
+		outline:none;
+		background-color:#284a8a!important;
+		color:white;
+		text-decoration:bold;
+		height:25px;
+		width: 55px;
+		}
+		.counter_wrap {
+		width:auto;
+		float:right;
+		margin-top:-45px;
+		margin-bottom: 5px;
+		z-index:1000!important;
+		color: white;
+		}
+		.save_buttons {
+		margin-top: -45px;
+	    padding-right: 5px;
+		float:right;
+		z-index:1000!important;
+		}
+    </style>
+  </head>
+  <body onload='setFocusPartOnLoad()'>
+    <audio src="{% static 'error-trombone.mp3' %}" id="sad_trombone"></audio>
+    <script type="text/javascript">
+		$(document).ready(
+			function () {
+			    var baseForm = $("#request_form");
+                baseForm.on("keydown", "#wo_task", function(evt){
+				// GET THE KEY THAT WAS PRESSED
+				var charCode = evt.keyCode;
+                //if focus is on wo_number
+				//baseForm.submit(); 
+				if ($form.data('submitted') === true) {
+				  alert("Click or hit enter only once to submit.");
+				  // Previously submitted - don't submit again
+				  evt.preventDefault ? evt.preventDefault() : (evt.returnValue = false);
+				} 
+				else {
+				  // Mark it so that the next submit can be ignored
+				  $form.data('submitted', true);
+				}				
+			});	
+				error = $("#error").val();
+				//console.log(error);
+				if (error) {
+				   $("#sad_trombone").get(0).play();
+				}
+			}
+		)
+    </script>
+<div class="mro-header-wrapper">
+	<section id="mrotop"></section>
+	<div class="grid-container mro-header">
+		<div class="grid-x medium-margin-collapse align-middle hide-for-medium" style="float:left;">
+			<div class="cell large-1 medium-2 small-12 mro-menu-button">
+				<a data-toggle="offCanvas"><i class="fas fa-bars"></i></a>
+			</div>
+			<div class="cell large-11 medium-10 small-12 show-for-medium"><hr/></div>
+		</div>
+		<div class="grid-x grid-padding-x align-middle">
+			<div class="cell medium-7 small-12 mro-headerlogo">
+				<a href="" alt="MRO Live - Homepage">
+					<img style="max-width:361px;max-height:150px;" src="{% static 'dist/assets/img/mro-live_header.png' %}" alt="MROLive - Where Productivity Takes Flight">
+				</a>
+			</div>
+			<!--div class="cell medium-5 small-12 mro-clientlogo show-for-medium">
+				<a href="#" alt="MRO Live - Client Logo">
+				  <img style="max-width:150px;" src="../../..{{ logo_url }}" alt="{{ user_name }}">
+				</a>			
+			</div-->
+		</div>
+		<div class="grid-x medium-margin-collapse align-middle show-for-medium">
+			<div class="cell large-1 medium-2 small-12 mro-menu-button">
+				<a data-toggle="offCanvas">Menu <i class="fas fa-bars"></i></a>
+			</div>
+			<div class="cell large-11 medium-10 small-12 show-for-medium"><hr/></div>
+		</div>
+		<!--div class="cell medium-7 small-12 mro-clientlogo hide-for-medium mro-mobileclient">
+			  <a href="#" alt="MRO Live - Client Logo">
+				<img style="max-width:150px;" src="../../..{{ logo_url }}" alt="{{ user_name }}">
+			  </a>      
+		</div-->
+	</div>
+</div>
+<!-- Off-canvas Menu -->
+
+<div class="off-canvas position-left" id="offCanvas" data-off-canvas>
+
+<!-- Close button -->
+<button class="close-button" aria-label="Close menu" type="button" data-close>
+  <span aria-hidden="true">&times;</span>
+</button>
+<!-- Menu -->
+<ul class="vertical mro-menu menu">
+	<li class="mro-menu-logo">
+		<a href="http://mrolive.com/" target="_blank">
+			<img src="{% static 'dist/assets/img/MROlive-logo.png' %}" alt="Where Productivity Takes Flight" alt="MRO Live - Where Productivity Takes Flight">
+		</a>
+	</li>
+	{% if op_apps %}
+	<div class="subhead">Operations</div>
+	{% endif %}
+	{% for app in op_apps %}
+      <li><a target="_blank" href="../{{ app.ml_apps_id.code }}/{{ quapi_id }}">{{ app.ml_apps_id.name }}</a></li>
+    {% endfor %}
+	{% if mgmt_apps %}
+	<div class="subhead">Management</div>
+	{% endif %}
+	{% for app in mgmt_apps %}
+      <li><a target="_blank" href="../{{ app.ml_apps_id.code }}/{{ quapi_id }}">{{ app.ml_apps_id.name }}</a></li>
+    {% endfor %}
+	{% if dash_apps %}
+	<div class="subhead">Dashboards</div>
+	{% endif %}
+	{% for app in dash_apps %}
+      <li><a target="_blank" href="../{{ app.ml_apps_id.code }}/{{ quapi_id }}">{{ app.ml_apps_id.name }}</a></li>
+    {% endfor %}
+	{% if setup_apps %}
+	<div class="subhead">Setup</div>
+	{% endif %}
+	{% for app in setup_apps %}
+      <li><a target="_blank" href="../{{ app.ml_apps_id.code }}/{{ quapi_id }}">{{ app.ml_apps_id.name }}</a></li>
+    {% endfor %}
+    <li><a href="/login">Logout</a></li><li><a href="/portal/pass-reset/{{ quapi_id }}">Reset Password</a></li>
+</ul>
+</div>
+<!-- Off-canvas Menu - END -->
+    <div class="grid-container mro-top-section">
+      <div class="grid-x grid-padding-x">
+          <div class="mro-top-section-wrapper mro-search">
+            <div class="mro-top-section" style="width:100%;">
+			  <form method="POST" id="request_form" name="request_form" enctype="multipart/form-data" onsubmit='setFocusPartOnLoad()' 
+			  
+			      <input type="hidden" name="is_submit" id="is_submit" value="{{ is_submit }}"/>
+				  <input type="hidden" name="active_user" id="active_user" value="{{ user_id }}"/>
+				  <input type="hidden" name="update_session" id="update_session" value="{{ update_session }}"/>
+				  <input type="hidden" name="search_user" id="search_user" value="{{ search_user }}"/> 
+				  <input type="hidden" name="session_id" id="session_id" value="{{session_id}}"/>
+				  <input type="hidden" name="lookup_recs" id="lookup_recs" value="{{ lookup_recs}}"/>
+				  <input type="hidden" name="options_pagesize" id="options_pagesize"/>
+				  <input type="hidden" name="options_col" id="options_col"/>
+              <div class="mro-lightsearch">
+			    <div class="large-6 medium-12 small-7 cell hide-for-medium">
+				</div>
+				<div class="large-6 medium-12 small-7 cell hide-for-medium">
+				</div>
+				<div class="cell large-6 medium-6 small-12">
+				  <span class="left-tab">
+				    <h1><span style="padding-left:5px;font-size:14px;">{{ user_name }}</span>
+				    </h1>
+				  </span>
+                  <h1>
+					  <select style="background-color:#284a8a;color:white;" name="mode_selector" id="mode_selector">
+					  {% for mmod in modes  %}						
+						{% if mmod.code == active_mode %}
+						<option value="{{ mmod.code }}" selected>{{ mmod.name }}</option>
+						{% else %}
+						<option value="{{ mmod.code }}">{{ mmod.name }}</option>
+						{% endif %}							
+						{% endfor %}
+				  	  </select>
+				  </h1>
+				  <!--div>
+				   <a class="sublink" href="../teardown/{{quapi_id}}">TEARDOWN</a>
+				   <a class="sublink" href="../requests-view/{{quapi_id}}">VIEW REQUESTS | </a>
+				  </div-->
+				  </h1>
+				  {%  if msg %}<div style="font-weight: bold; color:green; font-size: 12px;">{{ msg }}</div>{%  endif %}
+				  {%  if fail_msg %}<div style="font-weight: bold; color:red; font-size: 12px;">{{ fail_msg }}</div>{%  endif %}
+				</div>
+                <div class="grid-x grid-padding-x align-middle">
+				    {% csrf_token %}
+			    
+				<!--div class="cell large-6 medium-6 small-12">
+                      <label>Mode</label>
+                      <fieldset class="mro-barcodingradio">
+					  {% for mmod in modes %}
+						{% if mmod.code == active_mode %}
+						<input type="radio" class="mode_selector" name="mode_selector" id="radio{{ mmod.code }}" value="{{ mmod.code }}" checked><label for="radio{{ mmod.code }}">{{ mmod.name }}</label>
+						{% else %}
+                        <input type="radio" class="mode_selector" name="mode_selector" id="radio{{ mmod.code }}" value="{{ mmod.code }}"><label for="radio{{ mmod.code }}">{{ mmod.name }}</label>
+						{% endif %}
+					  {% endfor %}  
+                      </fieldset>					  
+                </div-->				
+					<div class="cell large-6 medium-6 small-12">  
+                     <label>WO#: </label>					
+						<p>{{ form.wo_task }}</p>
+					</div>
+					{% if wo_task %}
+                    <div class="cell large-6 medium-6 small-12">
+                      <label>Task: </label>
+					    <!-- style="background-color:#284a8a;color:white;" -->
+						<select style="background-color:#284a8a;color:white;" name="wo_task_sel" id="wo_task_sel">
+							<option value=""></option>
+							{% for task in wo_tasks %}
+							    {% if task.wot_auto_text == wo_task_sel %}
+								<option data-value="{{ task.wot_auto_key }}" value="{{ task.wot_auto_key }}" selected>{{ task.wot_sequence }} - {{ task.task_master_desc }}</option>
+								{% else %}
+								<option data-value="{{ task.wot_auto_key }}" value="{{ task.wot_auto_key }}">{{ task.wot_sequence }} - {{ task.task_master_desc }}</option>	
+							    {% endif %}
+							{% endfor %}
+						</select>		 
+					</div>						
+                    <div class="cell large-6 medium-6 small-12">
+                      <label>PN: </label>
+				      <input type="text" value="{{part_number}}" style="background-color:#284a8a;color:white;" list="part_list" name="part_number" id="part_number"/>
+					  <datalist id="part_list">
+						{% for pn in parts %}
+						{% if pn.part_number == part_number %}
+						<option data-value="{{ pn.pnm_auto_key }}" value="{{ pn.part_number }}">{{ pn.part_number }}</option>
+						{% else %}						
+						<option data-value="{{ pn.pnm_auto_key }}" value="{{ pn.part_number }}">{{ pn.part_number }}</option>
+                        {% endif %}						
+						{% endfor %}
+					  </datalist>			  
+                    </div>	
+					
+					<div class="cell large-6 medium-6 small-12">  
+                     <label>Quantity</label>					
+						<input type="text" name="quantity" id="quantity" placeholder="10"/>
+					</div>
+
+                    <div class="cell large-6 medium-6 small-12">
+                      <label>BOM Status: </label>
+					    <!-- style="background-color:#284a8a;color:white;" -->
+						<select name="bom_status" id="bom_status">
+							<option value=""> -- No Selection -- </option>
+							{% for bstat in bom_statuses %}	
+								{% if bstat.is_dashboard %}
+								<option data-value="{{ bstat.wos_auto_key }}" value="{{ bstat.name }}" selected>{{ bstat.name }}</option>
+								{% else %}
+								<option data-value="{{ bstat.wos_auto_key }}" value="{{ bstat.name }}">{{ bstat.name }}</option>	
+								{% endif %}
+							{% endfor %}
+						</select>		  
+					</div>		
+					{% if active_mode != '1' %}
+					<div class="cell large-6 medium-6 small-12">  
+                     <label>WO#</label>					
+						<p>{{ form.wo_number }}</p>
+					</div>
+					{% else %}
+					<div class="cell large-6 medium-6 small-12">  
+                     <label>Note</label>					
+						<textarea name="notes" id="notes" placeholder="Inspect as per 18AS9273..."></textarea>
+					</div>
+					{% endif %}
+					<!--div class="cell large-4 medium-6 small-12">
+                      <label>Activity</label>	
+				      <!--select name="activity" id="activity">
+						<!--option value=""> -- No Selection -- </option-->
+						<!--option value="override_consum" selected>OVERRIDE_CONSUM</option>
+						<option value="override_replace">OVERRIDE_REPLACE</option>
+						<option value="override_repair">OVERRIDE_REPAIR</option>
+						<option value="override_wo">OVERRIDE_WO</option>
+						<option value="override_inspect">OVERRIDE_INSPECT</option>
+						<option value="override_issue">OVERRIDE_ISSUE</option>
+						<option value="override_loan">OVERRIDE_LOAN</option>
+						<option value="override_return">OVERRIDE_RETURN</option>
+						<option value="override_turnin">OVERRIDE_TURNIN</option>
+						<option value="override_exchange">OVERRIDE_EXCHANGE</option>
+					  </select>
+					</div-->
+			      {% endif %}
+				  <div class="large-6 small-12 cell">
+			        <input class="primary button shadow" type="submit" value="{% if reserve_mode != 'T' %}OK{% else %}Reserve{% endif %}" name="request_submit" id="request_submit" onclick="this.disabled=true,this.form.submit();"/>
+				  </div>
+				</form>
+				<div class="cell large-6 medium-6 small-12 mro-searchbuttonbox">
+					<form method="POST" id="clear_formage" name="clear_formage" onsubmit='setFocusPartOnLoad()' 
+					  {% csrf_token %}
+					  <input type="hidden" name="clear_form" id="clear_form" value="1"/>
+					  <input type="hidden" name="user_logged" id="user_logged" value="{{ user_logged }}"/>
+					  <input type="hidden" name="sel_mode" id="sel_mode" value="{{ active_mode }}"/>
+					  <input type="hidden" name="clear_show_status" id="clear_show_status" value="{{ show_status }}"/>
+					  <input type="hidden" name="show_record" id="show_record" value="{{ show_record }}"/>
+					</form>
+				</div>
+              </div>
+
+			</div>
+        </div>      
+	</div>
+  </div>
+<!-- Modal Part Selection Pop-up -->
+<script>
+$(function() {
+    $("#partSelModal").modal();//if you want you can have a timeout to hide the window after x seconds
+});
+</script>
+    <!-- Modal -->
+    {%  if show_conf == 'show_pns' %}
+      <div class="modal fade" id="partSelModal" role="dialog">
+        <div class="modal-dialog">
+          <!-- Modal content-->
+          <div class="modal-content">
+            <div class="modal-header">
+              <!--button type="button" class="close" data-dismiss="modal">&times;</button-->
+              <h4 class="modal-title">Choose PN<br/></h4>
+            </div>
+            <div class="modal-body">
+                <form method="POST" id="loc_form" name="loc_form">
+                  {% csrf_token %}
+				  <input type="hidden" name="user_in" id="user_in" value="{{user_id}}"/>
+				  <input type="hidden" name="wo_task" id="wo_task" value="{{wo_task}}"/>
+				  <input type="hidden" name="wo_task_sel" id="wo_task_sel" value="{{wo_task_sel}}"/>
+				  <input type="hidden" name="active_mode" id="active_mode" value="1"/>
+				  <input type="hidden" name="part_number" id="part_number" value="{{part_number}}"/>
+				  <input type="hidden" name="quantity" id="quantity" value="{{quantity}}"/>
+				  <input type="hidden" name="serial_number" id="serial_number" value="{{serial_number}}"/>
+				  <input type="hidden" name="wo_number" id="wo_number" value="{{wo_number}}"/>
+				  <input type="hidden" name="notes" id="notes" value="{{notes}}"/>
+				  <input type="hidden" name="user_auto_key" id="user_auto_key" value="{{ user_auto_key }}"/>
+				  <input type="hidden" name="show_modal" id="show_modal" value="done"/>
+				  <input type="hidden" name="session_id" id="session_id" value="{{ session_id }}"/>
+				  {% for part in pn_info %}
+				  <div class="cell large-6 medium-6 small-12">
+					  <input type="radio" id="{{part.pnm_auto_key}}" value="{{part.pnm_auto_key}}" name="pn_sel" style="font-size:14pt;font-weight:bold;"/> {{part.part_number}} | {{part.description}} | {{part.mfg_code}}
+				  </div>
+				  {% endfor %}
+				  <div><br/><br/><br/><br/></div>	
+				  <div class="cell large-6 medium-6 small-12">
+				    <button class="secondary button shadow" class="close" data-dismiss="modal" name="mod_cancel" value="1" style="float:right; margin-top:-50px;" id="mod_cancel">Cancel</button>
+					<button class="secondary button shadow" name="pn_info_submit" value="1" style="float:left; margin-top:-50px;" id="pn_info_submit" type="submit" onclick="this.disabled=true,this.form.submit();">Update</button>
+				  </div>				  
+                </form>          
+            </div>
+          </div>                
+       </div>
+      </div>
+	  {% endif %}
+	  
+<!-- Modal Error Pop-up -->
+<script>
+$(function() {
+    $("#myModal").modal();//if you want you can have a timeout to hide the window after x seconds
+});
+</script>
+    <!-- Modal -->
+    {%  if show_conf == 'create-pn' %}
+      <div class="modal fade" id="myModal" role="dialog">
+        <div class="modal-dialog">
+          <!-- Modal content-->
+          <div class="modal-content">
+            <div class="modal-header">
+              <!--button type="button" class="close" data-dismiss="modal">&times;</button-->
+              <h4 class="modal-title">PN does not exist.<br/></h4>
+            </div>
+            <div class="modal-body">
+                <form method="POST" id="loc_form" name="loc_form">
+                  {% csrf_token %}
+				  <input type="hidden" name="user_in" id="user_in" value="{{user_id}}"/>
+				  <input type="hidden" name="wo_task" id="wo_task" value="{{wo_task}}"/>
+				  <input type="hidden" name="wo_task_sel" id="wo_task_sel" value="{{wo_task_sel}}"/>
+				  <input type="hidden" name="active_mode" id="active_mode" value="1"/>
+				  <input type="hidden" name="part_number" id="part_number" value="{{part_number}}"/>
+				  <input type="hidden" name="quantity" id="quantity" value="{{quantity}}"/>
+				  <input type="hidden" name="serial_number" id="serial_number" value="{{serial_number}}"/>
+				  <input type="hidden" name="wo_number" id="wo_number" value="{{wo_number}}"/>
+				  <input type="hidden" name="notes" id="notes" value="{{notes}}"/>
+				  <input type="hidden" name="user_auto_key" id="user_auto_key" value="{{ user_auto_key }}"/>
+				  <input type="hidden" name="show_modal" id="show_modal" value="got_data"/>
+				  <input type="hidden" name="mod_session" id="mod_session" value="{{ mod_session }}"/>
+				  <input type="hidden" name="mod_new_wo" id="mod_new_wo" value="{{ mod_new_wo }}"/>
+				  <div class="cell large-6 medium-6 small-12">
+					  <label>Part Number</label>
+					  <input type="text" id="modal_pn" name="modal_pn" value="{{part_number}}" size="40"/>
+					  <label>Description</label>
+					  <input type="text" id="modal_desc" name="modal_desc" size="50"/>
+					  <label>Serialized</label>
+					  <input type="checkbox" id="modal_serialized" name="modal_serialized" value="T"/>
+				  </div>
+				  <div><br/><br/><br/><br/></div>	
+				  <div class="cell large-6 medium-6 small-12">
+				    <button class="secondary button shadow" class="close" data-dismiss="modal" name="mod_cancel" value="1" style="float:right; margin-top:-50px;" id="mod_cancel">Cancel</button>
+					<button class="secondary button shadow" name="mod_submit" value="1" style="float:left; margin-top:-50px;" id="mod_submit" type="submit" onclick="this.disabled=true,this.form.submit();">Create</button>
+				  </div>				  
+                </form>          
+            </div>
+          </div>                
+       </div>
+      </div>
+	  {% endif %}
+<!-- Modal Error Pop-up -->
+<script>
+$(function() {
+    $("#myModal").modal();//if you want you can have a timeout to hide the window after x seconds
+});
+</script>
+    <!-- Modal -->
+    {%  if show_conf == 'pn_found' %}
+      <div class="modal fade" id="myModal" role="dialog">
+        <div class="modal-dialog">
+          <!-- Modal content-->
+          <div class="modal-content">
+            <div class="modal-header">
+              <button type="button" class="close" data-dismiss="modal">&times;</button>
+              <h4 class="modal-title">{{ msg }}<br/></h4>
+            </div>
+            <div class="modal-body">
+                <form method="POST" id="loc_form" name="loc_form">
+                  {% csrf_token %}
+				  <input type="hidden" name="user_id" id="user_id" value="{{user_id}}"/>
+				  <input type="hidden" name="user_name" id="user_name" value="{{user_name}}"/>
+				  <input type="hidden" name="wo_task" id="wo_task" value="{{wo_task}}"/>
+				  <input type="hidden" name="wo_task_sel" id="wo_task_sel" value="{{wo_task_sel}}"/>
+				  <input type="hidden" name="part_number" id="part_number" value="{{part_number}}"/>
+				  <input type="hidden" name="quantity" id="quantity" value="{{quantity}}"/>
+				  <input type="hidden" name="notes" id="notes" value="{{notes}}"/>
+				  <input type="hidden" name="cur_mode" id="cur_mode" value="{{active_mode}}"/>
+				  <input type="hidden" name="sysur_auto_key" id="sysur_auto_key" value="{{ sysur_auto_key }}"/>
+				  <input type="hidden" name="show_conf" id="show_conf" value="pn_add_req"/>
+				  <input type="hidden" name="mod_session" id="mod_session" value="{{ mod_session }}"/>
+				  <div><br/><br/></div>	
+				  <div class="cell large-6 medium-6 small-12">
+					  <button class="secondary button shadow" name="no_request" value="T" style="float:right; margin-top:-50px;" id="no_clear" type="submit">No</button>
+					  <button class="secondary button shadow" name="yes_request" value="T" style="float:right; margin-top:-50px;" id="yes_clear" type="submit">Yes</button>
+
+				  </div>				  
+                </form>          
+            </div>
+          </div>                
+       </div>
+      </div>
+	  {% endif %}
+	  
+<!-- Modal Error Pop-up -->
+<script>
+$(function() {
+    $("#myModal").modal();//if you want you can have a timeout to hide the window after x seconds
+});
+</script>
+    <!-- Modal -->
+    {%  if show_conf == 'T' %}
+      <div class="modal fade" id="myModal" role="dialog">
+        <div class="modal-dialog">
+          <!-- Modal content-->
+          <div class="modal-content">
+            <div class="modal-header">
+              <button type="button" class="close" data-dismiss="modal">&times;</button>
+              <h4 class="modal-title">Is an open request.  Add?<br/></h4>
+            </div>
+            <div class="modal-body">
+                <form method="POST" id="loc_form" name="loc_form">
+                  {% csrf_token %}
+				  <input type="hidden" name="user_id" id="user_id" value="{{user_id}}"/>
+				  <input type="hidden" name="user_name" id="user_name" value="{{user_name}}"/>
+				  <input type="hidden" name="wo_task" id="wo_task" value="{{wo_task}}"/>
+				  <input type="hidden" name="wo_task_sel" id="wo_task_sel" value="{{wo_task_sel}}"/>
+				  <input type="hidden" name="part_number" id="part_number" value="{{part_number}}"/>
+				  <input type="hidden" name="quantity" id="quantity" value="{{quantity}}"/>
+				  <input type="hidden" name="notes" id="notes" value="{{notes}}"/>
+				  <input type="hidden" name="cur_mode" id="cur_mode" value="{{active_mode}}"/>
+				  <input type="hidden" name="sysur_auto_key" id="sysur_auto_key" value="{{ sysur_auto_key }}"/>
+				  <input type="hidden" name="show_conf" id="show_conf" value="open_req_add"/>
+				  <input type="hidden" name="mod_pagesize" id="mod_pagesize"/>
+				  <input type="hidden" name="mod_col" id="mod_col"/>
+				  <input type="hidden" name="mod_session" id="mod_session" value="{{ mod_session }}"/>
+				  <div><br/><br/></div>	
+				  <div class="cell large-6 medium-6 small-12">
+					  <button class="secondary button shadow" name="no_request" value="T" style="float:right; margin-top:-50px;" id="no_clear" type="submit">No</button>
+					  <button class="secondary button shadow" name="yes_request" value="T" style="float:right; margin-top:-50px;" id="yes_clear" type="submit">Yes</button>
+
+				  </div>				  
+                </form>          
+            </div>
+          </div>                
+       </div>
+      </div>
+	  {% endif %}
+	  <script>		  
+		{% if element and auto_click != 'done' %}			
+			jQuery(document).ready(function() {            	
+				$("#part_number").val('');
+				$("#serial_number").val('');
+				$("#quantity").val('');
+				$("#notes").val('');
+				$("#auto_click").val('done');			
+			});
+		{% endif %}	
+	  </script>
+<!-- Grid Selection Pop-up -->
+<script>
+$(function() {
+    $("#gridModal").modal();//if you want you can have a timeout to hide the window after x seconds
+});
+</script>
+    <!-- Modal -->
+    {%  if grid_reserve == 'T' %}
+      <div class="modal fade" id="gridModal" role="dialog" data-backdrop="static">
+        <div class="modal-dialog">
+          <!-- Modal content-->
+          <div class="modal-content">
+		    <form method="POST" id="modal_error_form" name="modal_error_form">
+			    <input type="hidden" id="grid_session" name="grid_session" value="{{session_id}}"/>
+				<div class="modal-header">
+				  <button type="button" class="close" id="x_button" data-dismiss="modal">&times;</button>
+				  <h4 class="modal-title">Select one or more rows to reserve</h4>
+				</div>
+				<div class="modal-body">
+					<button class="secondary button shadow" id="ok_button" style="float:right; margin-top:-20px;" type="button" data-dismiss="modal">Reserve</button>
+					<div><br/><br/></div>			
+				{% if total_rows and total_rows != '0' %}
+					<div class="mro-bottom-section-wrapper mro-table">
+					  <div class="grid-container mro-bottom-section">
+						  <div class="grid-x grid-padding-x">
+							<div class="centered results_grid" id="results_grid" name="results_grid">
+								<div class="counter_wrap">					  
+									<button type="button" id="select_all" class="secondary button shadow" style="margin-left:-45px;padding:9px;">SELECT ALL</button>
+									<input type="text" class="sel_rows" id="sel_rows" name="sel_rows" size="4" value="{{ sel_rows }}" readonly>
+									of     <input type="text" class="total_rows" id="total_rows" name="total_rows" value="{{ total_rows }}" size="5" readonly>
+								</div>			
+								<script>
+									kendo.ui.Grid.prototype._positionColumnResizeHandle= function() {
+									  var that = this,
+										  indicatorWidth = that.options.columnResizeHandleWidth,
+										  lockedHead = that.lockedHeader ? that.lockedHeader.find("thead:first") : $();
+
+									  that.thead.add(lockedHead).on("mousemove" + ".kendoGrid", "th", function (e) {
+										var th = $(this);
+										if (th.hasClass("k-group-cell") || th.hasClass("k-hierarchy-cell")) {
+										  return;
+										}
+										that._createResizeHandle(th.closest("div"), th);
+									  });
+									};
+									var oldPageSize = 0;
+									$( "#select_all" ).click(function() {
+										var grid = $("#results_grid").data("kendoGrid");
+										if (grid.dataSource.data().length === grid.select().length) {
+											grid.clearSelection();
+											$("input[type=hidden][class='woos']").remove();	
+											$('#sel_rows').val(0);
+										} 
+										else {
+											grid.select("tr");
+										};
+									});
+									function onChange(e) {
+										var rows = e.sender.select();
+										var grid = $("#results_grid").data("kendoGrid");
+										var currentPage = grid.dataSource.page();
+										//console.log('current page: ' + currentPage + 'selected: ' + rows.length);
+										//first it goes to woos_first and then onchange again, it goes to woos
+										$("input[type=hidden][uipage='" + currentPage + "']").attr('class', 'woos_stale'); 
+										rows.each(function(e) {
+											var dataItem = grid.dataItem(this);	                  					
+											var length = $('input[type=hidden][value=' + dataItem.id + ']').length;
+											//console.log('length: ' + length);					
+											if (length != 0) {
+											   $('input[type=hidden][value=' + dataItem.id + ']').attr('class', 'woos'); 					   
+											}
+											if (!length) {
+												
+												var inputWoo = '<input type="hidden" uipage="' + currentPage + '" name="pnm_list[]" id="pnm_list[]" class="woos" value="' + dataItem.id + '" checked="checked"/>';
+												//console.log('row: ' + inputWoo);	
+												$('#session_id').after(inputWoo);						
+											}
+										var count = $("input[type=hidden][class='woos']").length;
+										$('#sel_rows').val(count);					
+										$("input[type=hidden][uipage='" + currentPage + "'][class='woos_stale']").remove();				
+										});	
+									};
+								$(document).ready(
+									function () {			
+										var dataSourceArguments = {
+											autoBind: false,
+											pageSize: 25,
+											serverPaging: true,
+											//serverFiltering: true,
+											serverSorting: true,
+											transport: {
+												read: {
+													url: '/portal/json',
+													dataType: "json",
+													data: { 'session_id': '{{ session_id }}' } // the parameter I need to send to the server
+												}
+											},
+											schema: {
+												total: "count",
+												data: "results",
+												model: { id: "id" }
+											}
+										}
+										
+										var dsg = new kendo.data.DataSource(dataSourceArguments);
+										var options = localStorage["grid-options"];
+										
+										$("#results_grid").kendoGrid({
+											toolbar: ["excel"],
+											excel: {
+												fileName: "parts-requests-export.xlsx",
+												proxyURL: "https://demos.telerik.com/kendo-ui/service/export",
+												allPages: true
+											},
+											dataSource: dsg,
+											//dataBound: toggleScrollbar,
+											resizable: true,
+											sortable: true,
+											scrollable: true,
+											reorderable: true,
+											change: onChange,
+											selectable: "multiple, row",
+											persistSelection: true,
+											navigatable: false,
+											pageable: {
+												refresh: true,
+												pageSizes: true,
+												buttonCount: 5,
+											},
+											columns: [
+												{
+												  field: 'stock_line',
+												  title: 'SL',
+												  width: screen.availWidth*0.12,
+												},
+												{
+												  field: 'part_number',
+												  title: 'PN',
+												  width: screen.availWidth*0.10,
+												},
+												{
+												  field: 'description',
+												  title: 'Description',
+												  width: screen.availWidth*0.10,
+												},							
+
+												{
+												  field: 'qty_available',
+												  title: 'QTY Avl',
+												  width: screen.availWidth*0.07,
+												},
+												{
+												  field: 'quantity',
+												  title: 'QTY',
+												  width: screen.availWidth*0.10,
+												},
+												{
+												  field: 'location_code',
+												  title: 'Loc',
+												  width: screen.availWidth*0.10,
+												},	
+												{
+												  field: 'wh_code',
+												  title: 'Whs',
+												  width: screen.availWidth*0.10,
+												},
+
+												{
+												  field: 'serial_no',
+												  title: 'Serial #',
+												  width: screen.availWidth*0.10,
+												},
+												{
+												  field: 'ctrl_number',
+												  title: 'CTRL #',
+												  width: screen.availWidth*0.12,
+												},
+												{
+												  field: 'ctrl_id',
+												  title: 'CTRL ID',
+												  width: screen.availWidth*0.12,
+												},									
+											]								
+										});
+										$("select[data-role='dropdownlist']").kendoDropDownList({
+											dataTextField: "pageSize",
+											dataValueField: "sizeValue",
+											dataSource: [
+												{pageSize: 25},
+												{pageSize: 50},
+												{pageSize: 100},
+												{pageSize: 500},
+												{pageSize: 2000},
+												{pageSize: 'All', sizeValue:1000},
+											],
+										});
+										var grid = $("#results_grid").data("kendoGrid");
+										if (options) {
+											var pers_options = JSON.parse(options);
+											//console.log(pers_options.excel.fileName);
+											if (pers_options.excel.fileName == 'parts-requests-export.xlsx') {
+												grid.setOptions(pers_options);
+												grid.setOptions({
+													'dataSource':dsg,
+												});
+											}
+										}
+										 
+										window.onbeforeunload = function() {
+											localStorage["grid-options"] = kendo.stringify(grid.getOptions());
+
+											return;
+										}
+									});
+								  </script>
+							</div>	
+						  </div>	  
+						</div>
+					  </div>
+					{% endif %}
+					</div>
+			</form>
+          </div>                
+       </div>
+      </div>
+	  {% endif %}  
+<!-- End modal error popup -->
+
+<!-- Modal Error Pop-up -->
+<script>
+$(function() {
+    $("#errorModal").modal();//if you want you can have a timeout to hide the window after x seconds
+});
+</script>
+    <!-- Modal -->
+    {%  if error %}
+      <div class="modal fade" id="errorModal" role="dialog" data-backdrop="static">
+        <div class="modal-dialog">
+          <!-- Modal content-->
+          <div class="modal-content">
+		    <form method="POST" id="modal_error_form" name="modal_error_form">
+				<div class="modal-header">
+				  <button type="button" class="close" id="x_button" data-dismiss="modal">&times;</button>
+				  <h4 class="modal-title">Application Message:</h4>
+				</div>
+
+				<div class="modal-body">
+					{%  if error %}<input type="hidden" id="error" name="error" value="{{ error }}"/><div style="font-weight: bold; color:red; font-size: 22px;">{{ error }}</div>{%  endif %}
+					<button class="secondary button shadow" id="ok_button" style="float:right; margin-top:-20px;" type="button" data-dismiss="modal">OK</button>
+					<div><br/><br/></div>			
+				</div>
+			</form>
+          </div>                
+       </div>
+      </div>
+	  {% endif %}  
+    <!-- End modal error popup --> 
+				
+<div class="mro-footer-wrapper">
+	<div class="grid-container mro-footer">
+		<div class="grid-x">
+			<div class="cell small-12">
+				<img class="mro-footerlogo" src="{% static 'dist/assets/img/mro-live_header.png' %}" alt="Where Productivity Takes Flight" alt="MRO Live - Where Productivity Takes Flight">
+			</div>
+		</div>
+
+		<div class="grid-x mro-footer-bottom">
+			<div class="cell medium-5 small-12 mro-footer-bottom-left">
+				<p>Copyright &copy; 2024 MRO Live <span>|</span> <img class="mro-usa" src="{% static 'dist/assets/img/usa.png' %}" alt="Based in USA">Based in USA</p>
+			</div>
+			<!--div class="cell medium-7 small-12 mro-footer-bottom-right">
+				<p><img src="{% static 'dist/assets/img/sectigo.png' %}" /> | Have Questions, Comments, or Concerns? <a href="mailto:Sales@MROLive.com">Get In Touch at Sales@MROLive.com</a></p>
+			</div-->
+		</div>
+	</div>
+</div><script src="{% static 'dist/assets/js/app.js' %}"></script>
+</body>
+</html>

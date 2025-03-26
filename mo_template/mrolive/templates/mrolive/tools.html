@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MRO Live - Tools - Where Productivity Takes Flight</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+	<link rel="shortcut icon" type="image/png" href="{% static 'favicon.ico' %}"/>
+    <link rel="stylesheet" href="{% static 'dist/assets/css/app.css' %}">
+    <link href="{% static 'dist/assets/fontawesome/css/all.css' %}" rel="stylesheet">
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.common-material.min.css" />
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.material.min.css" />
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.material.mobile.min.css" />
+    <script src="https://kendo.cdn.telerik.com/2020.1.114/js/jszip.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/2.4.0/jszip.js"></script>
+    <script src="https://kendo.cdn.telerik.com/2017.2.621/js/jquery.min.js"></script>
+    <script src="https://kendo.cdn.telerik.com/2017.2.621/js/kendo.all.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>	
+	<script type="text/javascript" src="{% static 'jquery-1.12.4.js' %}"></script>
+    <script type="text/javascript" src="{% static 'field_focus.js' %}"></script>
+	<script src="{% static 'jquery.bootstrap.modal.forms.min.js' %}"></script>
+	<script type="text/javascript" src="{% static 'jquery_tab_submit.js' %}"></script>
+	<style>
+	    .subhead {
+			color:white;
+			text-decoration:bold;
+			font-size: large;
+            margin-left: 65px;
+		}
+        .mro-top-section .mro-lightsearch .left-tab h1{
+		    float:left;
+			margin-left:-28px;
+			padding-left:10px;
+			border-top-left-radius:30px;
+			border-top-right-radius:0px;
+		    }
+	    .mro-top-section .mro-lightsearch .left-tab h1:before {
+		    display:hidden!important;
+			position:unset!important;
+			background: none;
+		}
+		@media screen and (max-width: 600px) {
+		    select{
+			    height: 1.5rem;
+				/*padding: 5px;*/
+				margin: 1px;
+				color: white;
+				background-color:#284a8a;
+			}
+			.mro-top-section .mro-lightsearch .left-tab h1:after {
+				content: '';
+				background: #284a8a;
+				margin-left:15px;
+				-webkit-clip-path: polygon(0 0, 0% 100%, 100% 100%);
+				clip-path: polygon(0 0, 0% 100%, 100% 100%);
+				-webkit-clip-path: polygon(0 0, 0% 100%, 100% 100%);
+				clip-path: polygon(0 0, 0% 100%, 100% 100%);
+				display: block;
+				position: absolute;
+				height: 100%;
+				width: 70px;
+				top: 0px;
+				z-index: 0;
+				left:100px;
+			}
+			.mro-top-section .mro-lightsearch {
+			    border-top-right-radius:0px;   
+                border-top-left-radius:0px;			
+			}
+			.message-box {
+			font-weight: bold; 
+			font-size: 10px;
+			color: #fff;
+		   }
+		}
+		#caret{
+			content: '';
+			border: 4px solid transparent;
+			border-top: 4px solid white;
+			margin-left: 2px;
+			margin-bottom: 3px;
+			display: inline-block;
+			vertical-align: bottom;
+			background-color: #000;
+		}
+        .mode_selector {
+			margin: 0 0 1rem;
+			padding: 0.25rem;
+			/*-webkit-appearance: none;
+			-moz-appearance: none;
+			appearance: none;*/
+			border: 0.5px solid #cacaca;
+			/*border-radius: 0;*/
+			background-color: #cacaca;
+			font-family: inherit;
+			font-weight: normal;
+        }	
+		
+	    .mode_selector select {
+			margin: 0 0 1rem;
+			padding: 0.25rem;
+			/*-webkit-appearance: none;
+			-moz-appearance: none;
+			appearance: none;*/
+			border: 0.5px solid #cacaca;
+			/*border-radius: 0;*/
+			background-color: #cacaca;
+			font-family: inherit;
+			font-weight: normal;
+			}
+
+        			
+		/*.mro-top-section .mro-lightsearch label {
+			font-size: 1.05rem;
+			font-weight: bold;
+			line-height: 1.05;
+			float:left;
+			width: 20%;
+			margin-right:30px;
+		}*/													   	 
+	    .username {
+	        text-align:left;
+			border:none;
+			outline:none;
+			background-color:#FFFFFF;
+			color:black;
+			text-decoration:bold;
+		}
+        .k-pager-wrap .k-dropdown {
+            width: 100px;	    
+        }
+		.k-grid-toolbar { 
+			background-color:#284a8a !important; 
+		}
+		.k-button { 
+			background-color:#284a8a !important; 
+		}
+		.centered {
+		  /*top: 50%;*/
+		  left: 50%;
+		  height: 100%;
+		  /* bring your own prefixes */
+		  transform: translateX(-50%);
+		}
+		.total_rows {
+		 padding-left:5px;
+		 display:inline;
+		 text-align:left;
+		 border:none;
+		 outline:none;
+		 background-color:#284a8a!important;
+		 color:white;
+		 text-decoration:bold;
+		 height:25px;
+		 width: 45px;
+		}
+		.sel_rows {
+        display:inline;
+		text-align:right;
+		border:none;
+		outline:none;
+		background-color:#284a8a!important;
+		color:white;
+		text-decoration:bold;
+		height:25px;
+		width: 55px;
+		}
+    </style>
+  </head>
+  <body onload='setFocusToTaskBox()'>
+    <audio src="{% static 'error-trombone.mp3' %}" id="sad_trombone"></audio>
+    <script type="text/javascript">
+		$(document).ready(
+			function () {
+				error = $("#error").val();
+				//console.log(error);
+				if (error) {
+				   $("#sad_trombone").get(0).play();
+				}
+			}
+		)
+    </script>
+<div class="mro-header-wrapper">
+	<section id="mrotop"></section>
+	<div class="grid-container mro-header">
+		<div class="grid-x medium-margin-collapse align-middle hide-for-medium" style="float:left;">
+			<div class="cell large-1 medium-2 small-12 mro-menu-button">
+				<a data-toggle="offCanvas"><i class="fas fa-bars"></i></a>
+			</div>
+			<div class="cell large-11 medium-10 small-12 show-for-medium"><hr/></div>
+		</div>
+		<div class="grid-x grid-padding-x align-middle">
+			<div class="cell medium-7 small-12 mro-headerlogo">
+				<a href="" alt="MRO Live - Homepage">
+					<img style="max-width:361px;max-height:150px;" src="{% static 'dist/assets/img/mro-live_header.png' %}" alt="MROLive - Where Productivity Takes Flight">
+				</a>
+			</div>
+			<!--div class="cell medium-5 small-12 mro-clientlogo show-for-medium">
+				<a href="#" alt="MRO Live - Client Logo">
+				  <img style="max-width:150px;" src="../../..{{ logo_url }}" alt="{{ user_name }}">
+				</a>			
+			</div-->
+		</div>
+		<div class="grid-x medium-margin-collapse align-middle show-for-medium">
+			<div class="cell large-1 medium-2 small-12 mro-menu-button">
+				<a data-toggle="offCanvas">Menu <i class="fas fa-bars"></i></a>
+			</div>
+			<div class="cell large-11 medium-10 small-12 show-for-medium"><hr/></div>
+		</div>
+		<!--div class="cell medium-7 small-12 mro-clientlogo hide-for-medium mro-mobileclient">
+			  <a href="#" alt="MRO Live - Client Logo">
+				<img style="max-width:150px;" src="../../..{{ logo_url }}" alt="{{ user_name }}">
+			  </a>      
+		</div-->
+	</div>
+</div>
+<!-- Off-canvas Menu -->
+
+<div class="off-canvas position-left" id="offCanvas" data-off-canvas>
+
+<!-- Close button -->
+<button class="close-button" aria-label="Close menu" type="button" data-close>
+  <span aria-hidden="true">&times;</span>
+</button>
+
+<!-- Menu -->
+<ul class="vertical mro-menu menu">
+	<li class="mro-menu-logo">
+		<a href="http://mrolive.com/" target="_blank">
+			<img src="{% static 'dist/assets/img/MROlive-logo.png' %}" alt="Where Productivity Takes Flight" alt="MRO Live - Where Productivity Takes Flight">
+		</a>
+	</li>
+	{% if op_apps %}
+	<div class="subhead">Operations</div>
+	{% endif %}
+	{% for app in op_apps %}
+      <li><a target="_blank" href="../{{ app.ml_apps_id.code }}/{{ quapi_id }}">{{ app.ml_apps_id.name }}</a></li>
+    {% endfor %}
+	{% if mgmt_apps %}
+	<div class="subhead">Management</div>
+	{% endif %}
+	{% for app in mgmt_apps %}
+      <li><a target="_blank" href="../{{ app.ml_apps_id.code }}/{{ quapi_id }}">{{ app.ml_apps_id.name }}</a></li>
+    {% endfor %}
+	{% if dash_apps %}
+	<div class="subhead">Dashboards</div>
+	{% endif %}
+	{% for app in dash_apps %}
+      <li><a target="_blank" href="../{{ app.ml_apps_id.code }}/{{ quapi_id }}">{{ app.ml_apps_id.name }}</a></li>
+    {% endfor %}
+	{% if setup_apps %}
+	<div class="subhead">Setup</div>
+	{% endif %}
+	{% for app in setup_apps %}
+      <li><a target="_blank" href="../{{ app.ml_apps_id.code }}/{{ quapi_id }}">{{ app.ml_apps_id.name }}</a></li>
+    {% endfor %}
+    <li><a href="/login">Logout</a></li>
+	<li><a href="/portal/pass-reset/">Reset Password</a></li>
+</ul>
+</div>
+<!-- Off-canvas Menu - END -->
+    <div class="grid-container mro-top-section">
+      <div class="grid-x grid-padding-x">
+          <div class="mro-top-section-wrapper mro-search">
+            <div class="mro-top-section" style="width:100%;">
+			  <form method="POST" id="tools_form" name="tools_form" enctype="multipart/form-data" onsubmit='setFocusToTaskBox()'> 
+				  <input type="hidden" name="active_user" id="active_user" value="{{ user_id }}"/>
+				  <input type="hidden" name="update_session" id="update_session" value="{{ update_session }}"/>
+				  <input type="hidden" name="search_user" id="search_user" value="{{ search_user }}"/> 
+				  <input type="hidden" name="session_id" id="session_id" value="{{session_id}}"/>
+				  <input type="hidden" name="lookup_recs" id="lookup_recs" value="{{ lookup_recs}}"/>
+				  <input type="hidden" name="options_pagesize" id="options_pagesize"/>
+				  <input type="hidden" name="options_col" id="options_col"/>
+				  {% if not user_name or active_mode == '2' %}
+				  <input type="hidden" name="wo_task" id="wo_task"/>
+				  {% endif %}
+              <div class="mro-lightsearch">
+			    <div class="large-6 medium-12 small-7 cell hide-for-medium">
+				</div>
+				<div class="large-6 medium-12 small-7 cell hide-for-medium">
+				</div>
+				<div class="cell large-6 medium-6 small-12">
+				  <h1>TOOLS</h1>			  
+				  {%  if msg %}<div style="font-weight: bold; color:green; font-size: 12px;">{{ msg }}</div>{%  endif %}
+				  {%  if fail_msg %}<div style="font-weight: bold; color:red; font-size: 12px;">{{ fail_msg }}</div>{%  endif %}
+				</div>
+				<div class="cell large-6 medium-6 small-12">
+                      <label>Mode</label>
+                      <fieldset class="mro-barcodingradio">
+					  {% for mmod in modes %}
+						{% if mmod.code == active_mode %}
+						<input type="radio" class="mode_selector" name="mode_selector" id="radio{{ mmod.code }}" value="{{ mmod.code }}" checked><label for="radio{{ mmod.code }}">{{ mmod.name }}</label>
+						{% else %}
+                        <input type="radio" class="mode_selector" name="mode_selector" id="radio{{ mmod.code }}" value="{{ mmod.code }}"><label for="radio{{ mmod.code }}">{{ mmod.name }}</label>
+						{% endif %}
+					  {% endfor %}  
+                      </fieldset>					  
+                </div>
+                <div class="grid-x grid-padding-x align-middle">
+				    {% csrf_token %}
+					{% if kiosk == 'T' %}	
+					<div class="cell large-6 medium-6 small-12">
+                      <label>Emp ID</label>
+					  {{ form.user_id }}
+                    </div>
+                    {% endif %}									
+					<div class="cell large-6 medium-6 small-12">
+                      <label>User Name</label>
+					  <input type="text" name="user_name" id="user_name" value="{{user_name}}" >
+					</div>
+                    {% if active_mode == '1' %}					
+					<div class="cell large-6 medium-6 small-12">
+                     <label>Record</label>					
+						<input type="text" name="wo_task" id="wo_task" value="{{ wo_task }}"/>
+					</div>	
+                    {% endif %}					
+					<div class="cell large-6 medium-6 small-12">  
+                     <label>Tool</label>					
+						<input type="text" name="label" id="label"/>
+					</div>
+				  </form>
+				  <div class="large-6 small-12 cell">
+					<div class="grid-x grid-padding-x align-middle mro-searchbuttonbox">
+					  <div class="cell large-6 medium-6 small-12 mro-searchbuttonbox">
+						<input class="primary button shadow" type="submit" value="OK" name="wo_template_import" id="wo_template_import"/>
+					  </div>
+					</div>
+				  </div>
+				<div class="cell large-6 medium-6 small-12 mro-searchbuttonbox">
+					<form method="POST" id="clear_formage" name="clear_formage"> 
+					  {% csrf_token %}
+					  <input type="hidden" name="clear_form" id="clear_form" value="1"/>
+					  <input type="hidden" name="user_logged" id="user_logged" value="{{ user_logged }}"/>
+					  <input type="hidden" name="sel_mode" id="sel_mode" value="{{ sel_mode }}"/>
+					  <input type="hidden" name="clear_show_status" id="clear_show_status" value="{{ show_status }}"/>
+					  <input type="hidden" name="show_record" id="show_record" value="{{ show_record }}"/>
+					</form>
+				</div>
+				</div>
+              </div>
+			</div>
+        </div>      
+	</div>
+  </div>
+<!-- Modal Error Pop-up -->
+<script>
+$(function() {
+    $("#errorModal").modal();//if you want you can have a timeout to hide the window after x seconds
+});
+</script>
+    <!-- Modal -->
+    {%  if error %}
+      <div class="modal fade" id="errorModal" role="dialog" data-backdrop="static">
+        <div class="modal-dialog">
+          <!-- Modal content-->
+          <div class="modal-content">
+		    <form method="POST" id="modal_error_form" name="modal_error_form">
+            <div class="modal-header">
+              <button type="button" class="close" id="x_button" data-dismiss="modal">&times;</button>
+              <h4 class="modal-title">Application Message:</h4>
+            </div>
+            <div class="modal-body">
+			    {%  if error %}<input type="hidden" id="error" name="error" value="{{ error }}"/><div style="font-weight: bold; color:red; font-size: 22px;">{{ error }}</div>{%  endif %}
+                <button class="secondary button shadow" id="ok_button" style="float:right; margin-top:-20px;" type="button" data-dismiss="modal">OK</button>
+                <div><br/><br/></div>			
+            </div>
+			</form>
+          </div>                
+       </div>
+      </div>
+	  {% endif %}  
+    <!-- End modal error popup --> 
+	{% if total_rows and total_rows != '0' %}
+	<div class="mro-bottom-section-wrapper mro-table">
+      <div class="grid-container mro-bottom-section">
+	      <div class="grid-x grid-padding-x">
+			<div class="centered results_grid" id="results_grid" name="results_grid">
+				<div class="counter_wrap">					  
+				  <input type="text" class="sel_rows" id="sel_rows" name="sel_rows" size="4" value="{{ sel_rows }}" readonly>of     <input type="text" class="total_rows" id="total_rows" name="total_rows" value="{{ total_rows }}" size="5" readonly>
+				</div>				
+				<script>
+				kendo.ui.Grid.prototype._positionColumnResizeHandle= function() {
+				  var that = this,
+					  indicatorWidth = that.options.columnResizeHandleWidth,
+					  lockedHead = that.lockedHeader ? that.lockedHeader.find("thead:first") : $();
+
+				  that.thead.add(lockedHead).on("mousemove" + ".kendoGrid", "th", function (e) {
+					var th = $(this);
+					if (th.hasClass("k-group-cell") || th.hasClass("k-hierarchy-cell")) {
+					  return;
+					}
+					that._createResizeHandle(th.closest("div"), th);
+				  });
+				};
+				$('#bom_sched_form').submit(function(e){
+					e.preventDefault();
+					$('#is_bom_sched').val(1);
+					$('#upd_labor_form').submit();
+				});
+				function onChange(e) {
+					//$('.woos').remove();
+					var rows = e.sender.select();
+					var grid = $("#results_grid").data("kendoGrid");
+					var currentPage = grid.dataSource.page();
+					console.log('current page: ' + currentPage + 'selected: ' + rows.length);
+					//first it goes to woos_first and then onchange again, it goes to woos
+					$("input[type=hidden][uipage='" + currentPage + "']").attr('class', 'woos_stale'); 
+					rows.each(function(e) {
+						var dataItem = grid.dataItem(this);					
+						var length = $('input[type=hidden][value=' + dataItem.id + ']').length;
+						//console.log('Your row id: ' + dataItem.id + ' has length: ' + length);	
+						if (length != 0) {
+						   $('input[type=hidden][value=' + dataItem.id + ']').attr('class', 'woos');  
+						}
+						if (!length) {
+							var inputWoo = '<input type="hidden" uipage="' + currentPage + '" name="woos_list[]" id="woos_list[]" class="woos" value="' + dataItem.id + '" checked="checked"/>';
+							var inputSched = '<input type="hidden" uipage="' + currentPage + '" name="woos_list[]" id="woos_list[]" class="woo_sched" value="' + dataItem.id + '" checked="checked"/>';
+							$('#filter_session').after(inputWoo);
+							//$('#bom_sched_val').after(inputSched);						
+						}
+					var count = $("input[type=hidden][class='woos']").length;
+					$('#sel_rows').val(count);					
+					$("input[type=hidden][uipage='" + currentPage + "'][class='woos_stale']").remove();				
+					});
+				};
+				$(document).ready(
+					function () {			
+						var dataSourceArguments = {
+							autoBind: false,
+							pageSize: {{ page_size }},
+							serverPaging: true,
+							//serverFiltering: true,
+							serverSorting: true,
+							transport: {
+								read: {
+									url: '/portal/wl-json',
+									dataType: "json",
+									data: { 'user_id': '{{ user_id }}','session_id': '{{ session_id }}','is_loc_whs': '1' } // the parameter I need to send to the server
+								}
+							},
+							schema: {
+								total: "count",
+								data: "results",
+								model: { id: "id" }
+							}
+						}
+						
+						var dsg = new kendo.data.DataSource(dataSourceArguments);
+						$("#results_grid").kendoGrid({
+							toolbar: ["excel"],
+							excel: {
+								fileName: "whs-loc-export.xlsx",
+								proxyURL: "https://demos.telerik.com/kendo-ui/service/export",
+								allPages: true
+							},
+							dataSource: dsg,
+							//dataBound: toggleScrollbar,
+							resizable: true,
+							sortable: true,
+							scrollable: true,
+							reorderable: true,
+							selectable: "multiple, row",
+							persistSelection: true,
+							navigatable: true,
+							change: onChange,
+							pageable: {
+								refresh: true,
+								pageSizes: true,
+								buttonCount: 5,
+							},
+							columns: [
+								{
+								  field: 'location_code',
+								  title: 'Loc',
+								  width: screen.availWidth*0.14,
+								},
+								{
+								  field: 'location_name',
+								  title: 'Loc Name',
+								  width: screen.availWidth*0.14,
+								},
+								{
+								  field: 'whs_code',
+								  title: 'WHS',
+								  width: screen.availWidth*0.14,
+								},
+								{
+								  field: 'whs_name',
+								  title: 'WHS Name',
+								  width: screen.availWidth*0.14,
+								},
+								{
+								  field: 'bulk_imp_error',
+								  title: 'Rejection',
+								  width: screen.availWidth*0.14,
+								}
+							]								
+						});
+						$("select[data-role='dropdownlist']").kendoDropDownList({
+							dataTextField: "pageSize",
+							dataValueField: "sizeValue",
+							dataSource: [
+								{pageSize: 25},
+								{pageSize: 50},
+								{pageSize: 100},
+								{pageSize: 500},
+								{pageSize: 2000},
+								{pageSize: 'All', sizeValue:1000},
+							],
+						});
+						var grid = $("#results_grid").data("kendoGrid");
+						var counter='{% if all_woos %}<div style="margin: 0px 0px;" class = "save_buttons"><a href="#" class="secondary button shadow" id="save">Set Grid</a><a href="#" class="secondary button shadow" id="load">Reset Grid</a></div>{% endif %}<div style="margin:0px 0px;" class="counter_wrap"><input type="text" class="sel_rows" id="sel_rows" name="sel_rows" size="4" value="{{ sel_rows }}" readonly>of <input type="text" class="total_rows" id="total_rows" name="total_rows" value="{{ total_rows }}" size="5" readonly></div>';
+						var baseForm = $("#labor_form");
+						baseForm.on('submit', function(evt){
+							var pageSize = $('.k-input').text();	
+							var cols = grid.getOptions().columns;
+							var colOptions = kendo.stringify(cols);					
+							$("#options_col").val(colOptions);						
+							$("#options_pagesize").val(pageSize);
+						});
+					});
+				  </script>
+					</div>	
+		  </div>
+        <div class="grid-x mro-pagination-section">
+          <div class="cell large-5 medium-6 small-12 ">
+            <a class="mrotop" href="#mrotop" data-smooth-scroll><span>^</span> Back to Top</a>
+          </div>
+        </div>		  
+	    </div>
+	  </div>
+    {% endif %}
+				
+<div class="mro-footer-wrapper">
+	<div class="grid-container mro-footer">
+		<div class="grid-x">
+			<div class="cell small-12">
+				<img class="mro-footerlogo" src="{% static 'dist/assets/img/mro-live_header.png' %}" alt="Where Productivity Takes Flight" alt="MRO Live - Where Productivity Takes Flight">
+			</div>
+		</div>
+
+		<div class="grid-x mro-footer-bottom">
+			<div class="cell medium-5 small-12 mro-footer-bottom-left">
+				<p>Copyright &copy; 2022 MRO Live <span>|</span> <img class="mro-usa" src="{% static 'dist/assets/img/usa.png' %}" alt="Based in USA">Based in USA</p>
+			</div>
+			<!--div class="cell medium-7 small-12 mro-footer-bottom-right">
+				<p><img src="{% static 'dist/assets/img/sectigo.png' %}" /> | Have Questions, Comments, or Concerns? <a href="mailto:Sales@MROLive.com">Get In Touch at Sales@MROLive.com</a></p>
+			</div-->
+		</div>
+	</div>
+</div><script src="{% static 'dist/assets/js/app.js' %}"></script>
+</body>
+</html>

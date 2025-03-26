@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+	<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, post-check=0, pre-check=0" /> 
+	<meta http-equiv="Pragma" content="no-cache" />
+    <meta charset="utf-8" />
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MRO Live - Dock Receiving Barcode - Where Productivity Takes Flight</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+	<link rel="shortcut icon" type="image/png" href="{% static 'favicon.ico' %}"/>
+    <link rel="stylesheet" href="{% static 'dist/assets/css/app.css' %}">
+    <link href="{% static 'dist/assets/fontawesome/css/all.css' %}" rel="stylesheet">
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.common-material.min.css" />
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.material.min.css" />
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.material.mobile.min.css" />
+    <script src="https://kendo.cdn.telerik.com/2020.1.114/js/jszip.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/2.4.0/jszip.js"></script>
+    <script src="https://kendo.cdn.telerik.com/2017.2.621/js/jquery.min.js"></script>
+    <script src="https://kendo.cdn.telerik.com/2017.2.621/js/kendo.all.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>	
+	<script type="text/javascript" src="{% static 'jquery-1.12.4.js' %}"></script>
+    <script type="text/javascript" src="{% static 'field_focus.js' %}"></script>
+	<script src="{% static 'jquery.bootstrap.modal.forms.min.js' %}"></script>
+	<script type="text/javascript" src="{% static 'jquery_tab_submit.js' %}"></script>
+    <style>
+		#barcode {
+			width: 504px;
+			height: 430px;
+			margin-left: auto;
+			margin-right:auto;
+			margin-top: 30px;
+            font-size: 18px;			
+			/%text-align: left;%/
+		}
+    </style>
+   </head>
+  <body style="background:none;">
+	<div id="barcode" class="barcode" name="barcode">	
+	  <div style="width:95%;margin:0px;">
+		  <div style="width:230px;height:83px;float:left;margin:0px;padding:0px;"class="{{element}}" id="{{element}}" name="{{element}}">		
+		  </div>
+          <div>
+		    <a href="../dock-receiving/{{quapi_id}}">
+		     <img style="width:180px;float:right;margin:0px;padding:0px;" src="{% static 'logo.jpg' %}"/>
+			</a>
+		  </div>
+	  </div>
+	  <div>
+		  <!--div style="padding-top:100px;margin:auto;width:69%;font-size:24px;font-weight:bold;">{{ rc_number }}
+		    1. Vendor's name from poh or roh on the label abkve customer
+			2. Priority # again. No need for the label just the number 1-4 big on the right side of the label. 
+			SOD(DUE_DATE) is still no showing. Add under so#
+		  </div-->
+		  <div style="width:450px;margin-right:85px;font-size:24pt;font-weight:bold;">{{element}}<span style="margin-left:340px;">{{priority}}</span></div>		  
+		  <div>Rec Date: {{ arrival_date }}</div>
+		  <div>Vendor: {{ vendor }}</div>
+		  <div>Customer: {{ company }}</div>
+		  <div>Order Type: {{ wo_type }}</div>
+		  <div>Order#: {{ wo_number }}</div>
+		  <div>Lot#: {{ lot_number }}</div>
+		  <div>SO/WO#: {{ sowo_number }}</div>
+		  <div>Due: {{ due_date }}</div>
+		  <!--div>Location: {{location}}</div-->
+      </div>
+	</div>
+	<script>
+		// Import DejaVu Sans font for embedding
+
+		// NOTE: Only required if the Kendo UI stylesheets are loaded
+		// from a different origin, e.g. cdn.kendostatic.com
+		kendo.pdf.defineFont({
+			"DejaVu Sans"             : "https://kendo.cdn.telerik.com/2016.2.607/styles/fonts/DejaVu/DejaVuSans.ttf",
+			"DejaVu Sans|Bold"        : "https://kendo.cdn.telerik.com/2016.2.607/styles/fonts/DejaVu/DejaVuSans-Bold.ttf",
+			"DejaVu Sans|Bold|Italic" : "https://kendo.cdn.telerik.com/2016.2.607/styles/fonts/DejaVu/DejaVuSans-Oblique.ttf",
+			"DejaVu Sans|Italic"      : "https://kendo.cdn.telerik.com/2016.2.607/styles/fonts/DejaVu/DejaVuSans-Oblique.ttf",
+			"WebComponentsIcons"      : "https://kendo.cdn.telerik.com/2017.1.223/styles/fonts/glyphs/WebComponentsIcons.ttf"
+		});
+	</script>
+	<script>
+		function setOptions(e) {
+			var validValue = $('#validValue');
+			try {
+				var barcode = $('#{{ element }}').data('kendoBarcode');
+				barcode.setOptions({
+					value: {{ element }},
+					checksum: true,
+					text: {
+						visible: true
+					},
+					type: "Code128"
+				})
+				validValue.hide();
+			} catch (e) {
+				validValue.text(e.message).show();
+			}
+		}
+		$('#type').kendoDropDownList({
+			dataSource: [
+			 { type: 'Code128', value: "Howdy Yall!" },
+			],
+			change: setOptions,
+			dataTextField: "type",
+			dataValueField: "type"
+		});		
+		$(document).ready(function () {		
+				$("#{{element}}").kendoBarcode({
+				value: '{{ element }}',
+				type: 'Code128',
+				background: "transparent"
+			});
+		});
+		$('#type,#label,#text').change(setOptions);
+    </script>	
+    <script src="{% static 'dist/assets/js/app.js' %}"></script>
+  </body>
+</html>

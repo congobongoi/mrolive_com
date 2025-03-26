@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+	<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, post-check=0, pre-check=0" /> 
+	<meta http-equiv="Pragma" content="no-cache" />
+    <meta charset="utf-8" />
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MRO Live - Shop Management - Where Productivity Takes Flight</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+	<link rel="shortcut icon" type="image/png" href="{% static 'favicon.ico' %}"/>
+    <link rel="stylesheet" href="{% static 'dist/assets/css/app.css' %}">
+    <link href="{% static 'dist/assets/fontawesome/css/all.css' %}" rel="stylesheet">
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.common-material.min.css" />
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.material.min.css" />
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.material.mobile.min.css" />
+    <script src="https://kendo.cdn.telerik.com/2020.1.114/js/jszip.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/2.4.0/jszip.js"></script>
+    <script src="https://kendo.cdn.telerik.com/2017.2.621/js/jquery.min.js"></script>
+    <script src="https://kendo.cdn.telerik.com/2017.2.621/js/kendo.all.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>	
+	<script type="text/javascript" src="{% static 'jquery-1.12.4.js' %}"></script>
+    <script type="text/javascript" src="{% static 'field_focus.js' %}"></script>
+	<script src="{% static 'jquery.bootstrap.modal.forms.min.js' %}"></script>
+	<script type="text/javascript" src="{% static 'jquery_tab_submit.js' %}"></script>
+	<style>
+        input::-webkit-calendar-picker-indicator {
+              opacity: 100;
+           }
+	    .subhead {
+			color:white;
+			text-decoration:bold;
+			font-size: large;
+            margin-left: 65px;
+		}
+		.k-grid td{
+			white-space: nowrap;
+			text-overflow: none;
+		}
+        .k-pager-wrap .k-dropdown {
+            width: 100px;	    
+        }
+		.k-grid-toolbar { 
+			background-color:#284a8a !important; 
+		}
+		.k-button { 
+			background-color:#284a8a !important; 
+		}
+		.centered {
+		  /*top: 50%;*/
+		  left: 50%;
+		  height: 100%;
+		  /* bring your own prefixes */
+		  transform: translateX(-50%);
+		}
+		.total_rows {
+		 padding-left:5px;
+		 display:inline;
+		 text-align:left;
+		 border:none;
+		 outline:none;
+		 background-color:#284a8a!important;
+		 color:white;
+		 text-decoration:bold;
+		 height:25px;
+		 width: 45px;
+		}
+		.sel_rows {
+        display:inline;
+		text-align:right;
+		border:none;
+		outline:none;
+		background-color:#284a8a!important;
+		color:white;
+		text-decoration:bold;
+		height:25px;
+		width: 55px;
+		}
+		.counter_wrap {
+		width:auto;
+		float:right;
+		margin-top:-45px;
+		margin-bottom: 5px;
+		z-index:1000!important;
+		color: white;
+		}
+		.grid_title {
+		width:auto;
+		float:right;
+		margin-top:-35px;
+		padding-right:480px;
+		text-decoration:bold;
+		z-index:1000!important;
+		color: white;
+		font-size:16pt;
+        margin-left: auto;
+		margin-right: auto;
+		}
+		@media screen and (max-width: 600px) {
+			.mro-logo {
+				 display:none !important;
+			}					
+		}
+		.table-wrap {
+			  margin-top: 30px;
+			  
+        }		
+		table {
+			margin-right: auto;
+			margin-left: auto;
+		}
+		tr {
+	        padding:0px;
+			/*border: solid 2px; 
+			border-color:#000;*/
+		}
+		tbody {
+		    padding:0px;
+			background-color:#284a8a;
+		}
+		tbody th,td {
+		    padding:0px;
+			background-color:#284a8a;
+		}
+		span.positive {
+			font-size:26pt;
+			text-align:center !important;
+			background: rgb(2,0,36);
+            background: linear-gradient(to right, rgba(2,0,36,1) 0%, rgba(6,14,42,1) 17%, rgba(10,26,52,1) 33%, rgba(18,36,64,1) 67%, rgba(30,50,80,1) 83%, rgba(45,55,95,1) 100%);
+        }
+		span.negative {
+			font-size:26pt;
+			text-align:center !important;
+			background: rgb(2,0,36);
+		    background-image: linear-gradient(to right, rgba(0, 40, 74, 138) 0%, rgba(0, 41, 75, 140) 17%, rgba(0, 43, 76, 142) 33%, rgba(0, 44, 82, 150) 67%, rgba(0, 50, 90, 155) 83%, rgba(0, 55, 95, 165) 100%); /* your gradient */
+		    background-position: 100% 100%;
+		} 
+		.table {
+			display: table;
+			padding: 25px;
+			text-align:center;
+		}
+		.tableedge-row {
+			display: table-row;
+			text-align:center;
+		}
+		div.tableedge-row a,span {
+		    padding: 25px;
+			display: table-cell;
+			max-width: 100%;
+			height: 100%;
+			text-align:center;
+			
+		}
+		div.tableedge-row a {
+		    color: white;
+			text-decoration: none;
+			text-align:center;
+		}
+		div.tableedge-row a:link {
+		    color: white;
+    		text-decoration: none;
+            text-align:center;			
+	    }		
+		div.tableedge-row a:visited {
+			text-decoration:none;
+			color: white;
+			text-align:center;
+		}
+
+		div.tableedge-row a:hover {
+		    color: white;
+			text-decoration:none;
+			text-align:center;
+		}
+		div.tableedge-row a:active { 
+		    text-decoration: none;
+            color: white;
+            text-align:center;			
+		}
+		.mro-logo {
+		     margin-right:auto;
+			 margin-left:auto;
+			 display:block;
+			 width:350px;
+		}
+		button.close-button span {
+		    padding: 0px;
+		}
+	</style>
+   </head>
+  <body>
+	<div class="mro-header-wrapper" style="">
+		<section id="mrotop"></section>
+		<div class="grid-container mro-header">
+			<div class="grid-x medium-margin-collapse align-middle hide-for-medium" style="float:left;">
+				<div class="cell large-1 medium-2 small-12 mro-menu-button">
+					<a data-toggle="offCanvas"><i class="fas fa-bars"></i></a>
+				</div>
+				<div class="cell large-11 medium-10 small-12 show-for-medium"><hr/></div>
+			</div>
+			<div class="grid-x grid-padding-x align-middle">
+				<div class="cell medium-7 small-12" style="float:left;width:auto;padding-left:430px;">
+						<img style="margin-left:auto;margin-right:auto;max-height:160px;" src="{% static 'dist/assets/img/mro-live_header.png' %}" alt="MROLive - Where Productivity Takes Flight">
+				</div>
+				<!--div class="cell medium-5 small-12 mro-clientlogo show-for-medium">
+					  <img style="max-height:80px;margin-right:150px;" src="{% static 'dist/assets/img/iaero_logo.png' %}">		
+				</div-->
+			</div>
+			<div class="grid-x medium-margin-collapse align-middle show-for-medium">
+				<div class="cell large-1 medium-2 small-12 mro-menu-button">
+					<a data-toggle="offCanvas">Menu <i class="fas fa-bars"></i></a>
+				</div>
+				<div class="cell large-11 medium-10 small-12 show-for-medium"><hr/></div>
+			</div>
+		</div>
+	</div>
+	<!-- Off-canvas Menu -->
+
+	<div class="off-canvas position-left" id="offCanvas" data-off-canvas>
+
+	<!-- Close button -->
+	<button class="close-button" aria-label="Close menu" type="button" data-close>
+	  <span aria-hidden="true">&times;</span>
+	</button>
+
+	<!-- Menu -->
+	<ul class="vertical mro-menu menu">
+		<li class="mro-menu-logo">
+			<a href="http://mrolive.com/" target="_blank">
+				<img src="{% static 'dist/assets/img/MROlive-logo.png' %}" alt="Where Productivity Takes Flight" alt="MRO Live - Where Productivity Takes Flight">
+			</a>
+		</li>
+		{% if op_apps %}
+		<div class="subhead">Operations</div>
+		{% endif %}
+		{% for app in op_apps %}
+		  <li><a target="_blank" href="../{{ app.ml_apps_id.code }}/{{ quapi_id }}">{{ app.ml_apps_id.name }}</a></li>
+		{% endfor %}
+		{% if mgmt_apps %}
+		<div class="subhead">Management</div>
+		{% endif %}
+		{% for app in mgmt_apps %}
+		  <li><a target="_blank" href="../{{ app.ml_apps_id.code }}/{{ quapi_id }}">{{ app.ml_apps_id.name }}</a></li>
+		{% endfor %}
+		{% if dash_apps %}
+		<div class="subhead">Dashboards</div>
+		{% endif %}
+		{% for app in dash_apps %}
+		  <li><a target="_blank" href="../{{ app.ml_apps_id.code }}/{{ quapi_id }}">{{ app.ml_apps_id.name }}</a></li>
+		{% endfor %}
+		{% if setup_apps %}
+		<div class="subhead">Setup</div>
+		{% endif %}
+		{% for app in setup_apps %}
+		  <li><a target="_blank" href="../{{ app.ml_apps_id.code }}/{{ quapi_id }}">{{ app.ml_apps_id.name }}</a></li>
+		{% endfor %}
+		<li><a href="/login">Logout</a></li><li><a href="/portal/pass-reset/">Reset Password</a></li>
+	</ul>
+	</div>
+	<!-- Off-canvas Menu - END -->
+	<div class="table" id="reservation_table"> 
+      {% for loc,count in loc_counts.items %}
+          {% if forloop.counter|add:"-1"|divisibleby:4 %}	  
+		  <div class="tableedge-row">
+		  {% endif %}
+			  <span class="{% cycle 'positive' 'negative' 'positive' 'negative' 'negative' 'positive' 'negative' 'positive' %}">
+			  {% if count > 0 %}
+			  <a href="../shop-mgmt-dashboard/{{quapi_id}}/{{loc}}" target="_blank">
+				{% else %}
+				<a href="#">
+				{% endif %}
+				{{loc}}<br/>{{ count }}
+			  </a>
+			  </span>
+		  {% if forloop.counter|divisibleby:4 %}	  
+		  </div>
+		  {% endif %}
+	  {% endfor %}
+    </div>
+    <script src="{% static 'dist/assets/js/app.js' %}"></script>
+  </body>
+</html>

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+	<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, post-check=0, pre-check=0" /> 
+	<meta http-equiv="Pragma" content="no-cache" />
+    <meta charset="utf-8" />
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MROLive - Cart Barcode - Where Productivity Takes Flight</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+	<link rel="shortcut icon" type="image/png" href="{% static 'favicon.ico' %}"/>
+    <link rel="stylesheet" href="{% static 'dist/assets/css/app.css' %}">
+    <link href="{% static 'dist/assets/fontawesome/css/all.css' %}" rel="stylesheet">
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.common-material.min.css" />
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.material.min.css" />
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.material.mobile.min.css" />
+    <script src="https://kendo.cdn.telerik.com/2020.1.114/js/jszip.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/2.4.0/jszip.js"></script>
+    <script src="https://kendo.cdn.telerik.com/2017.2.621/js/jquery.min.js"></script>
+    <script src="https://kendo.cdn.telerik.com/2017.2.621/js/kendo.all.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>	
+	<script type="text/javascript" src="{% static 'jquery-1.12.4.js' %}"></script>
+    <script type="text/javascript" src="{% static 'field_focus.js' %}"></script>
+	<script src="{% static 'jquery.bootstrap.modal.forms.min.js' %}"></script>
+	<script type="text/javascript" src="{% static 'jquery_tab_submit.js' %}"></script>
+    <style>
+	    svg {
+		    transform: rotate(90deg);
+		}
+		#barcode {
+			width: 450px;
+			top: 50%;
+			margin-right: auto;
+            margin-left: auto;		
+		}
+        div.cart_text {
+		    margin-left:auto;
+			margin-right:auto;
+			margin-top:0px;
+			padding-left:-82px;
+			font-size:36pt;
+			transform: rotate(90deg);
+		}
+		div.square {
+		  border: solid 1.5px #000;
+		  width: 50px;
+		  height: 50px;
+		}
+		text {
+		  display: none;
+		}
+		@media screen {
+			.reload {
+			  display: block;
+			}
+		}
+		@media print {
+		  .reload {
+			display: none!important;
+		  }
+		  text {
+			display: none;
+		  }
+		}
+		table {
+		  padding:0px;
+		  border:none;
+		  margin:0px;
+		}
+		table tr,td {
+		  font-size:10pt;
+		  padding:0px;
+		  border:none;
+		  margin:0px;
+		  background-color:white;
+		}
+        thead, tbody, tfoot {
+		  padding:0px;
+		  border:none;
+		  margin:0px;
+		  background-color:white;
+		}
+        tbody th, tbody td {
+		  padding:0px;
+		  border:none;
+		  margin:0px;
+		  background-color:white;
+		}
+    </style>
+   </head>
+  <body>		  
+      <div style="margin-left:100px;margin-top:20px;">
+		<a href="http://10.22.3.144/portal/barcode-labels/{{quapi_id}}" class="reload">
+	      <button class="reload">Reload</button>
+	    </a>
+	  </div>
+	  {% for cart in cart_labels %}
+	  <table id="barcode" style="border:none;">
+	    <tr>
+		  <td>
+			<div style="height:450px;width:450px;" class="{{cart}}" id="{{cart}}" name="{{cart}}">
+			</div>
+          </td>	
+		  <td>
+			<div class="cart_text">{{cart}}</div>
+		  </td>	  
+        </tr>		  	    
+	  </table>
+      {% endfor %}
+	<script>
+		// Import DejaVu Sans font for embedding
+
+		// NOTE: Only required if the Kendo UI stylesheets are loaded
+		// from a different origin, e.g. cdn.kendostatic.com
+		kendo.pdf.defineFont({
+			"DejaVu Sans"             : "https://kendo.cdn.telerik.com/2016.2.607/styles/fonts/DejaVu/DejaVuSans.ttf",
+			"DejaVu Sans|Bold"        : "https://kendo.cdn.telerik.com/2016.2.607/styles/fonts/DejaVu/DejaVuSans-Bold.ttf",
+			"DejaVu Sans|Bold|Italic" : "https://kendo.cdn.telerik.com/2016.2.607/styles/fonts/DejaVu/DejaVuSans-Oblique.ttf",
+			"DejaVu Sans|Italic"      : "https://kendo.cdn.telerik.com/2016.2.607/styles/fonts/DejaVu/DejaVuSans-Oblique.ttf",
+			"WebComponentsIcons"      : "https://kendo.cdn.telerik.com/2017.1.223/styles/fonts/glyphs/WebComponentsIcons.ttf"
+		});
+	</script>
+	<script>
+		function setOptions(e) {
+			var validValue = $('#validValue');
+			try {
+			    {% for cart in cart_labels %}
+				var barcode = $('#{{ cart }}').data('kendoBarcode');
+				barcode.setOptions({
+					value: {{ cart }},
+					checksum: true,
+					text: {
+						visible: true
+					},
+					type: "Code128"
+				})
+				{% endfor %}
+				validValue.hide();
+			} catch (e) {
+				validValue.text(e.message).show();
+			}
+		}
+		$('#type').kendoDropDownList({
+			dataSource: [
+			 { type: 'Code128', value: "Howdy Yall!" },
+			],
+			change: setOptions,
+			dataTextField: "type",
+			dataValueField: "type"
+		});		
+		$(document).ready(function () {	
+            {% for cart in cart_labels %}		
+				$("#{{ cart }}").kendoBarcode({
+				value: '{{ cart }}',
+				type: 'Code128',
+				background: "transparent"
+			   });
+			{% endfor %}
+		});
+		$('#type,#label,#text').change(setOptions);
+    </script>	
+    <script src="{% static 'dist/assets/js/app.js' %}"></script>
+  </body>
+</html>

@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MRO Live | Labor Management - Drill Down | Where Productivity Takes Flight</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{% static 'dist/assets/css/app.css' %}">
+    <link href="{% static 'dist/assets/fontawesome/css/all.css' %}" rel="stylesheet">
+	<link rel="shortcut icon" type="image/png" href="{% static 'favicon.ico' %}"/>
+	<script type="text/javascript" src="{% static 'jquery-1.12.4.js' %}"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+	<script type="text/javascript" src="{% static 'jquery_tab_submit.js' %}"></script>
+    <script type="text/javascript" src="{% static 'field_focus.js' %}"></script>
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.common-material.min.css" />
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.material.min.css" />
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.material.mobile.min.css" />
+    <script src="https://kendo.cdn.telerik.com/2020.1.114/js/jszip.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/2.4.0/jszip.js"></script>
+    <script src="https://kendo.cdn.telerik.com/2017.2.621/js/jquery.min.js"></script>
+    <script src="https://kendo.cdn.telerik.com/2017.2.621/js/kendo.all.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>	
+	<style>
+	    .subhead {
+			color:white;
+			text-decoration:bold;
+			font-size: large;
+            margin-left: 65px;
+		}
+        .k-pager-wrap .k-dropdown {
+            width: 100px;	    
+        }
+		.k-grid-toolbar { 
+			background-color:#284a8a !important;
+			
+		}
+		.secondary.button::after {
+		    content: none;
+		}
+		.button::after {
+		    content: none;
+		}
+		.k-button {  
+			border: 2px solid white;
+			color: white;
+			border-color: white !important;			
+		}
+		.k-button:hover {
+		    color: yellow !important;
+		}
+		.k-button:visited {
+		    color: white !important;
+		}
+		.centered {
+		  /*top: 50%;*/
+		  left: 50%;
+		  height: 100%;
+		  /* bring your own prefixes */
+		  transform: translateX(-50%);
+		}
+		.total_rows {
+		 padding-left:5px;
+		 display:inline;
+		 text-align:left;
+		 border:none;
+		 outline:none;
+		 background-color:#284a8a!important;
+		 color:white;
+		 text-decoration:bold;
+		 height:25px;
+		 width: 45px;
+		}
+		.sel_rows {
+        display:inline;
+		text-align:right;
+		border:none;
+		outline:none;
+		background-color:#284a8a!important;
+		color:white;
+		text-decoration:bold;
+		height:25px;
+		width: 55px;
+		}
+		.counter_wrap {
+		width:auto;
+		float:right;
+		margin-top:-45px;
+		margin-bottom: 5px;
+		z-index:1000!important;
+		color: white;
+		}
+		@media only screen and (max-width: 656px) {
+            #first {
+            background-color:#284a8a !important; 
+			color: white !important;
+            }
+            #second {
+            background-color:#284a8a !important; 
+			color: white !important;
+            }
+            #last_two {
+            display: none !important;
+            }
+        }
+    </style>
+  </head>
+<body>
+    <audio src="{% static 'error-trombone.mp3' %}" id="my_audio"></audio>
+    <script type="text/javascript">
+	    $(document).ready(
+			function () {
+			$("#date_start").kendoDateTimePicker();
+			$("#date_stop").kendoDateTimePicker();
+			$("#update_start").kendoDateTimePicker();
+			$("#update_stop").kendoDateTimePicker();					
+			error = $("#error").val();
+			if (error) {
+			   $("#my_audio").get(0).play();
+			}
+			var mgmtForm = $('#lab_mgmt_form');
+			$("input").click(function(e){
+				var id_clicked = e.target.id;
+				if (id_clicked == 'labor_update') {
+					e.preventDefault();				
+					$('#is_update').val('1');
+					mgmtForm.submit();
+				}
+				});	
+		})				
+    </script> 
+<div class="mro-header-wrapper">
+	<section id="mrotop"></section>
+	<div class="grid-container mro-header">
+		<div class="grid-x medium-margin-collapse align-middle hide-for-medium" style="float:left;">
+			<div class="cell large-1 medium-2 small-12 mro-menu-button">
+				<a data-toggle="offCanvas"><i class="fas fa-bars"></i></a>
+			</div>
+			<div class="cell large-11 medium-10 small-12 show-for-medium"><hr/></div>
+		</div>
+		<div class="grid-x grid-padding-x align-middle">
+			<div class="cell medium-7 small-12 mro-headerlogo">
+				<a href="" alt="MRO Live - Homepage">
+					<img style="max-width:361px;max-height:150px;" src="{% static 'dist/assets/img/mro-live_header.png' %}" alt="MROLive - Where Productivity Takes Flight">
+				</a>
+			</div>
+			<!--div class="cell medium-5 small-12 mro-clientlogo show-for-medium">
+				<a href="#" alt="MRO Live - Client Logo">
+				  <img style="max-width:150px;" src="../../..{{ logo_url }}" alt="{{ user_name }}">
+				</a>			
+			</div-->
+		</div>
+		<div class="grid-x medium-margin-collapse align-middle show-for-medium">
+			<div class="cell large-1 medium-2 small-12 mro-menu-button">
+				<a data-toggle="offCanvas">Menu <i class="fas fa-bars"></i></a>
+			</div>
+			<div class="cell large-11 medium-10 small-12 show-for-medium"><hr/></div>
+		</div>
+		<!--div class="cell medium-7 small-12 mro-clientlogo hide-for-medium mro-mobileclient">
+			  <a href="#" alt="MRO Live - Client Logo">
+				<img style="max-width:150px;" src="../../..{{ logo_url }}" alt="{{ user_name }}">
+			  </a>      
+		</div-->
+	</div>
+</div>
+<!-- Modal Error Pop-up -->
+<script>
+$(function() {
+    $("#errorModal").modal();//if you want you can have a timeout to hide the window after x seconds
+});
+</script>
+    <!-- Modal -->
+    {%  if error %}
+      <div class="modal fade" id="errorModal" role="dialog" data-backdrop="static">
+        <div class="modal-dialog">
+          <!-- Modal content-->
+          <div class="modal-content">
+		    <form method="POST" id="modal_error_form" name="modal_error_form">
+            <div class="modal-header">
+              <button type="button" class="close" id="x_button" data-dismiss="modal">&times;</button>
+              <h4 class="modal-title">Application Message:</h4>
+            </div>
+            <div class="modal-body">
+			    {%  if error %}<input type="hidden" id="error" name="error" value="{{ error }}"/><div style="font-weight: bold; color:red; font-size: 22px;">{{ error }}</div>{%  endif %}
+                <button class="secondary button shadow" id="ok_button" style="float:right; margin-top:-20px;" type="button" data-dismiss="modal">OK</button>
+                <div><br/><br/></div>			
+            </div>
+			</form>
+          </div>                
+       </div>
+      </div>
+	  {% endif %}  
+<!-- End modal error popup -->
+
+<!-- Off-canvas Menu -->
+
+<div class="off-canvas position-left" id="offCanvas" data-off-canvas>
+	<!-- Close button -->
+	<button class="close-button" aria-label="Close menu" type="button" data-close>
+	  <span aria-hidden="true">&times;</span>
+	</button>
+	<ul class="vertical mro-menu menu">
+	<li class="mro-menu-logo">
+		<a href="http://mrolive.com/" target="_blank">
+			<img src="{% static 'dist/assets/img/MROlive-logo.png' %}" alt="Where Productivity Takes Flight" alt="MRO Live - Where Productivity Takes Flight">
+		</a>
+	</li>
+	{% if op_apps %}
+	<div class="subhead">Operations</div>
+	{% endif %}
+	{% for app in op_apps %}
+      <li><a target="_blank" href="../../../{{ app.ml_apps_id.code }}/{{ quapi_id }}">{{ app.ml_apps_id.name }}</a></li>
+    {% endfor %}
+	{% if mgmt_apps %}
+	<div class="subhead">Management</div>
+	{% endif %}
+	{% for app in mgmt_apps %}
+      <li><a target="_blank" href="../../../{{ app.ml_apps_id.code }}/{{ quapi_id }}">{{ app.ml_apps_id.name }}</a></li>
+    {% endfor %}
+	{% if dash_apps %}
+	<div class="subhead">Dashboards</div>
+	{% endif %}
+	{% for app in dash_apps %}
+      <li><a target="_blank" href="../../../{{ app.ml_apps_id.code }}/{{ quapi_id }}">{{ app.ml_apps_id.name }}</a></li>
+    {% endfor %}
+	{% if setup_apps %}
+	<div class="subhead">Setup</div>
+	{% endif %}
+	{% for app in setup_apps %}
+      <li><a target="_blank" href="../../../{{ app.ml_apps_id.code }}/{{ quapi_id }}">{{ app.ml_apps_id.name }}</a></li>
+    {% endfor %}
+    <li><a href="/login">Logout</a></li><li><a href="/portal/pass-reset/">Reset Password</a></li>
+</ul>
+</div>
+<!-- Off-canvas Menu - END -->
+	<div class="grid-container mro-top-section">
+	  <div class="grid-x grid-padding-x">
+		  <div class="mro-top-section-wrapper mro-search">
+			<div class="mro-top-section" style="width:100%;">
+			  <div class="mro-lightsearch" style="width:100%">
+				<div class="medium-12 small-7 cell hide-for-medium">
+				</div>
+				<div class="medium-12 small-7 cell hide-for-medium">
+				</div>
+
+			  <form method="POST" id="lab_mgmt_form" name="lab_mgmt_form"> 
+			      <input type="hidden" name="add_task" id="add_task" value="0"/>
+				  <input type="hidden" name="active_user" id="active_user" value="{{ active_user }}"/>
+				  <input type="hidden" name="active_mgr" id="active_mgr" value="{{ manager }}"/>
+				  <input type="hidden" name="active_due_date" id="active_due_date" value="{{ new_due_date }}"/>
+				  <input type="hidden" name="active_rank" id="active_rank" value="{{ rank }}"/>
+				  <input type="hidden" name="search_user" id="search_user" value="F"/> 
+				  <input type="hidden" name="session_id" id="session_id" value="{{session_id}}"/>
+				  <input type="hidden" name="show_status" id="show_status" value="{{ show_status }}"/>
+				  <input type="hidden" name="show_user" id="show_user" value="{{show_user}}"/>
+				  <input type="hidden" name="show_all" id="show_all" value="{{ show_all }}"/>
+				  <input type="hidden" name="lookup_recs" id="lookup_recs" value="{{ lookup_recs}}"/>
+				  <input type="hidden" name="status_key" id="status_key" value="0"/>
+				  <input type="hidden" name="is_update" id="is_update" value="0"/>
+				  {% csrf_token %}
+			    <div class="large-6 medium-12 small-7 cell hide-for-medium">
+				</div>
+				<div class="large-6 medium-12 small-7 cell hide-for-medium">
+				</div>
+				<div class="cell large-6 medium-6 small-12">
+				  <span class="left-tab">
+				    <h1><span style="padding-left:5px;font-size:14px;">{{ user_name }}</span>
+				    </h1>
+				  </span>
+				<div class="cell large-4 medium-6 small-12">
+				  {%  if msg %}<div style="float:left;font-weight: bold; color:green; font-size: 12px;">{{ msg }}</div>{%  endif %}
+				</div>
+				  <h1 style="border-top-right-radius:20px;"><span style="padding:5px;font-size:14px;">LABOR DETAIL</span>				  
+				</div>
+				{% if total_rows and total_rows != '0' %}
+					  <div class="cell large-4 medium-6 small-12">
+						  <label>Mode:</label>
+						  <select style="background-color:#284a8a;color:white;" name="mode_selector" id="mode_selector">
+						  {% for mmod in modes  %}						
+							{% if mmod.code == active_mode %}
+							<option value="{{ mmod.code }}" selected>{{ mmod.name }}</option>
+							{% else %}
+							<option value="{{ mmod.code }}">{{ mmod.name }}</option>
+							{% endif %}							
+							{% endfor %}
+						  </select>
+					  </div>
+				{% endif %}
+				<!--div class="grid-x grid-padding-x align-middle">
+				  {% if total_rows and total_rows != '0' %}
+				  <div class="cell large-4 medium-6 small-12">
+					  <label>Mode:</label>
+					  <select style="background-color:#284a8a;color:white;" name="mode_selector" id="mode_selector">
+					  {% for mmod in modes  %}						
+						{% if mmod.code == active_mode %}
+						<option value="{{ mmod.code }}" selected>{{ mmod.name }}</option>
+						{% else %}
+						<option value="{{ mmod.code }}">{{ mmod.name }}</option>
+						{% endif %}							
+						{% endfor %}
+					  </select>
+				  </div>
+                  {% endif %}					  
+                  <div class="cell large-4 medium-6 small-12">
+                    <label>Emp ID
+					{{ form.user_id }} 
+					</label>
+                  </div>
+				<div class="cell large-4 medium-6 small-12">
+				  <label>Start:</label>
+				  <input type="text" name="date_start" id="date_start" value="{{ date_start }}"/>
+				</div>
+				<div class="cell large-4 medium-6 small-12">
+				  <label>Stop:</label>
+				  <input type="text" name="date_stop" id="date_stop" value="{{ date_stop }}"/>
+				</div>	
+				  <div class="large-6 small-12 cell">
+					<div class="grid-x grid-padding-x align-middle mro-searchbuttonbox">
+					  <div class="cell large-6 medium-6 small-12 mro-searchbuttonbox">
+					  <input style="float:left;" class="primary button shadow" type="submit" value="Search" name="labor_search" id="labor_search"/>			
+					  </div>
+		            </form>
+					</div>
+				    </div>
+				  </div>
+				</div>
+				<div class="mro-lightsearch">
+				  <div class="cell large-4 medium-6 small-12">
+                      <label>Total Hours:</label>
+					  <input readonly = "1" type="text" name="total_hours" id="total_hours" value="{{ total_hours }}"/>
+				  </div>
+				  <div class="cell large-4 medium-6 small-12">
+                      <label>User Name:</label>
+					  <input readonly = "1" type="text" name="user_name" id="user_name" value="{{ user_name }}"/>
+				  </div>
+				</div-->			
+			</div>
+		  </div>        
+	  </div>
+	</div>
+<script>
+$(function() {
+    $("#updateModal").modal();//if you want you can have a timeout to hide the window after x seconds
+});
+</script>
+    <!-- Modal -->
+    {%  if show_modal == 'T' and not error %}
+    <div class="modal fade" id="updateModal" role="dialog">
+        <div class="modal-dialog" style="width:70%;">
+          <!-- Modal content-->
+          <div class="modal-content">
+            <div class="modal-header">
+              <button type="button" class="close" data-dismiss="modal">&times;</button>
+              <h4 class="modal-title">{{ active_mode }} Labor Entry(s)</h4>
+            </div>
+            <div class="modal-body">
+                <form method="POST" id="update_form" name="update_form">
+                  {% csrf_token %}
+				  <input type="hidden" name="update_session" id="update_session" value="{{ session_id }}"/>
+				  <input type="hidden" name="user_auto_key" id="user_auto_key" value="{{ sysur_auto_key }}"/>
+				  <input type="hidden" name="active_mode"  id="active_mode" value="{{ active_mode }}"/>
+				  <input type="hidden" name="filter_user_id" id="filter_user_id" value="{{ user_id }}"/>
+				  <input type="hidden" name="filter_start" id="filter_start" value="{{ date_stop }}"/>
+				  <input type="hidden" name="filter_stop"  id="filter_stop" value="{{ date_stop }}"/>
+				  {% for wtl in wtl_list %}
+				     <input type="hidden" name="wtl_sels[]" id="wtl_sels[]" value="{{ wtl }}" checked="checked"/>
+				  {% endfor %}
+				  <div class="mro-lightsearch">
+					<div class="grid-x grid-padding-x">
+						<div class="large-6 small-12 cell" style="width:100%;">
+						  <div class="grid-x grid-padding-x align-middle">	
+							
+							<div class="cell large-4 medium-6 small-12">
+							  <label>User</label>
+							  <input type="text" name="update_user" id="update_user" value="{{ task_user }}"/>
+							</div>
+                            {% if active_mode == 'EDIT' %}
+							<div class="cell large-4 medium-6 small-12">
+							  <label>Rows Selected:</label>
+							  <input readonly="1" type="text" name="row_count" id="row_count" value="{{ labor_count }}"/>
+							</div>							
+							<div class="cell large-4 medium-6 small-12">
+							  <label>Skill:</label>
+							  <select style="background-color:#284a8a;color:white;" name="update_skill" id="update_skill">
+							    <option value="">--No Selection--</option>
+							    {% for skill in skill_list  %}	                              								
+								<option value="{{ skill.wok_auto_key }}">{{ skill.description }}</option>						
+								{% endfor %}
+							  </select>
+							</div>
+							{% endif %} 
+                            {% if active_mode == 'ADD' %}							
+							<div class="cell large-4 medium-6 small-12">
+							  <label>Task:</label>
+							  <input type="text" name="update_task" id="update_task" value=""/>
+							</div>
+							{% endif %}
+							<div class="cell large-4 medium-6 small-12">
+							  <label>Start:</label>
+							  <input type="text" name="update_start" id="update_start" value="{{ date_start }}"/>
+							</div>
+							<div class="cell large-4 medium-6 small-12">
+								<div class="cell large-4 medium-6 small-12">
+								  <label>Stop:</label>
+								  <input type="text" name="update_stop" id="update_stop" value="{{ date_stop }}"/>
+								</div>
+                            </div>
+							<div class="large-4 small-12 cell">
+								<div class="grid-x grid-padding-x align-middle mro-searchbuttonbox">
+								  <div class="cell large-4 medium-6 small-12 mro-searchbuttonbox">
+									<div class="cell large-4 medium-6 small-12">
+									   <button class="primary button shadow" name="update_submitted" id="update_submitted" value="1" type="submit">Update</button>
+									</div>
+								  </div>
+								  <div class="cell large-4 medium-6 small-12 mro-searchbuttonbox">
+								  	<div class="cell large-4 medium-6 small-12">  
+									   <button class="secondary button shadow" name="update_cancel" id="update_cancel" value="1" type="submit">Cancel</button>
+									</div>	
+								  </div>
+							    </div>
+						    </div>
+									
+						  </form>  
+						  </div>
+						</div>
+						</div>
+					  </div>
+					</div>
+				  </div>
+			  </div>
+		</div>
+	</div>
+	{% endif %}
+	{% if total_rows and total_rows != '0' %}
+    <div class="mro-bottom-section-wrapper mro-table">
+      <div class="grid-container mro-bottom-section">
+	      <div class="grid-x grid-padding-x">
+				<div class="centered results_grid" id="results_grid" name="results_grid"/>
+				<div class="counter_wrap">					  
+				  <input type="button" id="select_all" class="secondary button shadow" style="margin-left:-45px;padding:9px;" value="SELECT ALL"/>
+				  <input type="button" id="labor_update" name="labor_update" class="primary button shadow" style="padding:9px;" value="UPDATE"/>
+				  <input type="text" class="sel_rows" id="sel_rows" name="sel_rows" size="4" value="{{ sel_rows }}" readonly>of     <input type="text" class="total_rows" id="total_rows" name="total_rows" value="{{ total_rows }}" size="5" readonly>
+				</div>
+			<script>			
+			kendo.ui.Grid.prototype._positionColumnResizeHandle= function() {
+			  var that = this,
+				  indicatorWidth = that.options.columnResizeHandleWidth,
+				  lockedHead = that.lockedHeader ? that.lockedHeader.find("thead:first") : $();
+
+			  that.thead.add(lockedHead).on("mousemove" + ".kendoGrid", "th", function (e) {
+				var th = $(this);
+				if (th.hasClass("k-group-cell") || th.hasClass("k-hierarchy-cell")) {
+				  return;
+				}
+				that._createResizeHandle(th.closest("div"), th);
+			  });
+			};
+			var oldPageSize = 0;
+			$( "#select_all" ).click(function() {
+			    var grid = $("#results_grid").data("kendoGrid");
+				if (grid.dataSource.data().length === grid.select().length) {
+					grid.clearSelection();
+					$("input[type=hidden][class='wtls']").remove();	
+					$('#sel_rows').val(0);
+				} 
+				else {
+					grid.select("tr");
+				};
+			});
+			function onChange(e) {
+				var rows = e.sender.select();
+				var grid = $("#results_grid").data("kendoGrid");
+				var currentPage = grid.dataSource.page();
+				$("input[type=hidden][uipage='" + currentPage + "']").attr('class', 'wtls_stale'); 
+				rows.each(function(e) {
+					var dataItem = grid.dataItem(this);	                  					
+					var length = $('input[type=hidden][value=' + dataItem.wtl_auto_key + ']').length;	
+					//console.log('length: ' + length + ' WOT: ' + dataItem.wtl_auto_key);
+					if (length != 0) {
+					   $('input[type=hidden][value=' + dataItem.wtl_auto_key + ']').attr('class', 'wtls'); 					   
+					}
+                    if (!length) {
+						var inputWoo = '<input type="hidden" uipage="' + currentPage + '" name="wtl_list[]" id="wtl_list[]" class="wtls" value="' + dataItem.wtl_auto_key + '" checked="checked"/>';
+						//$('#update_session').after(inputWoo);
+                        $('#session_id').after(inputWoo);						
+					}
+				var count = $("input[type=hidden][class='wtls']").length;
+				$('#sel_rows').val(count);					
+			    $("input[type=hidden][uipage='" + currentPage + "'][class='wtls_stale']").remove();				
+				});
+			};
+			$(document).ready(
+			    function () {			
+					var dataSourceArguments = {
+					    autoBind: false,
+						pageSize: 25,
+						serverPaging: true,
+						serverSorting: true,
+						columnMenu: true,
+						transport: {
+							read: {
+								url: '/portal/labor-json',
+								dataType: "json",
+								data: {'wtl_sels[]':'{{ wtl_sels }}','user_name':'{{ user_name }}','is_detail': '1','session_id': '{{ session_id }}'} // the parameter I need to send to the server
+							}
+						},
+						schema: {
+							total: "count",
+							data: "results",
+							model: { id: "wtl_auto_key" }
+						}
+					}						
+					var dsg = new kendo.data.DataSource(dataSourceArguments);
+					$("#results_grid").kendoGrid({
+					    toolbar: ["excel"],
+						excel: {
+							fileName: "labor-mgmt-detail-export.xlsx",
+							proxyURL: "https://demos.telerik.com/kendo-ui/service/export",
+							allPages: true
+						},
+						dataSource: dsg,
+						resizable: true,
+                        sortable: true,
+						reorderable: true,
+						change: onChange,
+                        selectable: "multiple, row",
+						persistSelection: true,
+						navigatable: false,
+						pageable: {
+							refresh: true,
+							pageSizes: true,
+							buttonCount: 5
+						},
+                        columns: [
+							{
+							  field: 'full_name',
+							  title: 'Employee',
+							  width: 90,
+							  editable: false,
+							},
+							{
+							  field: 'wo_number',
+							  title: 'WO#',
+							  width: 80,
+							  editable: false,
+							},
+							{
+							  field: 'skill_desc',
+							  title: 'Skill',
+							  width: 80,
+							  editable: false,
+							},						
+							{
+							  field: 'task_desc',
+							  title: 'Title',
+							  width: screen.availWidth*0.10,
+							},						
+							{
+							  field: 'entry_date',
+							  title: 'Date',
+							  width: screen.availWidth*0.10,
+							  template: '#= kendo.toString(kendo.parseDate(entry_date), "MM/dd/yyyy")#',
+							},
+							{
+							  field: 'hours',
+							  title: 'Hours',
+							  width: 80,
+							  editable: false,
+							},
+							{
+							  field: 'start_time',
+							  title: 'Start Time',
+							  width: 80,
+							  template: '#= kendo.toString(kendo.parseDate(start_time), "MM/dd/yyyy HH:mm:ss")#',
+							},
+							{
+							  field: 'stop_time',
+							  title: 'Stop Time',
+							  width: 80,
+							  template: '#= kendo.toString(kendo.parseDate(stop_time), "MM/dd/yyyy HH:mm:ss")#',
+							},
+					    ]				
+					});
+					$("select[data-role='dropdownlist']").kendoDropDownList({
+						dataTextField: "pageSize",
+						dataValueField: "sizeValue",
+						dataSource: [
+							{pageSize: 25 },
+							{pageSize: 50},
+							{pageSize: 100},
+							{pageSize: 500},
+							{pageSize: 2000},
+							{pageSize: 'All', sizeValue:1000},
+						],
+					});
+					//var grid = $("#results_grid").data("kendoGrid");
+					//var options = grid.options;
+					//console.log('was this wide' + options.columns[1].width)
+                    //$(window).unload(function () {
+					//    var options = grid.options;
+					//	console.log('is now this wide' + options.columns[1].width)
+					//	return;
+					//});
+				});
+			  </script>	
+			    </div>	
+	    </div>
+        <div class="grid-x mro-pagination-section">
+          <div class="cell large-5 medium-6 small-12 ">
+            <a class="mrotop" href="#mrotop" data-smooth-scroll><span>^</span> Back to Top</a>
+          </div>
+        </div>
+	  </div>
+    </div>
+    {% endif %}
+<div class="mro-footer-wrapper">
+	<div class="grid-container mro-footer">
+		<div class="grid-x">
+			<div class="cell small-12">
+				<img class="mro-footerlogo" src="{% static 'dist/assets/img/mro-live_header.png' %}" alt="Where Productivity Takes Flight" alt="MRO Live - Where Productivity Takes Flight">
+			</div>
+		</div>
+
+		<div class="grid-x mro-footer-bottom">
+			<div class="cell medium-5 small-12 mro-footer-bottom-left">
+				<p>Copyright &copy; 2023 MRO Live <span>|</span> <img class="mro-usa" src="{% static 'dist/assets/img/usa.png' %}" alt="Based in USA">Based in USA</p>
+			</div>
+			<!--div class="cell medium-7 small-12 mro-footer-bottom-right">
+				<p><img src="{% static 'dist/assets/img/sectigo.png' %}" /> | Have Questions, Comments, or Concerns? <a href="mailto:Sales@MROLive.com">Get In Touch at Sales@MROLive.com</a></p>
+			</div-->
+		</div>
+	</div>
+</div><script src="{% static 'dist/assets/js/app.js' %}"></script>
+</body>
+</html>

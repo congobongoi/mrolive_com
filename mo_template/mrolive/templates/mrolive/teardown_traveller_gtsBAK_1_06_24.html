@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+	<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, post-check=0, pre-check=0" /> 
+	<meta http-equiv="Pragma" content="no-cache" />
+    <meta charset="utf-8" />
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MRO Live - GTS Teardown Traveller - Where Productivity Takes Flight</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+	<link rel="shortcut icon" type="image/png" href="{% static 'favicon.ico' %}"/>
+    <link rel="stylesheet" href="{% static 'dist/assets/css/app.css' %}">
+    <link href="{% static 'dist/assets/fontawesome/css/all.css' %}" rel="stylesheet">
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.common-material.min.css" />
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.material.min.css" />
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.material.mobile.min.css" />
+    <script src="https://kendo.cdn.telerik.com/2020.1.114/js/jszip.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/2.4.0/jszip.js"></script>
+    <script src="https://kendo.cdn.telerik.com/2017.2.621/js/jquery.min.js"></script>
+    <script src="https://kendo.cdn.telerik.com/2017.2.621/js/kendo.all.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>	
+	<script type="text/javascript" src="{% static 'jquery-1.12.4.js' %}"></script>
+    <script type="text/javascript" src="{% static 'field_focus.js' %}"></script>
+	<script src="{% static 'jquery.bootstrap.modal.forms.min.js' %}"></script>
+	<script type="text/javascript" src="{% static 'jquery_tab_submit.js' %}"></script>
+    <style>
+
+		td, th{
+			width: 100px;
+		}
+		table.report-container {
+			width: 888px;
+			height: auto;
+			margin: auto;
+			
+		}
+		thead.report-header {
+			display:table-header-group;
+            margin-top:-40px;		  
+		}
+		tfoot.report-footer {
+			display:table-footer-group;
+		} 
+		tbody tr.report-header {
+			page-break-before: always;
+			page-break-inside: avoid;
+		}
+		@media screen {
+			tbody .report-header{
+				display: none;
+			}
+		}
+		@page {
+			size: Letter portrait;
+			margin-top: 1.2cm;
+			margin-bottom: 1.2cm;
+			margin-left: 1.2cm;
+			margin-right: 1.2cm;
+			@bottom-center {
+				content: counter(page);
+			}
+		}
+        .print_data {
+		    font-size:10pt;
+	        font-weight:bold;
+			border:none;
+			background:none;
+        }
+        .label_data {
+	        font-size:10pt;
+			font-weight:bold;
+			border:none;
+			background:none;
+        }
+		table {
+		  padding:0px;
+		  margin:0px;
+		  width:100%;
+		  border:none;
+		}		
+		table tr,td {
+		  font-size:10pt;
+		  background-color:white;
+		  border:none;
+		  margin: 0px;
+		  padding: 0px;
+		}
+        thead, tbody, tfoot {
+		  background-color:white;
+		  border:none;
+		  margin: 0px;
+		  padding: 0px;
+		}
+        table tbody tr:nth-child(even) {	
+		  background-color:white;
+		  border:none;
+		  margin: 0px;
+		  padding: 0px;
+        }
+		text {
+		  display: none;
+		}
+		tbody th, tbody td {
+			padding: 5px;
+		}		
+    </style>
+   </head>
+    <script type="text/javascript">
+		$(document).ready(function(){
+			var head = $('th.report-header-cell');
+			$( "tbody tr:nth-child(3n+3)" ).after(head.clone());
+		});
+    </script>
+  <body>
+	<!--div id="barcode" class="barcode" name="barcode"-->			  
+	  <table class="report-container">
+	    <thead class="report-header">
+		<tr>
+        <th class="report-header-cell">
+	    <div class="header-info" style="border:1px solid;">
+	      <table cellpadding="0" cellspacing="0" style="padding:0px;width:100%;border:none;margin:0px;">
+			<tr>	
+              <td>			
+				<span style="padding-left:10px;width:45%;float:left;background-color:white;">
+				  <!--a href="../teardown/{{quapi_id}}" target="_blank"-->
+				  <img src="{% static 'gts_logo.png' %}" alt="GTS Aviation">
+				  <!--/a><br/-->
+
+				</span>
+			    <div style="max-width:350px;float:right;font-size:16pt;font-weight:bold;">WO#:{{si_number}}</div>			
+			    <div style="margin-top:35px;margin-left:715px;width:150px;height:65px;" class="{{si_number}}" id="{{si_number}}" name="{{si_number}}"></div> 
+			  </td>
+			</tr>
+		  </table>
+		  <table cellpadding="0" cellspacing="0" style="padding:0px;width:100%;border:none;margin:0px;max-height:100px;">
+			<tr>
+			  <td align="right" class="label_data">CUSTOMER</td>
+			  <td align="right" class="label_data">: </td>
+			  <td><span class="print_data">{{customer}}</span></td>
+			  <td><img style="height:1px;width:150px;" src="{% static blank.png %}"></td>
+			  <td align="right" class="label_data">ATA CODE</td>
+			  <td align="right" class="label_data">: </td>
+			  <td><span class="print_data">{{ata_code}}</span></td>	
+			</tr>
+			<tr>				
+			  <td align="right" class="label_data">ESN</td>
+			  <td align="right" class="label_data">: </td>
+			  <td><span class="print_data">{{esn}}</span></td>
+			  <td><img style="height:1px;width:150px;" src="{% static blank.png %}"></td>
+			  <td align="right" class="label_data">DATE</td>
+			  <td align="right" class="label_data">: </td> 
+			  <td><span class="print_data">{{printed_date}}</span></td>					  
+			</tr>
+			<tr>				
+			  <td align="right" class="label_data">ENG MODEL</td>
+			  <td align="right" class="label_data">: </td>
+			  <td><span class="print_data">{{eng_model}}</span></td>
+			  <td><img style="height:1px;width:150px;" src="{% static blank.png %}"></td>
+			  <td align="right" class="label_data">TO SUPPLY WO</td>
+			  <td align="right" class="label_data">: </td>
+			  <td><span class="print_data">{{to_supply_wo}}</span></td>					  
+			</tr>
+		  </table>
+		  <table cellpadding="0" cellspacing="0" style="border-top:1px solid;width:100%;margin:0px;padding:0px;">
+			<tr>
+			  <td align="right" class="label_data">PN</td>
+			  <td align="right" class="label_data">: </td> 
+			  <td><span class="print_data">{{part_number}}</span></td>
+			  <td align="right" class="label_data">WORK REQUEST</td>
+			  <td align="right" class="label_data">: </td>
+			  <td><span class="print_data">{{work_request}}</span></td>
+			</tr>
+			<tr>
+			  <td align="right" class="label_data">DESC</td>
+			  <td align="right" class="label_data">: </td>
+			  <td><span class="print_data">{{description}}</span></td>
+			  <td align="right" class="label_data">QTY</td>
+			  <td align="right" class="label_data">: </td>
+			  <td><span class="print_data">{{qty}}</span></td>  	
+			</tr>
+			<tr>
+			  <td align="right" class="label_data">SN</td>
+			  <td align="right" class="label_data">: </td>
+			  <td><span class="print_data">{{serial_number}}</span></td>
+			  <td align="right" class="label_data">PRINTED BY</td>
+			  <td align="right" class="label_data">: </td>
+			  <td><span class="print_data">{{printed_by}}</span></td>
+			</tr>
+		  </table>		  
+		  </div>	
+		</th>
+		</tr>
+		</thead>
+		<tbody class="report-content">
+		  {% for task in task_list %} 
+          <tr>
+            <td class="report-content-cell">
+			<div id="article" class="article">				
+			<table style="background-color:white;border:none;">	
+			   
+			  <tr style="background-color:white;border:none;">
+				<td>
+				   <table style="background-color:white;padding:0px;margin:0px;font-size:10pt;">
+					  <!--tr class="content-block">
+						<td colspan="3">
+						   <span>SEQ: {{task.wot_sequence}}</span>
+						</td>
+					  </tr-->
+					  <tr>
+						<td style="width:50%">
+						   <!--img style="min-width:500px;max-width:500px; height:1px;" src="{% static 'blank.png' %}"/-->	   
+						   <span style="min-width:300px;max-width:300px;">SEQ: {{task.wot_sequence}}</span>
+						   <br/>
+						   <span style="min-width:300px;max-width:300px;">{{task.task_master_desc}}</span>
+						</td>
+						<td style="width:25%">
+							<!--div style="float:left;padding-left:15px;height:55px;width:150px;" id="{{task.wot_auto_key}}s" name="{{task.wot_auto_key}}s"></div>
+							<div style="float:left;padding-left:15px;height:55px;width:150px;" id="{{task.wot_auto_key}}c" name="{{task.wot_auto_key}}c"></div-->
+						   <span style="margin-left:-38px;">START:</span>
+						   <span style="margin-top:-20px;height:55px;width:120px;" id="{{task.wot_auto_key}}s" name="{{task.wot_auto_key}}s"></span>
+						</td>
+						<td style="width:25%">					
+						   <span style="margin-left:-33px;">STOP:</span>
+						   <span style="margin-top:-20px;height:55px;width:120px;" id="{{task.wot_auto_key}}c" name="{{task.wot_auto_key}}c"></span>
+						</td>
+					  </tr>
+					  <tr style="max-height:120px;border:1px solid;padding:0px;margin:0px;">
+						<!--td style="width:90%">
+						  <div style="margin-left:5px;">Seq: {{task.wot_sequence}} Description: OD 1:_______________________</div>
+						  <div style="margin-left:5px;">Seq: {{task.wot_sequence}} Description: OD 2:_______________________</div>			  
+						</td-->
+						<td colspan="3" style="max-height:120px;margin:0px;padding:0px;">
+						  <table style="float:left;width:60%;">
+							<tr>
+							  <td>{{task.wot_description}}</td>
+							</tr>
+						  </table>
+						  <table style="max-height:120px;width:35%;float:right;margin:0px;padding:0px;">
+							<tr>
+							   <td align="middle" style="border:1px solid;width:33%;max-height:35px;">DATE</td>
+							   <td align="middle" style="border:1px solid;width:33%;max-height:35px;">TECHNICIAN</td>
+							   <td align="middle" style="border:1px solid;width:33%;max-height:35px;">INSPECTOR</td>
+							</tr>
+							<tr>
+							   <td style="border:1px solid;width:33%;height:85px;"></td>
+							   <td style="border:1px solid;width:33%;height:85px;"></td>
+							   <td style="border:1px solid;width:33%;height:85px;"></td>
+							</tr>			
+						  </table>
+						</td>
+					  </tr>
+					</table>
+				</td>
+			  </tr>		  
+			</table>
+			</div>
+          </td>			
+		  </tr>
+			{% endfor %}
+          </tbody>
+		  <!--div id="pageFooter"><span style="font-weight:bold;"></span></div-->
+          </table>
+
+	<script>
+		// Import DejaVu Sans font for embedding
+
+		// NOTE: Only required if the Kendo UI stylesheets are loaded
+		// from a different origin, e.g. cdn.kendostatic.com
+		kendo.pdf.defineFont({
+			"DejaVu Sans"             : "https://kendo.cdn.telerik.com/2016.2.607/styles/fonts/DejaVu/DejaVuSans.ttf",
+			"DejaVu Sans|Bold"        : "https://kendo.cdn.telerik.com/2016.2.607/styles/fonts/DejaVu/DejaVuSans-Bold.ttf",
+			"DejaVu Sans|Bold|Italic" : "https://kendo.cdn.telerik.com/2016.2.607/styles/fonts/DejaVu/DejaVuSans-Oblique.ttf",
+			"DejaVu Sans|Italic"      : "https://kendo.cdn.telerik.com/2016.2.607/styles/fonts/DejaVu/DejaVuSans-Oblique.ttf",
+			"WebComponentsIcons"      : "https://kendo.cdn.telerik.com/2017.1.223/styles/fonts/glyphs/WebComponentsIcons.ttf"
+		});
+	</script>
+	<script>
+		function setOptions(e) {
+			var validValue = $('#validValue');
+			try {
+				var barcode = $('#{{ element }}').data('kendoBarcode');
+				barcode.setOptions({
+					value: {{ element }},
+					checksum: true,
+					text: {
+						visible: true
+					},
+					type: "Code128"
+				})
+				validValue.hide();
+			} catch (e) {
+				validValue.text(e.message).show();
+			}
+		}
+		$('#type').kendoDropDownList({
+			dataSource: [
+			 { type: 'Code128', value: "Howdy Yall!" },
+			],
+			change: setOptions,
+			dataTextField: "type",
+			dataValueField: "type"
+		});		
+		$(document).ready(function () {		
+	        $(".{{si_number}}").kendoBarcode({
+				value: '{{ si_number }}',
+				type: 'Code128',
+				background: "transparent"
+			});
+			{% for task in task_list %}
+				$("#{{task.wot_auto_key}}c").kendoBarcode({
+					value:'{{ task.wot_auto_key }}c',
+					type:'Code128',
+					text: {
+						visible: true
+					},
+					background:"transparent"
+				});			
+			{% endfor %}
+			{% for task in task_list %}
+				$("#{{task.wot_auto_key}}s").kendoBarcode({
+					value:'{{ task.wot_auto_key }}s',
+					type:'Code128',
+					text: {
+						visible: true
+					},
+					background:"transparent"
+				});			
+			{% endfor %}
+		});
+		$('#type,#label,#text').change(setOptions);
+    </script>
+    <script src="{% static 'dist/assets/js/app.js' %}"></script>
+  </body>
+</html>

@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MRO Live Part Tracking - Where Productivity Takes Flight</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{% static 'dist/assets/css/app.css' %}">
+    <link href="{% static 'dist/assets/fontawesome/css/all.css' %}" rel="stylesheet">
+    <link rel="shortcut icon" type="image/png" href="{% static 'favicon.ico' %}"/>
+	<script type="text/javascript" src="{% static 'jquery-1.12.4.js' %}"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+	<script type="text/javascript" src="{% static 'jquery_tab_submit.js' %}"></script>
+    <script type="text/javascript" src="{% static 'field_focus.js' %}"></script>
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.common-material.min.css" />
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.material.min.css" />
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.material.mobile.min.css" />
+    <script src="https://kendo.cdn.telerik.com/2020.1.114/js/jszip.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/2.4.0/jszip.js"></script>
+    <script src="https://kendo.cdn.telerik.com/2017.2.621/js/jquery.min.js"></script>
+    <script src="https://kendo.cdn.telerik.com/2017.2.621/js/kendo.all.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>	
+	<style>	
+        input::-webkit-calendar-picker-indicator {
+              opacity: 100;
+        }
+	    .subhead {
+			color:white;
+			text-decoration:bold;
+			font-size: large;
+            margin-left: 65px;
+		}
+        .mro-top-section .mro-lightsearch .left-tab h1{
+		    float:left;
+			margin-left:-28px;
+			padding-left:10px;
+			border-top-left-radius:30px;
+			border-top-right-radius:0px;
+		    }
+	    .mro-top-section .mro-lightsearch .left-tab h1:before {
+		    display:hidden!important;
+			position:unset!important;
+			background: none;
+		}
+		@media screen and (max-width: 600px) {
+		    select{
+			    height: 1.5rem;
+				/*padding: 5px;*/
+				margin: 1px;
+				color: white;
+				background-color:#284a8a;
+			}
+			.mro-top-section .mro-lightsearch .left-tab h1:after {
+				content: '';
+				background: #284a8a;
+				margin-left:15px;
+				-webkit-clip-path: polygon(0 0, 0% 100%, 100% 100%);
+				clip-path: polygon(0 0, 0% 100%, 100% 100%);
+				-webkit-clip-path: polygon(0 0, 0% 100%, 100% 100%);
+				clip-path: polygon(0 0, 0% 100%, 100% 100%);
+				display: block;
+				position: absolute;
+				height: 100%;
+				width: 70px;
+				top: 0px;
+				z-index: 0;
+				left:100px;
+			}
+			.mro-top-section .mro-lightsearch {
+			    border-top-right-radius:0px;   
+                border-top-left-radius:0px;			
+			}
+			.message-box {
+			font-weight: bold; 
+			font-size: 10px;
+			color: #fff;
+		   }
+		}
+		#caret{
+			content: '';
+			border: 4px solid transparent;
+			border-top: 4px solid white;
+			margin-left: 2px;
+			margin-bottom: 3px;
+			display: inline-block;
+			vertical-align: bottom;
+			background-color: #000;
+		}
+        .mode_selector {
+			margin: 0 0 1rem;
+			padding: 0.25rem;
+			/*-webkit-appearance: none;
+			-moz-appearance: none;
+			appearance: none;*/
+			border: 0.5px solid #cacaca;
+			/*border-radius: 0;*/
+			background-color: #cacaca;
+			font-family: inherit;
+			font-weight: normal;
+        }	
+		
+	    .mode_selector select {
+			margin: 0 0 1rem;
+			padding: 0.25rem;
+			/*-webkit-appearance: none;
+			-moz-appearance: none;
+			appearance: none;*/
+			border: 0.5px solid #cacaca;
+			/*border-radius: 0;*/
+			background-color: #cacaca;
+			font-family: inherit;
+			font-weight: normal;
+			}
+
+        			
+		/*.mro-top-section .mro-lightsearch label {
+			font-size: 1.05rem;
+			font-weight: bold;
+			line-height: 1.05;
+			float:left;
+			width: 20%;
+			margin-right:30px;
+		}*/
+	    .username {
+			border:none;
+			outline:none;
+			background-color:#FFFFFF;
+			color:black;
+			text-decoration:bold;
+		}
+        .k-pager-wrap .k-dropdown {
+            width: 100px;	    
+        }
+		.k-grid-toolbar { 
+			background-color:#284a8a !important; 
+		}
+		.k-button { 
+			background-color:#284a8a !important; 
+		}
+		.centered {
+		  /*top: 50%;*/
+		  left: 50%;
+		  height: 100%;
+		  /* bring your own prefixes */
+		  transform: translateX(-50%);
+		}
+		.total_rows {
+		 padding-left:5px;
+		 display:inline;
+		 text-align:left;
+		 border:none;
+		 outline:none;
+		 background-color:#284a8a!important;
+		 color:white;
+		 text-decoration:bold;
+		 height:25px;
+		 width: 45px;
+		}
+		.sel_rows {
+        display:inline;
+		text-align:right;
+		border:none;
+		outline:none;
+		background-color:#284a8a!important;
+		color:white;
+		text-decoration:bold;
+		height:25px;
+		width: 55px;
+		}		
+    </style>
+  </head>
+<body onload='setFocusToTextBox()'>
+    <audio src="{% static 'error-trombone.mp3' %}" id="my_audio"></audio>
+    <script type="text/javascript">
+	    $(document).ready(
+			function () {					
+			error = $("#error").val();
+			if (error) {
+			   $("#my_audio").get(0).play();
+			}
+			var baseForm = $('#base_form');
+			$("input").click(function(e){
+				var id_clicked = e.target.id;
+				if (id_clicked == 'launch_transfer') {
+					e.preventDefault();				
+					$('#is_transfer').val('1');
+					baseForm.submit();
+				}
+				if (id_clicked == 'conf_transfer') {
+					e.preventDefault();				
+					$('#confirm_transfer').val('1');
+					baseForm.submit();
+				}
+				if (id_clicked == 'print_mfst') {
+					e.preventDefault();				
+					$('#print_manifest').val('1');
+					baseForm.submit();
+				}
+			});
+			
+			var transForm = $('#trans_form');
+			$("input").click(function(e){
+				var id_clicked = e.target.id;
+				if (id_clicked == 'val_transfer') {
+					e.preventDefault();				
+					$('#do_transfer').val('1');
+					transForm.submit();
+				}
+				});					
+		})				
+    </script> 
+<div class="mro-header-wrapper">
+	<section id="mrotop"></section>
+	<div class="grid-container mro-header">
+		<div class="grid-x medium-margin-collapse align-middle hide-for-medium" style="float:left;">
+			<div class="cell large-1 medium-2 small-12 mro-menu-button">
+				<a data-toggle="offCanvas"><i class="fas fa-bars"></i></a>
+			</div>
+			<div class="cell large-11 medium-10 small-12 show-for-medium"><hr/></div>
+		</div>
+		<div class="grid-x grid-padding-x align-middle">
+			<div class="cell medium-7 small-12 mro-headerlogo">
+				<a href="" alt="MRO Live - Homepage">
+					<img style="max-width:361px;max-height:150px;" src="{% static 'dist/assets/img/mro-live_header.png' %}" alt="MROLive - Where Productivity Takes Flight">
+				</a>
+			</div>
+			<!--div class="cell medium-5 small-12 mro-clientlogo show-for-medium">
+				<a href="#" alt="MRO Live - Client Logo">
+				  <img style="max-width:150px;" src="../../..{{ logo_url }}" alt="{{ user_name }}">
+				</a>			
+			</div-->
+		</div>
+		<div class="grid-x medium-margin-collapse align-middle show-for-medium">
+			<div class="cell large-1 medium-2 small-12 mro-menu-button">
+				<a data-toggle="offCanvas">Menu <i class="fas fa-bars"></i></a>
+			</div>
+			<div class="cell large-11 medium-10 small-12 show-for-medium"><hr/></div>
+		</div>
+		<!--div class="cell medium-7 small-12 mro-clientlogo hide-for-medium mro-mobileclient">
+			  <a href="#" alt="MRO Live - Client Logo">
+				<img style="max-width:150px;" src="../../..{{ logo_url }}" alt="{{ user_name }}">
+			  </a>      
+		</div-->
+	</div>
+</div>
+<script>
+$(function() {
+    $("#clearModal").modal();//if you want you can have a timeout to hide the window after x seconds
+});
+</script>
+    <!-- Modal -->
+    {%  if confirm_clear == 'True' %}
+      <div class="modal fade" id="clearModal" role="dialog">
+        <div class="modal-dialog">
+          <!-- Modal content-->
+          <div class="modal-content">
+            <div class="modal-header">
+              <button type="button" class="close" data-dismiss="modal">&times;</button>
+              <h4 class="modal-title">Are you sure you want to clear the cart?<br/></h4>
+            </div>
+            <div class="modal-body">
+                <form method="POST" id="modal_clear" name="modal_clear">
+                  {% csrf_token %}
+				  <input type="hidden" name="user_in" id="user_in" value="{{user_id}}"/>
+				  <input type="hidden" name="clear_rack" id="clear_rack" value="{{clear_rack}}"/>
+				  <input type="hidden" name="cur_mode" id="cur_mode" value="{{cur_mode}}"/>
+				  <input type="hidden" name="mod_pagesize" id="mod_pagesize"/>
+				  <input type="hidden" name="mod_col" id="mod_col"/>
+				  <input type="hidden" name="mod_session" id="mod_session" value="{{ mod_session }}"/>
+				  <div><br/><br/></div>	
+				  <div class="cell large-6 medium-6 small-12">
+					  <button class="secondary button shadow" name="no_clear" value="No" style="float:right; margin-top:-50px;" id="no_clear" type="submit">No</button>
+					  <button class="secondary button shadow" name="yes_clear" value="Yes" style="float:right; margin-top:-50px;" id="yes_clear" type="submit">Yes</button>
+
+				  </div>				  
+                </form>          
+            </div>
+          </div>                
+       </div>
+      </div>
+	  {% endif %}
+<!-- Modal Error Pop-up -->
+<script>
+$(function() {
+    $("#transConfModal").modal();//if you want you can have a timeout to hide the window after x seconds
+});
+</script>
+    <!-- Modal -->
+    {%  if confirm_transfer == '1' %}
+      <div class="modal fade" id="transConfModal" role="dialog">
+        <div class="modal-dialog">
+          <!-- Modal content-->
+          <div class="modal-content">
+            <div class="modal-header">
+              <button type="button" class="close" data-dismiss="modal">&times;</button>
+              <h4 class="modal-title">Transfer All Stock ({{total_stms}}) stms?<br/></h4>
+            </div>
+            <div class="modal-body">
+                <form method="POST" id="modal_transfer" name="modal_transfer">
+                  {% csrf_token %}
+				  
+				  <input type="hidden" name="user_in" id="user_in" value="{{user_id}}"/>
+				  <input type="hidden" name="cur_mode" id="cur_mode" value="{{active_mode}}"/>
+				  <input type="hidden" name="mod_session" id="mod_session" value="{{ session_id }}"/>
+				  <input type="hidden" name="cart_transfer" id="cart_transfer" value="1"/>
+				  <input type="hidden" name="stm_keys" id="stm_keys" value="{{ stm_keys }}"/>
+				  
+ 				  <div class="cell large-6 medium-6 small-12">
+                      <label>Location</label>
+                      <input type="text" id="trans_loc" name="trans_loc" value="{{location}}" placeholder="WIP..."/>
+				  </div>
+				  <div class="cell large-6 medium-6 small-12">
+                      <label>Cart</label>
+                      <input type="text" id="trans_cart" name="trans_cart" value="{{rack}}" readonly="1" placeholder="CART 09..."/>
+				  </div>				  
+				  <div class="cell large-6 medium-6 small-12">
+					  <button class="secondary button shadow" name="do_cart_transfer" id="do_cart_transfer" value="1" style="float:right; margin-top:10px;" type="submit">Confirm</button>
+
+				  </div>				  
+                </form>          
+            </div>
+          </div>                
+       </div>
+      </div>
+	  {% endif %}
+<!-- Modal Error Pop-up -->
+<script>
+$(function() {
+    $("#transModal").modal();//if you want you can have a timeout to hide the window after x seconds
+});
+</script>
+    <!-- Modal -->
+    {%  if launch_transfer == '1' %}
+      <div class="modal fade" id="transModal" role="dialog">
+        <div class="modal-dialog">
+          <!-- Modal content-->
+          <div class="modal-content">
+            <div class="modal-header">
+              <button type="button" class="close" data-dismiss="modal">&times;</button>
+              <h4 class="modal-title">Transfer Unvalidated Stock<br/></h4>
+            </div>
+            <div class="modal-body">
+                <form method="POST" id="modal_transfer" name="modal_transfer">
+                  {% csrf_token %}
+				  
+				  <input type="hidden" name="user_in" id="user_in" value="{{user_id}}"/>
+				  <input type="hidden" name="cur_mode" id="cur_mode" value="{{active_mode}}"/>
+				  <input type="hidden" name="mod_session" id="mod_session" value="{{ session_id }}"/>
+				  <input type="hidden" name="do_transfer" id="do_transfer" value="0"/>
+				  <input type="hidden" name="stm_keys" id="stm_keys" value="{{ stm_keys }}"/>
+ 				  <div class="cell large-6 medium-6 small-12">
+                      <label>Location</label>
+                      <input type="text" id="trans_loc" name="trans_loc" placeholder="WIP..."/>
+				  </div>
+				  <div class="cell large-6 medium-6 small-12">
+                      <label>Cart</label>
+                      <input type="text" id="trans_cart" name="trans_cart" placeholder="CART 09..."/>
+				  </div>				  
+				  <div class="cell large-6 medium-6 small-12">
+					  <button class="secondary button shadow" name="val_transfer" id="val_transfer" value="1" style="float:right; margin-top:10px;" type="submit">Transfer</button>
+
+				  </div>				  
+                </form>          
+            </div>
+          </div>                
+       </div>
+      </div>
+	  {% endif %}
+<!-- Modal Error Pop-up -->
+<script>
+$(function() {
+    $("#errorModal").modal();//if you want you can have a timeout to hide the window after x seconds
+});
+</script>
+    <!-- Modal -->
+    {% if error %}
+      <div class="modal fade" id="errorModal" role="dialog" data-backdrop="static">
+        <div class="modal-dialog">
+          <!-- Modal content-->
+          <div class="modal-content">
+		    <form method="POST" id="modal_error_form" name="modal_error_form">
+            <div class="modal-header">
+              <button type="button" class="close" id="x_button" data-dismiss="modal">&times;</button>
+              <h4 class="modal-title">Application Message:</h4>
+            </div>
+            <div class="modal-body">
+			    <input type="hidden" id="error" name="error" value="{{ error }}"/><div style="font-weight: bold; color:red; font-size: 22px;">{{ error }}</div>
+				  <form method="POST" id="label_form" name="label_form">
+                  {% csrf_token %}
+                  <input type="hidden" name="is_label_form" id="is_label_form" value="1"/>
+				  <input type="hidden" name="rerecord" id="rerecord" value="{{rerecord}}"/>
+				  <input type="hidden" name="relocation" id="relocation" value="{{relocation}}"/>
+				  <input type="hidden" name="rewarehouse" id="rewarehouse" value="{{rewarehouse}}"/>
+				  <input type="hidden" name="recart" id="recart" value="{{recart}}"/>
+				  <input type="hidden" name="reuser_in" id="reuser_in" value="{{reuser_in}}"/>
+				  <input type="hidden" name="reuser_auto_key" id="reuser_auto_key" value="{{reuser_auto_key}}"/>
+				  <input type="hidden" name="renew_status" id="renew_status" value="{{renew_status}}"/>
+			      {% if reent == '1' %}
+				  <label>Re-enter Record</label>
+				  <div class="cell large-6 medium-6 small-12">
+                      <input type="input" name="label_input" id="label_input" class="label_input" value=""/>
+				  </div>
+				  <div><br/><br/></div>	
+				  {% endif %}
+				  <div class="cell large-6 medium-6 small-12">
+				      <button class="secondary button shadow" id="ok_button" style="float:right; margin-top:-20px;" type="submit" data-dismiss="modal">OK</button>
+				  </div>
+				  <div><br/><br/></div>					  
+                </form>
+                <div><br/><br/></div>
+          </div> 
+          </div>                
+       </div>
+      </div>
+	  {% endif %}   
+    <!-- End modal error popup --> 
+
+<!-- Off-canvas Menu -->
+
+<div class="off-canvas position-left" id="offCanvas" data-off-canvas>
+
+<!-- Close button -->
+<button class="close-button" aria-label="Close menu" type="button" data-close>
+  <span aria-hidden="true">&times;</span>
+</button>
+
+<!-- Menu -->
+<ul class="vertical mro-menu menu">
+	<li class="mro-menu-logo">
+		<a href="http://mrolive.com/" target="_blank">
+			<img src="{% static 'dist/assets/img/MROlive-logo.png' %}" alt="Where Productivity Takes Flight" alt="MRO Live - Where Productivity Takes Flight">
+		</a>
+	</li>
+	{% if op_apps %}
+	<div class="subhead">Operations</div>
+	{% endif %}
+	{% for app in op_apps %}
+      <li><a target="_blank" href="../{{ app.ml_apps_id.code }}/{{ quapi_id }}">{{ app.ml_apps_id.name }}</a></li>
+    {% endfor %}
+	{% if mgmt_apps %}
+	<div class="subhead">Management</div>
+	{% endif %}
+	{% for app in mgmt_apps %}
+      <li><a target="_blank" href="../{{ app.ml_apps_id.code }}/{{ quapi_id }}">{{ app.ml_apps_id.name }}</a></li>
+    {% endfor %}
+	{% if dash_apps %}
+	<div class="subhead">Dashboards</div>
+	{% endif %}
+	{% for app in dash_apps %}
+      <li><a target="_blank" href="../{{ app.ml_apps_id.code }}/{{ quapi_id }}">{{ app.ml_apps_id.name }}</a></li>
+    {% endfor %}
+	{% if setup_apps %}
+	<div class="subhead">Setup</div>
+	{% endif %}
+	{% for app in setup_apps %}
+      <li><a target="_blank" href="../{{ app.ml_apps_id.code }}/{{ quapi_id }}">{{ app.ml_apps_id.name }}</a></li>
+    {% endfor %}
+    <li><a href="/login">Logout</a></li><li><a href="/portal/pass-reset/{{ quapi_id }}">Reset Password</a></li>
+</ul>
+
+</div>  
+<!-- Off-canvas Menu - END -->
+    <div class="grid-container mro-top-section" style="width:100%">
+      <div class="grid-x grid-padding-x">    
+          <div class="mro-top-section-wrapper mro-search">
+            <div class="mro-top-section" style="width:100%">
+			  <form method="POST" id="base_form" name="base_form" onsubmit='setFocusToTextBox()'>			  
+			  <input type="hidden" name="clear_form" id="clear_form" value="0"/>
+			  <input type="hidden" name="session_id" id="session_id" value="{{session_id}}"/>
+			  <input type="hidden" name="show_status" id="show_status" value="{{ show_status }}"/>
+			  <input type="hidden" name="show_user" id="show_user" value="{{show_user}}"/>
+			  <input type="hidden" name="show_all" id="show_all" value="{{ show_all }}"/>
+			  <input type="hidden" name="scan_input" id="scan_input" value=""/>
+			  <input type="hidden" name="lookup_recs" id="lookup_recs" value="{{ lookup_recs}}"/>
+			  <input type="hidden" name="status_key" id="status_key" value="0"/>
+			  <input type="hidden" name="dj_user_id" id="dj_user_id" value="{{dj_user_id}}"/>
+			  <input type="hidden" name="app_modes" id="app_modes" value="{{modes}}"/>
+			  <input type="hidden" name="sys_statuses" id="sys_statuses" value="{{status_vals}}"/>
+			  <input type="hidden" name="is_transfer" id="is_transfer" value="0"/>
+			  <input type="hidden" name="confirm_transfer" id="confirm_transfer" value="0"/>
+			  <input type="hidden" name="print_manifest" id="print_manifest" value="0"/>
+			  <input type="hidden" name="options_col" id="options_col"/>
+			  {% if active_mode == '2' or active_mode == '3' and not total_rows or active_mode == '3' and total_rows == '0' %}
+			  <input type="hidden" id="wo_number" name="wo_number" value="{{wo_number}}"/>
+		      {% endif %}			  
+              <!--div class="mro-darksearch" style="width:100%">
+                <div class="grid-x grid-padding-x">					
+                    <div class="cell large-6 medium-6 small-12">
+                      <label>Emp ID</label>
+					  {{ form.user_id }}
+                    </div>					
+					<div class="cell large-6 medium-6 small-12">
+					  {% if user_id %}
+                      <label>User Name</label>
+					  <input type="text" name="user_name" id="user_name" value="{{ user_name }}" style="text-align:left;border:none;outline:none;background-color:#FFFFFF;color:black;text-decoration:bold;" readonly>
+					</div>	
+					  {% endif %}
+				</div>
+		      </div-->
+			<!--{% if user_name %}
+              <div class="mro-lightsearch" style="width:100%">
+				    <a href="#" style="float:left;" type="button" name="button1_toggle" id="button1_toggle">▼
+				    </a>
+                <div id="row1_toggle" class="grid-x grid-padding-x">			      
+				  <div class="cell large-6 medium-6 small-12">
+                      <label>Account Company</label>	
+				      <input type="text" list="acco_list" id="acco_input" name="acco_input" value="{{ acco_input }}"/>
+					    <datalist id="acco_list">
+							<option value=""> -- No Selection -- </option>
+							{% for acc_co in acc_cos %}						
+								<option data-value="{{ acc_co.cmp_auto_key }}" value="{{ acc_co.name }}">{{ acc_co.name }}</option>						
+							{% endfor %}
+					    </datalist>
+				  </div>
+				  <div class="cell large-6 medium-6 small-12">
+                      <label>Department</label>	
+				      <input type="text" list="dept_list" id="dept_input" name="dept_input" value="{{ dept_input }}"/>
+					    <datalist id="dept_list">
+							<option value=""> -- No Selection -- </option>
+							{% for dept in departments %}	
+								<option data-value="{{ dept.dpt_auto_key }}" value="{{ dept.name }}">{{ dept.name }}</option>								
+							{% endfor %}
+					    </datalist>
+				  </div>	
+				</div>
+		      </div>
+              <div class="mro-darksearch" style="width:100%">
+				    <a href="#" style="float:left;" type="button" name="button2_toggle" id="button2_toggle">▼
+				    </a>	
+                <div id="row2_toggle" class="grid-x grid-padding-x">					
+
+			        <div class="cell large-6 medium-6 small-12">
+                      <label>Condition</label>	
+				      {{ form.condition_code }}
+					</div>
+			        <div class="cell large-6 medium-6 small-12">
+                      <label>Consignment</label>	
+				      {{ form.consignment }}
+					</div>
+					{% endif %}
+		        </div>
+		    </div>-->
+              <div class="mro-lightsearch">
+			    <div class="large-6 medium-12 small-7 cell hide-for-medium">
+				</div>
+				<div class="large-6 medium-12 small-7 cell hide-for-medium">
+				</div>
+				<div class="cell large-6 medium-6 small-12">
+				  {% if msg %}<div class="message-box">{{ msg }}</div>{%  endif %}
+				</div>
+				<!--div class="cell large-6 medium-6 small-12">
+				  <span class="left-tab">
+				    <h1><span style="padding-left:5px;font-size:14px;">{{ user_name }}</span>
+				    </h1>
+				  </span>
+				  <h1><span style="padding-left:5px;font-size:14px;">TRACKING</span>
+				  </h1>
+				</div-->
+				<div class="cell large-6 medium-6 small-12">
+				  <span class="left-tab">
+				    <h1><span style="padding-left:5px;font-size:14px;">{{ user_name }}</span>
+				    </h1>
+				  </span>
+                  <h1>
+					  <select style="background-color:#284a8a;color:white;" name="mode_selector" id="mode_selector">
+					  {% for mmod in modes  %}						
+						{% if mmod.code == active_mode %}
+						<option value="{{ mmod.code }}" selected>{{ mmod.name }}</option>
+						{% else %}
+						<option value="{{ mmod.code }}">{{ mmod.name }}</option>
+						{% endif %}							
+						{% endfor %}
+				  	  </select>
+				  </h1>					  
+				</div>
+				<div class="grid-x grid-padding-x">				
+					<div class="cell large-6 medium-6 show-for-large">
+						<hr/>
+					</div>			
+				{% csrf_token %}
+					<!--div class="cell large-6 medium-6 small-12">
+					  <label>Mode</label>
+					  <select style="background-color:#cacaca;" name="mode_selector" id="mode_selector">
+					  
+					  {% for mmod in modes  %}						
+						{% if mmod.code == active_mode %}
+						<option value="{{ mmod.code }}" selected>{{ mmod.name }}</option>
+						{% else %}
+						<option value="{{ mmod.code }}">{{ mmod.name }}</option>
+						{% endif %}							
+						{% endfor %}
+				  	  </select>	
+					</div-->			  
+                    <!--div class="cell large-6 medium-6 small-12">
+                      <label>WHS</label>
+                      <!--input type="text" id="warehouse" name="warehouse" value="{{ warehouse }}" placeholder="CA..."/-->
+
+                    <!--/div-->
+					{% if active_mode == '1' %}
+                    <div class="cell large-6 medium-6 small-12">
+                      <label>Loc/Cart</label>
+                      <input type="text" id="loc_cart" name="loc_cart" value="{{ loc_cart }}" placeholder="WIP..."/>
+                    </div>
+					{% else %}
+                    <div class="cell large-6 medium-6 small-12">
+                      <label>Location</label>
+                      <!--input type="text" id="location" name="location" value="{{ location }}" placeholder="WIP..."/-->
+					  {{ form.location }}
+                    </div>
+					<div class="cell large-6 medium-6 small-12">					  
+					  <label>Cart</label>
+					  {{ form.rack }}
+					</div>
+					{% endif %}
+					{% if active_mode == '1' or active_mode == '3' and total_rows and total_rows != '0' %}
+					<div id="record_input" class="cell large-6 medium-6 small-12">						
+					  <label>Record</label>
+					  {{ form.wo_number }}
+					</div>
+                    {% endif %}
+						<div class="cell large-6 medium-6 small-12">
+						  <div class="grid-x grid-padding-x align-middle mro-searchbuttonbox">
+							<div class="cell large-6 medium-6 small-12 mro-searchbuttonbox">
+							  <input class="primary button shadow" type="submit" value="{% if active_mode == '1' %} Update {% elif active_mode == '2' %} Search {% elif active_mode == '3' %} Validate {% endif %}" name="wo_update" id="wo_update" onclick="this.disabled=true,this.form.submit();"/>
+							  
+							</div>
+							{% if active_mode == '2' and total_rows and total_rows != '0' %}
+						    <div class="cell large-6 medium-6 small-12">
+							  <input class="primary button shadow " name="conf_transfer" id="conf_transfer" type="submit" value="Transfer" onclick="this.disabled=true,this.form.submit();"/>
+						    </div>
+						    {% endif %}
+							{% if active_mode == '3' and total_rows and total_rows != '0' %}
+						    <div class="cell large-6 medium-6 small-12">
+							  <input class="primary button shadow " name="launch_transfer" id="launch_transfer" type="submit" value="Transfer" onclick="this.disabled=true,this.form.submit();"/>
+						    </div>
+						    {% endif %}
+							</form>
+							<div class="cell large-6 medium-6 small-12 mro-searchbuttonbox">
+								<form method="POST" id="clear_formage" name="clear_formage"> 
+								  {% csrf_token %}
+								  <input type="hidden" name="cloptions_pagesize" id="cloptions_pagesize"/>
+			                      <input type="hidden" name="cloptions_col" id="cloptions_col"/>
+								  <input type="hidden" name="clear_form" id="clear_form" value="1"/>
+								  <input type="hidden" name="user_logged" id="user_logged" value="{{ user_logged }}"/>
+								  <input type="hidden" name="sel_mode" id="sel_mode" value="{{ sel_mode }}"/>
+								  <input type="hidden" name="clear_show_status" id="clear_show_status" value="{{ show_status }}"/>
+								  <input type="hidden" name="show_record" id="show_record" value="{{ show_record }}"/>
+								  <input class="primary button shadow" type="submit" name="clear" id="clear" value="Reset">
+								</form>
+							</div>
+							{% if active_mode == '3' %}
+								{% if  total_rows and total_rows != '0' %}
+								<div class="cell large-6 medium-6 small-12">
+								  <input class="primary button shadow " name="print_mfst" id="print_mfst" type="submit" value="Print" onclick="this.disabled=true,this.form.submit();"/>
+								</div>
+								{% endif %}
+							<div class="cell large-6 medium-6 small-12 mro-searchbuttonbox">
+								<form method="POST" id="clear_cart_form" name="clear_cart_form"> 
+								  {% csrf_token %}
+								  <input type="hidden" name="ccart_form" id="ccart_form" value="1"/>
+								  <input type="hidden" name="user_logged" id="user_logged" value="{{ user_logged }}"/>
+								  <input type="hidden" name="sel_mode" id="sel_mode" value="{{ sel_mode }}"/>
+								  <input type="hidden" name="stock_label" id="stock_label" value="{{ stock_label }}"/>
+								  <input type="hidden" name="cart_code" id="cart_code" value="{{ cart_code }}"/>
+								  <input type="hidden" name="clear_show_status" id="clear_show_status" value="{{ show_status }}"/>
+								  <input type="hidden" name="show_record" id="show_record" value="{{ show_record }}"/>
+								  <input class="primary button shadow" type="submit" name="clear_cart" id="clear_cart" value="Clear Cart">
+								</form>	
+							</div>
+						  {%  endif %} 
+						</div>
+					</div>			
+              </div>
+            </div>
+          </div>        
+      </div>
+	</div>
+
+    <div class="mro-bottom-section-wrapper mro-table">
+      <div class="grid-container mro-bottom-section" style="width:100%">
+	  	{% if total_rows and total_rows != '0' and is_rch != '1' %}
+	      <div class="grid-x grid-padding-x">
+				<div class="centered results_grid" id="results_grid" name="results_grid">
+					<!--div class = "save_buttons">
+					  <a href="#" class="secondary button shadow" id="save">Set Grid</a><a href="#" class="secondary button shadow" id="load">Reset Grid</a>
+					</div-->
+					<div class="counter_wrap">TOTAL:					  
+					  <input type="text" class="total_rows" id="total_rows" name="total_rows" value="{{ total_rows }}" size="5" readonly>
+					</div>
+				<script>
+					kendo.ui.Grid.prototype._positionColumnResizeHandle= function() {
+					  var that = this,
+						  indicatorWidth = that.options.columnResizeHandleWidth,
+						  lockedHead = that.lockedHeader ? that.lockedHeader.find("thead:first") : $();
+
+					  that.thead.add(lockedHead).on("mousemove" + ".kendoGrid", "th", function (e) {
+						var th = $(this);
+						if (th.hasClass("k-group-cell") || th.hasClass("k-hierarchy-cell")) {
+						  return;
+						}
+						that._createResizeHandle(th.closest("div"), th);
+					  });
+					};
+			$(document).ready(
+				function () {				
+					var dataSourceArguments = {
+					    autoBind: false,
+						pageSize: 200,
+						serverPaging: true,
+						//serverFiltering: true,
+						serverSorting: true,
+						transport: {
+							read: {
+								url: '/portal/json',
+								dataType: "json",
+								data: {'active_mode': '{{ active_mode }}','session_id': '{{ session_id }}','is_rack': '1' } // the parameter I need to send to the server
+							}
+						},
+						schema: {
+							total: "count",
+							data: "results",
+							model: { id: "id" }
+						}
+					}								
+					var dsg = new kendo.data.DataSource(dataSourceArguments);
+					$("#results_grid").kendoGrid({
+					    toolbar: ["excel"],
+						excel: {
+							fileName: "part-tracking-export.xlsx",
+							proxyURL: "https://demos.telerik.com/kendo-ui/service/export",
+							allPages: true
+						},
+						dataSource: dsg,
+						//filterable: true,
+						resizable: true,
+                        sortable: true,
+						reorderable: true,
+                        selectable: "multiple, row",
+						persistSelection: true,
+                        navigatable: false,
+						pageable: {
+							refresh: true,
+							pageSizes: true,
+							buttonCount: 5,
+						},
+                        columns: [
+						{% if options_col %}
+							{% for col in options_col %}
+								{						
+								  field: '{{ col.field }}',
+								  title: '{{ col.name }}',
+								  width: {{ col.width }},
+								  {% if col.template %}
+								  template: '{{ col.template }}',	
+								  {% endif %}
+								},
+							{% endfor %}	
+                        {% else %}
+						    {
+							  field: 'stm_auto_key',
+							  title: 'STM',
+							  width: screen.availWidth*0.03, minScreenWidth: 450
+							},
+							{
+							  field: 'part_number',
+							  title: 'Part Number',
+							  width: screen.availWidth*0.05
+							},
+							{
+							  field: 'description',
+							  title: 'Description',
+							  width: screen.availWidth*0.05, minScreenWidth: 450
+							},							
+							{
+							  field: 'serial_number',
+							  title: 'Serial #',
+							  width: screen.availWidth*0.03, minScreenWidth: 450
+							},
+							{
+							  field: 'stock_line',
+							  title: 'SL',
+							  width: screen.availWidth*0.02, minScreenWidth: 450
+							},
+							{
+                              field: 'ctrl_number',
+							  title: 'CTRL #',
+							  width: screen.availWidth*0.03, minScreenWidth: 450
+							},
+							{
+                              field: 'ctrl_id',
+							  title: 'ID',
+							  width: screen.availWidth*0.02, minScreenWidth: 450
+							},
+							{
+                              field: 'rack',
+							  title: 'Cart',
+							  width: screen.availWidth*0.03
+							},
+							//{
+                              //field: 'wh_code',
+							  //title: 'WHS',
+							  //width: screen.availWidth*0.03
+							//},
+							{
+							  field: 'location_code',
+							  title: 'Location',
+							  width: screen.availWidth*0.05
+							},
+				        {% endif %}
+					    ]				
+					});
+					$("select[data-role='dropdownlist']").kendoDropDownList({
+						dataTextField: "pageSize",
+						dataValueField: "sizeValue",
+						dataSource: [
+							{pageSize: 25},
+							{pageSize: 50},
+							{pageSize: 100},
+							{pageSize: 500},
+							{pageSize: 2000},
+							{pageSize: 'All', sizeValue:1000}
+						]
+					});
+                    var grid = $("#results_grid").data("kendoGrid");
+		    });
+			  </script>
+			    </div>			
+		</div>
+		{% endif %}
+	    {% if total_rows and total_rows != '0' and is_rch == '1' %}
+	      <div class="grid-x grid-padding-x">
+				<div class="centered results_grid" id="results_grid" name="results_grid">
+				<script>
+					kendo.ui.Grid.prototype._positionColumnResizeHandle= function() {
+					  var that = this,
+						  indicatorWidth = that.options.columnResizeHandleWidth,
+						  lockedHead = that.lockedHeader ? that.lockedHeader.find("thead:first") : $();
+
+					  that.thead.add(lockedHead).on("mousemove" + ".kendoGrid", "th", function (e) {
+						var th = $(this);
+						if (th.hasClass("k-group-cell") || th.hasClass("k-hierarchy-cell")) {
+						  return;
+						}
+						that._createResizeHandle(th.closest("div"), th);
+					  });
+					};
+			$(document).ready(
+				function () {
+					var initialGridWidth;
+					function setGridWidth(e){
+					  var cols = e.sender.columns;
+					  var currentColWidth = cols.reduce(function(prev, cur){
+					  if(!cur.hidden){
+						return prev += cur.width;
+					  } else {
+						return prev;
+					  }
+					}, 0);
+					if(currentColWidth > initialGridWidth){
+					  e.sender.wrapper.width(initialGridWidth);
+					} else {
+					  e.sender.wrapper.width(currentColWidth + kendo.support.scrollbar());
+					}
+					};				
+					var dataSourceArguments = {
+					    dataBound: function(e){
+						  console.log(setGridWidth(e));
+						},
+						columnShow: function(e){
+						  console.log(setGridWidth(e));
+						},
+						columnHide: function(e){
+						  console.log(setGridWidth(e));
+						},
+					    autoBind: false,
+						pageSize: 100,
+						serverPaging: true,
+						//serverFiltering: true,
+						serverSorting: true,
+						transport: {
+							read: {
+								url: '/portal/srec-json',
+								dataType: "json",
+								data: { 'user_id': '{{ user_id }}','session_id': '{{ session_id }}','is_wos': '1' } // the parameter I need to send to the server
+							}
+						},
+						schema: {
+							total: "count",
+							data: "results",
+							model: { id: "id" }
+						}
+					}								
+					var dsg = new kendo.data.DataSource(dataSourceArguments);
+					$("#results_grid").kendoGrid({
+					    toolbar: ["excel"],
+						excel: {
+							fileName: "barcoding-receivers-export.xlsx",
+							proxyURL: "https://demos.telerik.com/kendo-ui/service/export",
+							allPages: true
+						},
+						dataSource: dsg,
+						//filterable: true,
+						resizable: true,
+                        sortable: true,
+						reorderable: true,
+                        selectable: "multiple, row",
+						persistSelection: true,
+                        navigatable: true,
+						pageable: {
+							refresh: true,
+							pageSizes: true,
+							buttonCount: 5,
+						},
+                        columns: [
+							{
+							  field: 'rc_number',
+							  title: 'RC#',
+							  width: screen.availWidth*0.10, 
+							},
+							{
+							  field: 'company_name',
+							  title: 'Company',
+							  width: screen.availWidth*0.15,
+							},
+							{
+							  field: 'order_type',
+							  title: 'Order Type',
+							  width: screen.availWidth*0.08, minScreenWidth: 1300
+							},
+							{
+							  field: 'order_number',
+							  title: 'Order Number',
+							  width: screen.availWidth*0.10, minScreenWidth: 450
+							},
+							{
+							  field: 'create_date',
+							  title: 'Created',
+							  width: screen.availWidth*0.15, minScreenWidth: 1300
+							},
+							{
+							  field: 'location_code',
+							  title: 'Loc',
+							  width: screen.availWidth*0.10, minScreenWidth: 450
+							},							
+							{
+							  field: 'airway_bill',
+							  title: 'Airway Bill',
+							  width: screen.availWidth*0.10, minScreenWidth: 450
+							},
+							{
+                              field: 'user_name',
+							  title: 'User',
+							  width: screen.availWidth*0.10, minScreenWidth: 350
+							},
+							{
+                              field: 'account_company',
+							  title: 'Account',
+							  width: screen.availWidth*0.10, minScreenWidth: 350
+							},
+					    ]				
+					});
+					$("select[data-role='dropdownlist']").kendoDropDownList({
+						dataTextField: "pageSize",
+						dataValueField: "sizeValue",
+						dataSource: [
+							{pageSize: 100,
+							{pageSize: 500},
+							{pageSize: 1000},
+							{pageSize: 5000},
+							{pageSize: 20000},
+							{pageSize: 'All', sizeValue:50000}
+						]
+					});
+                    var grid = $("#results_grid").data("kendoGrid");
+		    });
+			  </script>
+			    </div>			
+		</div>
+        <div class="grid-x mro-pagination-section">
+          <div class="cell large-5 medium-6 small-12 ">
+            <a class="mrotop" href="#mrotop" data-smooth-scroll><span>^</span> Back to Top</a>
+          </div>
+        </div>
+		{% endif %}	  
+	  </div>
+    </div>
+  <script src="{% static 'dist/assets/js/app.js' %}"></script>
+</body>
+</html>

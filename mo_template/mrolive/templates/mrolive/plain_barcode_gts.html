@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+	<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, post-check=0, pre-check=0" /> 
+	<meta http-equiv="Pragma" content="no-cache" />
+    <meta charset="utf-8" />
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MRO Live - GTS Teardown Label - Where Productivity Takes Flight</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+	<link rel="shortcut icon" type="image/png" href="{% static 'favicon.ico' %}"/>
+    <link rel="stylesheet" href="{% static 'dist/assets/css/app.css' %}">
+    <link href="{% static 'dist/assets/fontawesome/css/all.css' %}" rel="stylesheet">
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.common-material.min.css" />
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.material.min.css" />
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.material.mobile.min.css" />
+    <script src="https://kendo.cdn.telerik.com/2020.1.114/js/jszip.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/2.4.0/jszip.js"></script>
+    <script src="https://kendo.cdn.telerik.com/2017.2.621/js/jquery.min.js"></script>
+    <script src="https://kendo.cdn.telerik.com/2017.2.621/js/kendo.all.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>	
+	<script type="text/javascript" src="{% static 'jquery-1.12.4.js' %}"></script>
+    <script type="text/javascript" src="{% static 'field_focus.js' %}"></script>
+	<script src="{% static 'jquery.bootstrap.modal.forms.min.js' %}"></script>
+	<script type="text/javascript" src="{% static 'jquery_tab_submit.js' %}"></script>
+    <style>
+		#container {
+			width: 1004px;
+			height: 1530px;
+			margin: auto;
+			padding:2px;
+			font-size:14pt;
+		}
+		#barcode {
+			width: 1004px;
+			height: 1165px;
+			margin: auto;
+			padding-top:50px;
+			font-size:14pt;
+		}
+		#logo {
+			width: 1004px;
+			height: 1530px;
+			margin: auto;
+			padding:2px;
+			font-size:14pt;
+		}
+		tbody th, tbody td {
+		  padding:1px;
+		}
+		text {
+		  display:none;
+		}
+		svg g text {
+		    float:left;
+		}
+		table {
+		  padding:0px;
+		  border:none;
+		  margin:0px;
+		  width:255px;
+		}
+		table tr,td {
+		  font-size:14pt;
+		  padding:0px;
+		  border:none;
+		  margin:0px;
+		  background-color:white;
+		}
+        thead, tbody, tfoot {
+		  padding:0px;
+		  border:none;
+		  margin:0px;
+		  background-color:white;
+		}
+		@media screen {
+			.reload {
+			  display: block;
+			}
+		}
+		@media print {
+		  .reload {
+			display: none!important;
+		  }
+		  text {
+			display: none;
+		  }
+		}
+    </style>
+   </head>
+  <body>
+    {% for rec in records %}
+	<div id="barcode" class="barcode" name="barcode">	
+	  <!--div class="mro-menu-logo" style="background-color:white;">
+		<a href="../teardown/{{quapi_id}}" target="_blank">
+		  <img src="{% static 'dist/assets/img/mro-live_header.png' %}" alt="Where Productivity Takes Flight" alt="MRO Live - Where Productivity Takes Flight">
+		</a>
+	  </div-->
+	  <a href="../../teardown/{{quapi_id}}/{{wo_task}}" class="reload">
+	    <button class="reload">Reload</button>
+	  </a>	  
+	  <span style="margin-left:100px;float:left;">
+	    <div style="margin-left:-28px;width:300px;height:63px;" class="0{{rec.ctrl_number}}00000{{rec.ctrl_id}}" id="0{{rec.ctrl_number}}00000{{rec.ctrl_id}}"></div>
+        <div style="margin:-10px auto 0px auto;width:96%;font-size:12pt;">Ctrl#: {{ rec.ctrl_number }}       CtrlID:{{ rec.ctrl_id }}</div>		
+	  </span>
+	  <span style="margin:0px;float:left;">
+		  <img width="410px" src="{% static 'gts_logo.png' %}" alt="Where Productivity Takes Flight" alt="">
+	  </span>
+	  <table style="margin:auto;width:99%;" border="0" cellpadding="0" cellspacing="0">
+	    <tr>
+		  <td>
+		    <table style="margin:auto;width:99%;" >
+			  <tr>
+				<td align="right" style="font-size:18pt;font-weight:bold;">WO# 
+				</td>
+				<td style="font-size:18pt;font-weight:bold;">: 
+				</td>
+				<td style="font-size:18pt;font-weight:bold;">{{ rec.wo_number }}
+				</td>
+			  </tr>
+			  <tr>
+				<td align="right" style="font-size:18pt;font-weight:bold;">COND 
+				</td>
+				<td style="font-size:18pt;font-weight:bold;">: 
+				</td>
+				<td style="font-size:18pt;font-weight:bold;">{{ rec.condition_code }}
+				</td>
+			  </tr>
+			  <tr>
+				<td align="right">PN 
+				</td>
+				<td>: 
+				</td>
+				<td>{{ rec.part_number }}
+				</td>
+			  </tr>
+			  <tr>
+				<td align="right">SN 
+				</td>
+				<td>: 
+				</td>
+				<td>{{ rec.serial_number }}
+				</td>
+			  </tr>
+			  <tr>
+				<td align="right">DESC
+				</td>
+				<td>: 
+				</td>
+				<td>{{ rec.description}}
+				</td>
+			  </tr>
+			  <tr>
+				<td align="right">CUST
+				</td>
+				<td>:
+				</td>
+				<td>{{ rec.customer}}
+				</td>
+			  </tr>
+			  <tr>
+			  <tr>
+				<td align="right">ENG MDL 
+				</td>
+				<td>:  
+				</td>
+				<td>{{ rec.eng_model}}
+				</td>
+			  </tr>
+			  <tr>
+				<td align="right">NOTES 
+				</td>
+				<td>:
+				</td>
+				<td cellpadding="5" style="font-size:7pt;border:0.5px solid;">{{rec.notes}}
+				</td>
+			  </tr>
+		  </table>
+		  </td>
+		  <td>
+		    <table style="width:350px;">
+			  <tr>
+				<td colspan="3">
+				  <br/><span>{{supthin}}</span>
+				</td>
+			  </tr>
+			  <tr>
+				<td colspan="3">
+				  <br/><span>{{supthin}}</span>
+				</td>
+			  </tr>
+			  <tr>
+			  <tr>
+				<td colspan="3">
+				  <br/><span>{{supthin}}</span>
+				</td>
+			  </tr>
+			  <tr>
+				<td colspan="3">
+				  <br/><span>{{supthin}}</span>
+				</td>
+			  </tr>
+			  <tr>
+				<td align="right">SL 
+				</td>
+				<td>: 
+				</td>
+				<td>{{ rec.stock_line }}
+				</td>
+			  </tr>
+			  <tr>
+				<td align="right">PRINTED DATE 
+				</td>
+				<td>:  
+				</td>
+				<td>{{printed_date}}
+				</td>
+			  </tr>
+			  <tr>
+				<td colspan="3">
+				</td>
+			  </tr>
+			  <tr>
+				<td align="right">PRINTED BY 
+				</td>
+				<td>:  
+				</td>
+				<td style="margin:5px;">{{printed_by}}
+				</td>
+			  </tr>
+			  <tr>
+				<td colspan="1" cellpadding="5">
+				</td>
+				<td colspan="2" cellpadding="5" style="width:100px;padding:25px;font-size:7pt;border:0.5px solid;">
+				</td>
+			  </tr>
+		  </table>
+		  </td>
+	    </tr>
+	  </table>
+	</div>
+    {% endfor %}
+	<script>
+		// Import DejaVu Sans font for embedding
+
+		// NOTE: Only required if the Kendo UI stylesheets are loaded
+		// from a different origin, e.g. cdn.kendostatic.com
+		kendo.pdf.defineFont({
+			"DejaVu Sans"             : "https://kendo.cdn.telerik.com/2016.2.607/styles/fonts/DejaVu/DejaVuSans.ttf",
+			"DejaVu Sans|Bold"        : "https://kendo.cdn.telerik.com/2016.2.607/styles/fonts/DejaVu/DejaVuSans-Bold.ttf",
+			"DejaVu Sans|Bold|Italic" : "https://kendo.cdn.telerik.com/2016.2.607/styles/fonts/DejaVu/DejaVuSans-Oblique.ttf",
+			"DejaVu Sans|Italic"      : "https://kendo.cdn.telerik.com/2016.2.607/styles/fonts/DejaVu/DejaVuSans-Oblique.ttf",
+			"WebComponentsIcons"      : "https://kendo.cdn.telerik.com/2017.1.223/styles/fonts/glyphs/WebComponentsIcons.ttf"
+		});
+	</script>
+	<script>
+		function setOptions(e) {
+			var validValue = $('#validValue');
+			try {
+				var barcode = $('#{{ part_number }}').data('kendoBarcode');
+				barcode.setOptions({
+					value: {{ part_number }},
+					checksum: true,
+					text: {
+						visible: true
+					},
+					type: "Code128"
+				})
+				validValue.hide();
+			} catch (e) {
+				validValue.text(e.message).show();
+			}
+		}
+		$('#type').kendoDropDownList({
+			dataSource: [
+			 { type: 'Code128', value: "Howdy Yall!" },
+			],
+			change: setOptions,
+			dataTextField: "type",
+			dataValueField: "type"
+		});
+		
+		$(document).ready(function () {		
+				$("#{{part_number}}").kendoBarcode({
+				value: '{{ part_number }}',
+				type: 'Code128',
+				background: "transparent"
+			});
+			{% for rec in records %}
+				$("#0{{rec.ctrl_number}}00000{{rec.ctrl_id}}").kendoBarcode({
+					value:'0{{rec.ctrl_number}}00000{{rec.ctrl_id}}',
+					type:'Code128',
+					text: {
+						visible: true
+					},
+					background:"transparent"
+				});			
+			{% endfor %}
+		});
+		$('#type,#label,#text').change(setOptions);
+    </script>	
+    <script src="{% static 'dist/assets/js/app.js' %}"></script>
+  </body>
+</html>

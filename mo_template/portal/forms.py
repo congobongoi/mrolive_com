@@ -70,6 +70,7 @@ class WODashboardForm(forms.Form):
     approved = forms.DateField(required=False,widget=forms.DateInput(attrs={'id':'approved'}))
     quoted = forms.DateField(required=False,widget=forms.DateInput(attrs={'id':'quoted'}))
     next_dlv_date = forms.DateField(required=False,widget=forms.DateInput(attrs={'id':'next_dlv_date'}))
+    est_quote_date = forms.DateField(required=False,widget=forms.DateInput(attrs={'id':'est_quote_date'}))
     arrival_date = forms.DateField(required=False,widget=forms.DateInput(attrs={'id':'arrival_date'}))
     override = forms.CharField(required=False,max_length=1000,widget=forms.Textarea(attrs={'placeholder': 'INSPECTED UNIT AS PER TECHNICAL DATA. NO DEFECTS FOUND','id':'override'}))
     sequence = forms.CharField(required=False,max_length=100,widget=forms.TextInput(attrs={'placeholder': '2...','id':'sequence'}))

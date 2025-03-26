@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta http-equiv="refresh" content="10" />
+    <title>MRO Live - Shop Mgmt Dashboard - Where Productivity Takes Flight</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{% static 'dist/assets/css/app.css' %}">
+    <link href="{% static 'dist/assets/fontawesome/css/all.css' %}" rel="stylesheet">
+	<link rel="shortcut icon" type="image/png" href="{% static 'favicon.ico' %}"/>
+	<script type="text/javascript" src="{% static 'jquery-1.12.4.js' %}"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+	<script type="text/javascript" src="{% static 'jquery_tab_submit.js' %}"></script>
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.common-material.min.css" />
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.material.min.css" />
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.material.mobile.min.css" />
+    <script src="https://kendo.cdn.telerik.com/2020.1.114/js/jszip.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/2.4.0/jszip.js"></script>
+    <script src="https://kendo.cdn.telerik.com/2017.2.621/js/jquery.min.js"></script>
+    <script src="https://kendo.cdn.telerik.com/2017.2.621/js/kendo.all.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>	
+	<style>
+        input::-webkit-calendar-picker-indicator {
+              opacity: 100;
+           }
+	    .subhead {
+			color:white;
+			text-decoration:bold;
+			font-size: large;
+            margin-left: 65px;
+		}
+		.k-grid td{
+			white-space: nowrap;
+			text-overflow: none;
+		}
+        .k-pager-wrap .k-dropdown {
+            width: 100px;	    
+        }
+		.k-grid-toolbar { 
+			background-color:#284a8a !important; 
+		}
+		.k-button { 
+			background-color:#284a8a !important; 
+		}
+		.centered {
+		  /*top: 50%;*/
+		  left: 50%;
+		  height: 100%;
+		  /* bring your own prefixes */
+		  transform: translateX(-50%);
+		}
+		.total_rows {
+		 padding-left:5px;
+		 display:inline;
+		 text-align:left;
+		 border:none;
+		 outline:none;
+		 background-color:#284a8a!important;
+		 color:white;
+		 text-decoration:bold;
+		 height:25px;
+		 width: 45px;
+		}
+		.sel_rows {
+        display:inline;
+		text-align:right;
+		border:none;
+		outline:none;
+		background-color:#284a8a!important;
+		color:white;
+		text-decoration:bold;
+		height:25px;
+		width: 55px;
+		}
+		.counter_wrap {
+		width:auto;
+		float:right;
+		margin-top:-45px;
+		margin-bottom: 5px;
+		z-index:1000!important;
+		color: white;
+		}
+		.grid_title {
+		width:auto;
+		float:right;
+		margin-top:-35px;
+		padding-right:480px;
+		text-decoration:bold;
+		z-index:1000!important;
+		color: white;
+		font-size:16pt;
+        margin-left: auto;
+		margin-right: auto;
+		}
+    </style>
+  </head>
+  
+<body>
+    <audio src="{% static 'error-trombone.mp3' %}" id="my_audio"></audio>
+    <script type="text/javascript">
+		$(document).ready(
+			function () {
+			error = $("#error").val();
+			if (error) {
+			   $("#my_audio").get(0).play();
+			}
+		})
+    </script> 
+	<div class="mro-header-wrapper" style="max-height:160px;">
+		<section id="mrotop"></section>
+		<div class="grid-container mro-header">
+			<div class="grid-x medium-margin-collapse align-middle hide-for-medium" style="float:left;">
+				<div class="cell large-1 medium-2 small-12 mro-menu-button">
+					<a data-toggle="offCanvas"><i class="fas fa-bars"></i></a>
+				</div>
+				<div class="cell large-11 medium-10 small-12 show-for-medium"><hr/></div>
+			</div>
+			<div class="grid-x grid-padding-x align-middle">
+				<div class="cell medium-7 small-12" style="float:left;width:auto;padding-left:430px;">
+						<img style="margin-left:auto;margin-right:auto;max-height:160px;" src="{% static 'dist/assets/img/mro-live_header.png' %}" alt="MROLive - Where Productivity Takes Flight">
+				</div>
+				<!--div class="cell medium-5 small-12 mro-clientlogo show-for-medium">
+					  <img style="max-height:80px;margin-right:150px;" src="{% static 'dist/assets/img/iaero_logo.png' %}">		
+				</div-->
+			</div>
+			<div class="grid-x medium-margin-collapse align-middle show-for-medium">
+				<div class="cell large-1 medium-2 small-12 mro-menu-button">
+					<a data-toggle="offCanvas">Menu <i class="fas fa-bars"></i></a>
+				</div>
+				<div class="cell large-11 medium-10 small-12 show-for-medium"><hr/></div>
+			</div>
+		</div>
+	</div>
+    <!-- Off-canvas Menu -->
+	<div class="off-canvas position-left" id="offCanvas" data-off-canvas>
+	<!-- Close button -->
+	<button class="close-button" aria-label="Close menu" type="button" data-close>
+	  <span aria-hidden="true">&times;</span>
+	</button>
+	<!-- Menu -->
+	<ul class="vertical mro-menu menu">
+		<li class="mro-menu-logo">
+			<a href="http://mrolive.com/" target="_blank">
+				<img src="{% static 'dist/assets/img/MROlive-logo.png' %}" alt="Where Productivity Takes Flight" alt="MRO Live - Where Productivity Takes Flight">
+			</a>
+		</li>
+		{% if op_apps %}
+		<div class="subhead">Operations</div>
+		{% endif %}
+		{% for app in op_apps %}
+		  <li><a target="_blank" href="../../{{ app.ml_apps_id.code }}/{{ quapi_id }}">{{ app.ml_apps_id.name }}</a></li>
+		{% endfor %}
+		{% if mgmt_apps %}
+		<div class="subhead">Management</div>
+		{% endif %}
+		{% for app in mgmt_apps %}
+		  <li><a target="_blank" href="../../{{ app.ml_apps_id.code }}/{{ quapi_id }}">{{ app.ml_apps_id.name }}</a></li>
+		{% endfor %}
+		{% if dash_apps %}
+		<div class="subhead">Dashboards</div>
+		{% endif %}
+		{% for app in dash_apps %}
+		  <li><a target="_blank" href="../../{{ app.ml_apps_id.code }}/{{ quapi_id }}">{{ app.ml_apps_id.name }}</a></li>
+		{% endfor %}
+		{% if setup_apps %}
+		<div class="subhead">Setup</div>
+		{% endif %}
+		{% for app in setup_apps %}
+		  <li><a target="_blank" href="../../{{ app.ml_apps_id.code }}/{{ quapi_id }}">{{ app.ml_apps_id.name }}</a></li>
+		{% endfor %}
+		<li><a href="/login">Logout</a></li><li><a href="/portal/pass-reset/">Reset Password</a></li>
+	</ul>
+	</div>
+	<!-- Off-canvas Menu - END -->
+	<!-- Modal Error Pop-up -->
+	<script>
+	$(function() {
+		$("#errorModal").modal();//if you want you can have a timeout to hide the window after x seconds
+	});
+	</script>
+		<!-- Modal -->
+		{%  if error or loc_vals %}
+		  <div class="modal fade" id="errorModal" role="dialog" data-backdrop="static">
+			<div class="modal-dialog">
+			  <!-- Modal content-->
+			  <div class="modal-content">
+				<form method="POST" id="loc_form" name="loc_form">
+				  <input type="hidden" name="loc_session" id="loc_session" value="{{ loc_session }}"/>
+					{% csrf_token %}
+					<div class="modal-header">
+					  <button type="button" class="close" id="x_button" data-dismiss="modal">&times;</button>
+					  <h4 class="modal-title">Application Message:</h4>
+					</div>
+					<div class="modal-body">
+						{%  if error %}<input type="hidden" id="error" name="error" value="{{ error }}"/>
+						<div style="font-weight: bold; color:red; font-size: 22px;">{{ error }}</div>{%  endif %}
+						{%  if loc_vals %}
+						<div class="cell large-6 medium-6 small-12">
+						  <label>Location</label>
+							  <input type="text" list="loc_list" id="loc_input" name="loc_input" value="{{ loc_input }}"/>
+								<datalist id="loc_list">
+									<option value=""> -- No Selection -- </option>
+									{% for loc in loc_vals %}						
+										<option data-value="{{ loc.loc_auto_key }}" value="{{ loc.location_code }}">{{ loc.location_code }}</option>						
+									{% endfor %}
+								</datalist>
+						 </div>
+						<div class="cell large-6 medium-6 small-12">
+						  <label>Warehouse</label>
+							  <input type="text" list="whs_list" id="whs_input" name="whs_input" value="{{ whs_input }}"/>
+								<datalist id="whs_list">
+									<option value=""> -- No Selection -- </option>
+									{% for whs in whs_vals %}						
+										<option data-value="{{ whs.whs_auto_key }}" value="{{ whs.warehouse_code }}">{{whs.warehouse_code }}</option>						
+									{% endfor %}
+								</datalist>
+						 </div>{%  endif %}				 
+					  <div class="cell large-6 medium-6 small-12">
+						  <button class="secondary button shadow" onclick="this.disabled=true,this.form.submit();" name="loc_submit" style="float:right;" id="loc_submit" type="submit">Go</button>
+					  </div>
+					  <div><br/><br/></div>			
+					</div>
+				</form>
+			  </div>                
+		   </div>
+		  </div>
+		  {% endif %}  
+	<!-- End modal error popup -->
+	{% if all_woos %}
+    <div class="mro-bottom-section-wrapper mro-table" style="margin-top:55px;">
+      <div class="grid-container mro-bottom-section">
+	      <div class="grid-x grid-padding-x">
+				<div class="centered" id="results_grid_drefresh" name="results_grid_drefresh">
+				    <div class="grid_title" style="width:100%;margin-left:auto;margin-right:auto;">Shop Management</div>
+					<div class="counter_wrap"> 						
+					  TOTAL:					  
+					  <input type="text" class="total_rows" id="total_rows" name="total_rows" value="{{ total_rows }}" size="5" readonly>
+					</div>
+			<script>
+			kendo.ui.Grid.prototype._positionColumnResizeHandle= function() {
+			  var that = this,
+				  indicatorWidth = that.options.columnResizeHandleWidth,
+				  lockedHead = that.lockedHeader ? that.lockedHeader.find("thead:first") : $();
+
+			  that.thead.add(lockedHead).on("mousemove" + ".kendoGrid", "th", function (e) {
+				var th = $(this);
+				if (th.hasClass("k-group-cell") || th.hasClass("k-hierarchy-cell")) {
+				  return;
+				}
+				that._createResizeHandle(th.closest("div"), th);
+			  });
+			};
+		$(document).ready(
+			    function () {	
+					var dataSourceArguments = {
+					    autoBind: false,
+					    pageSize: {% if page_size %} {{ page_size }} {% else %} 25 {% endif %},
+						serverPaging: true,
+						serverSorting: true,
+						transport: {
+							read: {
+								url: '/portal/json',
+								dataType: "json",
+								data: { 'session_id': '{{ session_id }}','is_shop': '1'} // the parameter I need to send to the server
+							}
+						},
+						schema: {
+							total: "count",
+							data: "results",
+							model: { id: "id" }
+						}
+					}						
+					var dsg = new kendo.data.DataSource(dataSourceArguments);
+					var options = localStorage["grid-options"];
+					$("#results_grid_drefresh").kendoGrid({
+					    toolbar: ["excel"],
+						excel: {
+							fileName: "shop-mgmt-export.xlsx",
+							proxyURL: "https://demos.telerik.com/kendo-ui/service/export",
+							allPages: true
+						},
+						dataSource: dsg,
+						sortable: true,
+						reorderable: true,
+						resizable: true,
+                        selectable: "multiple, row",
+						persistSelection: true,
+                        navigatable: true,
+						pageable: {
+							refresh: true,
+							pageSizes: true,
+							buttonCount: 5
+						},
+						dataBound: function() {
+							for (var i = 0; i < this.columns.length; i++) {
+							  this.autoFitColumn(i);
+						    }
+						},
+                        columns: [						
+							{
+							  field: 'wo_number',
+							  title: 'WO#',
+							  width: screen.availWidth*0.10
+							},
+							{
+							  field: 'part_number',
+							  title: 'PN',
+							  width: screen.availWidth*0.10
+							},
+							{
+							  field: 'description',
+							  title: 'Desc',
+							  width: screen.availWidth*0.15
+							},
+							{
+							  field: 'rack',
+							  title: 'Cart',
+							  width: screen.availWidth*0.08
+							},
+							{
+							  field: 'rank',
+							  title: 'Rank',
+							  width: screen.availWidth*0.08
+							},
+							{
+							  field: 'due_date',
+							  title: 'Due',
+                              template: '#= kendo.toString(kendo.parseDate(due_date), "MM/dd/yyyy")#',
+                              width: screen.availWidth*0.07							  
+							},
+							{
+							  field: 'customer',
+							  title: 'Cust',
+							  width: screen.availWidth*0.10
+							},
+							{
+							  field: 'status',
+							  title: 'Status',
+							  width: screen.availWidth*0.10
+							},
+							{
+							  field: 'rank',
+							  title: 'Rank',
+							  width: screen.availWidth*0.08
+							},
+							{
+							  field: 'location_code',
+							  title: 'Loc',
+							  width: screen.availWidth*0.10
+							},
+							{
+							  field: 'loc_validated_date',
+							  title: 'Transfer Timestamp',
+                              template: '#= kendo.toString(kendo.parseDate(loc_validated_date), "MM/dd/yyyy h:mm tt")#',
+                              width: screen.availWidth*0.07							  
+							},
+							{
+							  field: 'notes',
+							  title: 'In Work',
+							  template: '<img src="/static/#=notes#"/>',
+							  width: screen.availWidth*0.07
+							},
+					    ],
+					});
+					$("select[data-role='dropdownlist']").kendoDropDownList({
+						dataTextField: "pageSize",
+						dataValueField: "sizeValue",
+						dataSource: [
+							{pageSize: 25},
+							{pageSize: 50},
+							{pageSize: 100},
+							{pageSize: 500},
+							{pageSize: 2000},
+							{pageSize: 'All', sizeValue:10000},
+						],
+					});
+					var grid = $("#results_grid_drefresh").data("kendoGrid");
+					if (options) {
+					    var pers_options = JSON.parse(options);
+                        console.log(pers_options.excel.fileName);
+					    if (pers_options.excel.fileName == 'shop-mgmt-export.xlsx') {
+						    grid.setOptions(pers_options);
+							grid.setOptions({
+							    'dataSource':dsg,
+							});
+					    }
+                    }
+					 
+				    window.onbeforeunload = function() {
+						localStorage["grid-options"] = kendo.stringify(grid.getOptions());
+
+						return;
+					}
+			    });	
+			  </script>	
+			    </div>	
+	    </div>
+        <div class="grid-x mro-pagination-section">
+          <div class="cell large-5 medium-6 small-12 ">
+            <a class="mrotop" href="#mrotop" data-smooth-scroll><span>^</span> Back to Top</a>
+          </div>
+        </div>
+	  </div>
+    </div>
+    {% endif %}
+    <script src="{% static 'dist/assets/js/app.js' %}"></script>
+  </body>
+</html>

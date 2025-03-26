@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+	<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, post-check=0, pre-check=0" /> 
+	<meta http-equiv="Pragma" content="no-cache" />
+    <meta charset="utf-8" />
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MRO Live - Non-Routine Routing - Where Productivity Takes Flight</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+	<link rel="shortcut icon" type="image/png" href="{% static 'favicon.ico' %}"/>
+    <link rel="stylesheet" href="{% static 'dist/assets/css/app.css' %}">
+    <link href="{% static 'dist/assets/fontawesome/css/all.css' %}" rel="stylesheet">
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.common-material.min.css" />
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.material.min.css" />
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.material.mobile.min.css" />
+    <script src="https://kendo.cdn.telerik.com/2020.1.114/js/jszip.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/2.4.0/jszip.js"></script>
+    <script src="https://kendo.cdn.telerik.com/2017.2.621/js/jquery.min.js"></script>
+    <script src="https://kendo.cdn.telerik.com/2017.2.621/js/kendo.all.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>	
+	<script type="text/javascript" src="{% static 'jquery-1.12.4.js' %}"></script>
+    <script type="text/javascript" src="{% static 'field_focus.js' %}"></script>
+	<script src="{% static 'jquery.bootstrap.modal.forms.min.js' %}"></script>
+	<script type="text/javascript" src="{% static 'jquery_tab_submit.js' %}"></script>
+    <style>
+		#barcode {
+			width: 998px;
+			height: auto;
+			margin: auto;
+			font-family:font-family: Arial, Helvetica, sans-serif;;
+		}
+		table.instructions {
+		  border: none;
+		}
+		tr.instructions {
+		  border: none;
+		  padding: 5px;
+		}
+		text {
+		  display: none;
+		}
+		tbody th, tbody td {
+			padding: 5px;
+		}
+        @page { counter-increment: page }
+		#pageNumber { 
+		  content: counter(page) 
+		}
+		@page {
+		  size: auto;
+		  margin: 11mm 17mm 17mm 17mm;
+		}
+		/*@media screen {
+		  footer {
+			display: none;
+		  }
+		}*/
+		@media print {
+		  footer {
+			position: fixed;
+			bottom: 15px;
+			left: 0px;
+			font-size:12pt;
+			color: black;
+			width: 100%;
+		  }
+		}
+	    .content-block {
+		    page-break-inside: avoid;
+	    }
+        .print_data {
+		    font-size:12pt;
+	        font-weight:bold;
+        }
+        .label_data {
+	        font-size:12pt;
+			font-weight:bold;
+        }
+        .task_start {
+            float:left;
+			margin:-45px 0 0 155px;
+			height:55px;
+			
+        }
+		.left {
+		    padding-left:50px;
+	    }
+        .task_stop {
+            float:left;
+			margin:-45px 0 0 155px;
+			height:55px;
+        }
+		tbody tr:nth-child(even) {
+			border-bottom: 0;
+			background-color: #fff;
+		}
+        #pageNumber { content: counter(page) }
+		
+		}
+        @page { counter-increment: page }		
+    </style>
+   </head>
+  <body>
+	<div id="barcode" class="barcode" name="barcode">			  
+      <div class="content-block" style="border:1px solid;padding:15px;">	    
+          <div style="margin:auto;text-align:center;font-weight:bold;font-size:18pt;">Routing</div>		  
+		  <div style="margin-top:-50px;width:20%;float:right;background-color:white;">
+		    <img src="{% static 'logo.jpg' %}" alt="Where Productivity Takes Flight" alt="MTU"/>
+			<div style="margin:25px 0 0 15px;font-weight:bold;">FAA CRS# R0OR948X</div>
+		  </div>
+		  <div class="label_data" style="font-size:18pt;">WO#:{{si_number}}</div>
+	      <div class="label_data">SN: <span class="print_data">{{serial_no}}</span></div>
+		  <div class="label_data">PN: <span class="print_data">{{part_number}}</span></div>
+		  <div class="label_data">Desc: <span class="print_data">{{description}}</span></div>
+		  <div class="label_data">Customer: <span class="print_data">{{customer}}</span></div>
+	      <div class="label_data"></div>
+		  <div class="label_data"></div>
+      </div>		  
+        <table width="100%">	
+		  {% for task in task_list %}  
+		  <tr>
+		    <td>
+			   <table class="content-block" cellpadding="0" style="border:1px solid;margin-bottom:0px 0;font-size:12pt;">
+				  <tr class="content-block">
+					<td style="margin-left:12px;width:44%">
+					  <div style="margin-left:5px;padding:3px;">SEQ: {{task.wot_sequence}}.   {{task.task_master_desc}}</div>
+					  <div style="margin-left:10px;padding:3px;"></div>	
+				      <div style="margin-left:10px;padding:3px;">
+					    {% if task.skills_est_hours and task.skills_est_hours != 0 and task.skills_est_hours != 0.0 %}
+					        {{task.skills_est_hours}}
+						{% endif %}
+					  </div>
+					</td>
+					<td style="width:28%;padding-top:20px;">
+					  <table cellpadding="0" style="border:none;">
+					    <tr>
+						  <td><span style="float:right;margin:-32px -25px 0 0;">START </span></td>						      
+						  <td>
+							<div style="height:55px;float:left;margin-bottom:0px;" id="{{task.wot_auto_key}}s" name="{{task.wot_auto_key}}s"></div>
+						  </td>	
+                        </tr>						  
+						<tr>
+						  <td colspan="2"><div style="font-family:Monospace;font-size:8pt;float:left;margin-left:55px;margin-top:-25px;">{{task.wot_auto_key}}S</div></td>
+                        </tr>
+                      </table>	
+                    </td>
+                    <td style="width:28%;padding-top:20px;">					
+					  <table cellpadding="0" style="border:none;">
+					    <tr>
+						  <td><span style="float:right;margin:-32px -25px 0 0;">STOP </span></td>						      
+						  <td>
+							<div style="height:55px;float:left;margin-bottom:0px;" id="{{task.wot_auto_key}}c" name="{{task.wot_auto_key}}c"></div>
+						  </td>
+                        </tr>						  
+					    <tr colspan="2">
+						  <td colspan="2"><div style="font-family:Monospace;font-size:8pt;float:left;margin-left:50px;margin-top:-25px;">{{task.wot_auto_key}}C</div></td>
+                        </tr>
+                      </table>	
+					</td>				  
+			      </tr> 
+				  <tr class="content-block" colspan="3" style="padding:3px;border:1px solid;max-height:45px;">
+				    <td style="border:1px solid;" colspan="3">{{task.wot_description}}</td>
+				  </tr>		
+				</table>
+			</td>
+		  </tr>
+		  {% endfor %}		   
+		</table>
+		<footer style="margin-top:900px;">
+		  <div style="float:right;font-size:8pt;"> 
+			Form for Quantum tracking purposes only<br/>
+            <div style="float:right;">Page: 1 of 1</div>
+		  </div>
+		  
+		  <div style="width:20%;float:left;font-size:8pt;"> 
+			Time: {{timestamp}}
+		  </div>
+		  <div style="width:60%;margin-left:auto;margin-right:auto;text-align:center;height:55px;width:150px;" class="{{si_number}}" id="{{si_number}}" name="{{si_number}}"></div>		  
+	      <div style="width:60%;margin-top:-20px;margin-left:auto;margin-right:auto;text-align:center;height:55px;width:150px;">{{si_number}}</div>
+		</footer>
+	</div>
+	<script>
+		// Import DejaVu Sans font for embedding
+
+		// NOTE: Only required if the Kendo UI stylesheets are loaded
+		// from a different origin, e.g. cdn.kendostatic.com
+		kendo.pdf.defineFont({
+			"DejaVu Sans"             : "https://kendo.cdn.telerik.com/2016.2.607/styles/fonts/DejaVu/DejaVuSans.ttf",
+			"DejaVu Sans|Bold"        : "https://kendo.cdn.telerik.com/2016.2.607/styles/fonts/DejaVu/DejaVuSans-Bold.ttf",
+			"DejaVu Sans|Bold|Italic" : "https://kendo.cdn.telerik.com/2016.2.607/styles/fonts/DejaVu/DejaVuSans-Oblique.ttf",
+			"DejaVu Sans|Italic"      : "https://kendo.cdn.telerik.com/2016.2.607/styles/fonts/DejaVu/DejaVuSans-Oblique.ttf",
+			"WebComponentsIcons"      : "https://kendo.cdn.telerik.com/2017.1.223/styles/fonts/glyphs/WebComponentsIcons.ttf"
+		});	
+		$(document).ready(function () {	
+	        $("#{{ si_number }}").kendoBarcode({
+				value: '{{ si_number }}',
+				type: 'Code128',
+				background: "transparent"
+			});
+			{% for task in task_list %}
+				$("#{{task.wot_auto_key}}c").kendoBarcode({
+					value:'{{ task.wot_auto_key }}c',
+					type:'Code128',
+					background:"transparent",
+					width: 200,
+					text:{
+						color: "black",
+						font: "14px"
+					  }
+				});			
+			{% endfor %}
+			{% for task in task_list %}
+			    //console.log('The task: {{ task.wot_auto_key }}s');
+				$("#{{task.wot_auto_key}}s").kendoBarcode({
+					value:'{{ task.wot_auto_key }}s',
+					type:'Code128',
+					background:"transparent",
+					width: 200,
+					text:{
+						color: "black",
+						font: "14px"
+					  }
+				});			
+			{% endfor %}
+		});
+    </script>
+    <script src="{% static 'dist/assets/js/app.js' %}"></script>
+  </body>
+</html>

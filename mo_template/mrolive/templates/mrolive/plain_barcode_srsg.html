@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+	<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, post-check=0, pre-check=0" /> 
+	<meta http-equiv="Pragma" content="no-cache" />
+    <meta charset="utf-8" />
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MRO Live - Teardown Label / Part Management Label - Where Productivity Takes Flight</title>
+    <link rel="stylesheet" href="https://mazssxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+	<link rel="shortcut icon" type="image/png" href="{% static 'favicon.ico' %}"/>
+    <link rel="stylesheet" href="{% static 'dist/assets/css/app.css' %}">
+    <link href="{% static 'dist/assets/fontawesome/css/all.css' %}" rel="stylesheet">
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.common-material.min.css" />
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.material.min.css" />
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.material.mobile.min.css" />
+    <script src="https://kendo.cdn.telerik.com/2020.1.114/js/jszip.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/2.4.0/jszip.js"></script>
+    <script src="https://kendo.cdn.telerik.com/2017.2.621/js/jquery.min.js"></script>
+    <script src="https://kendo.cdn.telerik.com/2017.2.621/js/kendo.all.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>	
+	<script type="text/javascript" src="{% static 'jquery-1.12.4.js' %}"></script>
+    <script type="text/javascript" src="{% static 'field_focus.js' %}"></script>
+	<script src="{% static 'jquery.bootstrap.modal.forms.min.js' %}"></script>
+	<script type="text/javascript" src="{% static 'jquery_tab_submit.js' %}"></script>
+    <style>
+		#barcode {
+			width: 308px;
+			height: 276px;
+			margin: auto;
+			text-align: left;
+			padding:2px;
+		}
+		text {
+		  display: none;
+		}
+    </style>
+   </head>
+  <body>
+	<div id="barcode" class="barcode" name="barcode">	
+	  <!--div class="mro-menu-logo" style="background-color:white;">
+		<a href="../teardown/{{quapi_id}}" target="_blank">
+		  <img src="{% static 'dist/assets/img/mro-live_header.png' %}" alt="Where Productivity Takes Flight" alt="MRO Live - Where Productivity Takes Flight">
+		</a>
+	  </div-->		  
+
+	  {% if element %}
+	  <div style="margin-bottom:10px;">
+		  <!--a href="../{{app_code}}/{{quapi_id}}"-->
+		  <div style="width:270px;height:63px;float:left;margin-left:-15px;" class="{{element}}" id="{{element}}" name="{{element}}"></div>
+		  <!--/a-->			  
+	  </div>
+	  <!--div style="width:47%;float:right;">
+	    <a href="../teardown/{{quapi_id}}" target="_blank">
+		  <img src="{% static 'logo.jpg' %}" alt="Where Productivity Takes Flight" alt="">
+		</a>
+		Ctrl # and ID are size 12 font non bold
+PN and DESC are 16 font bold
+SN is 12 font bolt
+all the rest are bold and 8 font
+	  </div-->
+	  <div style="float:left;margin-left:3px;margin-top:-20px;font-size:11pt;">
+	      <span>Ctrl#: {{ctrl_number}}</span><span style="margin-left:35px;">CtrlID: {{ctrl_id}}</span>
+	  </div>
+	  <div style="float:right;width:100px;"></div>
+	  <div style="float:left;margin-left:3px;width:375px;font-size:14pt;font-weight:bold;">PN: {{part_number}}</div>
+	  <div style="float:left;margin-left:3px;width:375px;height:40px;font-size:14pt;font-weight:bold;">DESC: {{description}}</div>
+	  <div style="float:left;margin-left:3px;width:375px;font-size:11pt;font-weight:bold;">SN: {{serial_number}}</div>
+	  <div style="float:left;margin-left:3px;width:175px;font-size:7pt;font-weight:bold;">COND: {{condition_code}}</div>
+      <div style="float:right;width:100px;font-size:7pt;font-weight:bold;">WO#: {{wo_number}}</div>	 
+      <div style="float:left;margin-left:3px;width:175px;font-size:7pt;font-weight:bold;">EXP. DATE: {{exp_date}}</div>
+      <div style="float:right;width:100px;font-size:7pt;font-weight:bold;">SL: {{stock_line}}</div>	  
+      <div style="float:left;margin-left:3px;width:175px;font-size:7pt;font-weight:bold;">QTY: {{quantity}}</div>	  
+      <div style="float:right;width:100px;font-size:7pt;font-weight:bold;">LOC: {{loc_code}}</div>	
+      <div style="float:left;margin-left:3px;width:175px;font-size:7pt;font-weight:bold;">Mfg Lot #: {{mfg_lot_num}}</div>	  
+	  <!--div style="float:right;width:100px;">REC. DATE: {{rec_date}}</div-->	
+	  {% endif %}
+	</div>
+	<script>
+		// Import DejaVu Sans font for embedding
+
+		// NOTE: Only required if the Kendo UI stylesheets are loaded
+		// from a different origin, e.g. cdn.kendostatic.com
+		kendo.pdf.defineFont({
+			"DejaVu Sans"             : "https://kendo.cdn.telerik.com/2016.2.607/styles/fonts/DejaVu/DejaVuSans.ttf",
+			"DejaVu Sans|Bold"        : "https://kendo.cdn.telerik.com/2016.2.607/styles/fonts/DejaVu/DejaVuSans-Bold.ttf",
+			"DejaVu Sans|Bold|Italic" : "https://kendo.cdn.telerik.com/2016.2.607/styles/fonts/DejaVu/DejaVuSans-Oblique.ttf",
+			"DejaVu Sans|Italic"      : "https://kendo.cdn.telerik.com/2016.2.607/styles/fonts/DejaVu/DejaVuSans-Oblique.ttf",
+			"WebComponentsIcons"      : "https://kendo.cdn.telerik.com/2017.1.223/styles/fonts/glyphs/WebComponentsIcons.ttf"
+		});
+	</script>
+	<script>
+		function setOptions(e) {
+			var validValue = $('#validValue');
+			try {
+				var barcode = $('#{{ element }}').data('kendoBarcode');
+				barcode.setOptions({
+					value: {{ element }},
+					checksum: true,
+					text: {
+						visible: true
+					},
+					type: "Code128"
+				})
+				validValue.hide();
+			} catch (e) {
+				validValue.text(e.message).show();
+			}
+		}
+		$('#type').kendoDropDownList({
+			dataSource: [
+			 { type: 'Code128', value: "Howdy Yall!" },
+			],
+			change: setOptions,
+			dataTextField: "type",
+			dataValueField: "type"
+		});		
+		$(document).ready(function () {		
+				$("#{{element}}").kendoBarcode({
+				value: '{{ element }}',
+				type: 'Code128',
+				background: "transparent"
+			});
+		});
+		$('#type,#label,#text').change(setOptions);
+    </script>	
+    <script src="{% static 'dist/assets/js/app.js' %}"></script>
+  </body>
+</html>

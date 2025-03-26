@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+	<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, post-check=0, pre-check=0" /> 
+	<meta http-equiv="Pragma" content="no-cache" />
+    <meta charset="utf-8" />
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MRO Live - Inspection Label - Where Productivity Takes Flight</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+	<link rel="shortcut icon" type="image/png" href="{% static 'favicon.ico' %}"/>
+    <link rel="stylesheet" href="{% static 'dist/assets/css/app.css' %}">
+    <link href="{% static 'dist/assets/fontawesome/css/all.css' %}" rel="stylesheet">
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.common-material.min.css" />
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.material.min.css" />
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.material.mobile.min.css" />
+    <script src="https://kendo.cdn.telerik.com/2020.1.114/js/jszip.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/2.4.0/jszip.js"></script>
+    <script src="https://kendo.cdn.telerik.com/2017.2.621/js/jquery.min.js"></script>
+    <script src="https://kendo.cdn.telerik.com/2017.2.621/js/kendo.all.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>	
+	<script type="text/javascript" src="{% static 'jquery-1.12.4.js' %}"></script>
+    <script type="text/javascript" src="{% static 'field_focus.js' %}"></script>
+	<script src="{% static 'jquery.bootstrap.modal.forms.min.js' %}"></script>
+	<script type="text/javascript" src="{% static 'jquery_tab_submit.js' %}"></script>
+    <style>
+		#barcode {
+			width: 3.5in;
+			height: 4in;
+			margin: auto;
+			text-align: left;
+		}
+		div.square {
+		  border: solid 1.5px #000;
+		  width: 50px;
+		  height: 50px;
+		}
+		table.instructions {
+		  border: none;
+		}
+		tr.instructions {
+		  border: none;
+		  padding: 5px;
+		}
+		text {
+		  display: none;
+		}
+    </style>
+   </head>
+  <body>
+  {% for srec in stock_recs %}
+	<div id="barcode" class="barcode" name="barcode">
+	  <div style="margin-bottom:0px;margin-top:5px;">
+		  <!--a href="../inspection/{{quapi_id}}"/-->
+		  <div style="width:100%;height:80px;float:right;" class="{{srec.ctrl_number}}{{srec.ctrl_id}}" id="{{srec.ctrl_number}}{{srec.ctrl_id}}" name="{{srec.ctrl_number}}{{srec.ctrl_id}}"></div>  
+		  <div style="float:left;width:100%;margin-left:20px;margin-top:-10px;">CTRL #:{{srec.ctrl_number}}                                               CTRL ID: {{srec.ctrl_id}}<br/></div>
+		  <div><img style="float:left;width:47%;background-color:white;" src="{% static 'logo.jpg' %}"/></div>
+		  <div style="float:right;font-size:12pt;margin-left:20px;padding-bottom:30px;width:47%;">Condition: {{srec.condition_code}}</div>
+	  </div>
+
+	  
+	  <div style="float:left;margin-left:0px;width:140px;">PART: {{srec.part_number}}</div>
+	  <div style="float:right;width:180px;">SN: {{srec.serial_number}}</div>
+	  <div style="float:left;margin-left:0px;width:100%;">DESC: {{srec.description}}</div>
+	  <div style="float:left;margin-left:0px;width:140px;">SL #: {{srec.stock_line}}</div>
+	  <div style="float:right;width:180px;">EX ESN: {{srec.slug}}</div>
+	  <div style="float:right;width:180px;">WO: {{srec.wo_number}}</div>
+	  <div style="float:left;margin-left:0px;width:140px;">DATE: {{srec.arrival_date}}</div>
+	  <br/>	
+	  <table width="100%" style="margin-bottom:10px 0;font-size:11px;box-shadow: 10px 10px 6px -6px #111;">
+		<colgroup>
+			<col width="600px"/>
+			<col width="200px"/>					
+		</colgroup>
+	    <tr style="border: 2px solid border-color:#AAA;padding:0px;">
+		  <td style="padding-bottom:0px;padding-top:0px;border: 2px solid border-color:#AAA;">
+		    <table style="padding-top:0px;margin-left:-10px;height:50%;">
+			    <tr style="padding-top:0px;"><th>Notes</th></tr>
+				<tr style="border:1px solid;">
+				   <td style="border:1px solid;">{{srec.notes}}</td>
+				</tr>			
+		    </table>
+		  </td>	
+          <td style="padding-bottom:0px;padding-top:0px;border: 2px solid border-color:#AAA;">
+		    <table style="padding-top:0px;margin-left:-10px;height:50%;">
+			    <tr style="padding-top:0px;"><th>Stamp</th></tr>
+				<tr style="border:1px solid;">
+				   <td style="border:1px solid;"></td>
+				</tr>			
+		  </table>
+		  </td>		  
+		</tr>
+	  </table>
+      <div style="float:right;margin-left:180px;width:50%;">GTS-LG-007 Rev 11/22</div>  	  
+	</div>
+  {% endfor %}
+	<script>
+		// Import DejaVu Sans font for embedding
+
+		// NOTE: Only required if the Kendo UI stylesheets are loaded
+		// from a different origin, e.g. cdn.kendostatic.com
+		kendo.pdf.defineFont({
+			"DejaVu Sans"             : "https://kendo.cdn.telerik.com/2016.2.607/styles/fonts/DejaVu/DejaVuSans.ttf",
+			"DejaVu Sans|Bold"        : "https://kendo.cdn.telerik.com/2016.2.607/styles/fonts/DejaVu/DejaVuSans-Bold.ttf",
+			"DejaVu Sans|Bold|Italic" : "https://kendo.cdn.telerik.com/2016.2.607/styles/fonts/DejaVu/DejaVuSans-Oblique.ttf",
+			"DejaVu Sans|Italic"      : "https://kendo.cdn.telerik.com/2016.2.607/styles/fonts/DejaVu/DejaVuSans-Oblique.ttf",
+			"WebComponentsIcons"      : "https://kendo.cdn.telerik.com/2017.1.223/styles/fonts/glyphs/WebComponentsIcons.ttf"
+		});
+	</script>
+	<script>
+		function setOptions(e) {
+			var validValue = $('#validValue');
+			try {
+				var barcode = $('#{{ element }}').data('kendoBarcode');
+				barcode.setOptions({
+					value: {{ element }},
+					checksum: true,
+					text: {
+						visible: true
+					},
+					type: "Code128"
+				})
+				validValue.hide();
+			} catch (e) {
+				validValue.text(e.message).show();
+			}
+		}
+		$('#type').kendoDropDownList({
+			dataSource: [
+			 { type: 'Code128', value: "Howdy Yall!" },
+			],
+			change: setOptions,
+			dataTextField: "type",
+			dataValueField: "type"
+		});	
+		{% for srec in stock_recs %}
+			$("#{{srec.ctrl_number}}{{srec.ctrl_id}}").kendoBarcode({
+				value:'{{srec.ctrl_number}}00000{{srec.ctrl_id}}',
+				type:'Code128',
+				background:"transparent"
+			});			
+		{% endfor %}		
+		$(document).ready(function () {		
+				$("#{{element}}").kendoBarcode({
+				value: '{{ element }}',
+				type: 'Code128',
+				background: "transparent"
+			});
+		});
+		$('#type,#label,#text').change(setOptions);
+    </script>	
+    <script src="{% static 'dist/assets/js/app.js' %}"></script>
+  </body>
+</html>

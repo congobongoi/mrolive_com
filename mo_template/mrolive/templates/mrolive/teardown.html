@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+	<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, post-check=0, pre-check=0" /> 
+	<meta http-equiv="Pragma" content="no-cache" />
+    <meta charset="utf-8" />
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MRO Live - Teardown - Where Productivity Takes Flight</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+	<link rel="shortcut icon" type="image/png" href="{% static 'favicon.ico' %}"/>
+    <link rel="stylesheet" href="{% static 'dist/assets/css/app.css' %}">
+    <link href="{% static 'dist/assets/fontawesome/css/all.css' %}" rel="stylesheet">
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.common-material.min.css" />
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.material.min.css" />
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.material.mobile.min.css" />
+    <script src="https://kendo.cdn.telerik.com/2020.1.114/js/jszip.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/2.4.0/jszip.js"></script>
+    <script src="https://kendo.cdn.telerik.com/2017.2.621/js/jquery.min.js"></script>
+    <script src="https://kendo.cdn.telerik.com/2017.2.621/js/kendo.all.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>	
+	<script type="text/javascript" src="{% static 'jquery-1.12.4.js' %}"></script>
+    <script type="text/javascript" src="{% static 'field_focus.js' %}"></script>
+	<script src="{% static 'jquery.bootstrap.modal.forms.min.js' %}"></script>
+	<script type="text/javascript" src="{% static 'jquery_tab_submit.js' %}"></script>
+	<script src="https://demos.telerik.com/kendo-ui/content/shared/js/console.js"></script>
+	<style>	
+ 		textarea {
+		    max-width: 360px;
+            max-height: 13px !important;
+		}
+	    .subhead {
+			color:white;
+			text-decoration:bold;
+			font-size: large;
+            margin-left: 65px;
+		}
+		#barcode {
+			width: auto;
+			display: inline-block;
+			margin: 10px 30px;
+			text-align: center;
+		}
+	    .mro-top-section .mro-lightsearch .left-tab h1{
+		    float:left;
+			margin-left:-28px;
+			padding-left:10px;
+			border-top-left-radius:30px;
+			border-top-right-radius:0px;
+		    }
+	    .mro-top-section .mro-lightsearch .left-tab h1:before {
+		    display:hidden!important;
+			position:unset!important;
+			background: none;
+		}
+		@media screen and (max-width: 600px) {
+			.mro-top-section .mro-lightsearch .left-tab h1:after {
+				content: '';
+				background: #284a8a;
+				-webkit-clip-path: polygon(0 0, 0% 100%, 100% 100%);
+				clip-path: polygon(0 0, 0% 100%, 100% 100%);
+				-webkit-clip-path: polygon(0 0, 0% 100%, 100% 100%);
+				clip-path: polygon(0 0, 0% 100%, 100% 100%);
+				display: block;
+				position: absolute;
+				height: 100%;
+				width: 70px;
+				top: 0px;
+				z-index: 0;
+				left:115px;
+			}
+			.mro-top-section .mro-lightsearch {
+			    border-top-right-radius:0px;   
+                border-top-left-radius:0px;			
+			}
+			.message-box {
+			font-weight: bold; 
+			font-size: 10px;
+			color: #fff;
+		   }
+		}
+	    .username {
+	        text-align:left;
+			border:none;
+			outline:none;
+			background-color:#FFFFFF;
+			color:black;
+			text-decoration:bold;
+		}
+        .k-pager-wrap .k-dropdown {
+            width: 100px;	    
+        }
+		.k-grid-toolbar { 
+			background-color:#284a8a !important; 
+		}
+		.k-button { 
+			background-color:#284a8a !important; 
+		}
+		.centered {
+		  /*top: 50%;*/
+		  left: 50%;
+		  height: 100%;
+		  /* bring your own prefixes */
+		  transform: translateX(-50%);
+		}
+		.total_rows {
+		 padding-left:5px;
+		 display:inline;
+		 text-align:left;
+		 border:none;
+		 outline:none;
+		 background-color:#284a8a!important;
+		 color:white;
+		 text-decoration:bold;
+		 height:25px;
+		 width: 45px;
+		}
+		.sel_rows {
+        display:inline;
+		text-align:right;
+		border:none;
+		outline:none;
+		background-color:#284a8a!important;
+		color:white;
+		text-decoration:bold;
+		height:25px;
+		width: 55px;
+		}
+		.counter_wrap {
+		width:auto;
+		float:right;
+		margin-top:-45px;
+		margin-bottom: 5px;
+		z-index:1000!important;
+		color: white;
+		}
+    </style>
+	<script>
+		// Import DejaVu Sans font for embedding
+
+		// NOTE: Only required if the Kendo UI stylesheets are loaded
+		// from a different origin, e.g. cdn.kendostatic.com
+		kendo.pdf.defineFont({
+			"DejaVu Sans"             : "https://kendo.cdn.telerik.com/2016.2.607/styles/fonts/DejaVu/DejaVuSans.ttf",
+			"DejaVu Sans|Bold"        : "https://kendo.cdn.telerik.com/2016.2.607/styles/fonts/DejaVu/DejaVuSans-Bold.ttf",
+			"DejaVu Sans|Bold|Italic" : "https://kendo.cdn.telerik.com/2016.2.607/styles/fonts/DejaVu/DejaVuSans-Oblique.ttf",
+			"DejaVu Sans|Italic"      : "https://kendo.cdn.telerik.com/2016.2.607/styles/fonts/DejaVu/DejaVuSans-Oblique.ttf",
+			"WebComponentsIcons"      : "https://kendo.cdn.telerik.com/2017.1.223/styles/fonts/glyphs/WebComponentsIcons.ttf"
+		});
+	</script>
+    <!-- Load Pako ZLIB library to enable PDF compression -->
+    <script src="https://kendo.cdn.telerik.com/2017.3.913/js/pako_deflate.min.js"></script>
+  </head>
+  <body>
+    <audio src="{% static 'error-trombone.mp3' %}" id="my_audio"></audio>
+    <script type="text/javascript">
+		$(document).ready(function () {
+			error = $("#error").val();
+			//console.log(error);
+			if (error) {
+			   $("#my_audio").get(0).play();
+			}
+			
+		})
+    </script>
+<div class="mro-header-wrapper">
+	<section id="mrotop"></section>
+	<div class="grid-container mro-header">
+		<div class="grid-x medium-margin-collapse align-middle hide-for-medium" style="float:left;">
+			<div class="cell large-1 medium-2 small-12 mro-menu-button">
+				<a data-toggle="offCanvas"><i class="fas fa-bars"></i></a>
+			</div>
+			<div class="cell large-11 medium-10 small-12 show-for-medium"><hr/></div>
+		</div>
+		<div class="grid-x grid-padding-x align-middle">
+			<div class="cell medium-7 small-12 mro-headerlogo">
+				<a href="" id="mro_logo" name="mro_logo" alt="MRO Live - Homepage">
+					<img style="max-width:361px;max-height:150px;" src="{% static 'dist/assets/img/mro-live_header.png' %}" alt="MROLive - Where Productivity Takes Flight">
+				</a>
+			</div>
+			<!--div class="cell medium-5 small-12 mro-clientlogo show-for-medium">
+				<a href="#" alt="MRO Live - Client Logo">
+				  <img style="max-width:150px;" src="../../..{{ logo_url }}" alt="{{ user_name }}">
+				</a>			
+			</div-->
+		</div>
+		<div class="grid-x medium-margin-collapse align-middle show-for-medium">
+			<div class="cell large-1 medium-2 small-12 mro-menu-button">
+				<a data-toggle="offCanvas">Menu <i class="fas fa-bars"></i></a>
+			</div>
+			<div class="cell large-11 medium-10 small-12 show-for-medium"><hr/></div>
+		</div>
+		<!--div class="cell medium-7 small-12 mro-clientlogo hide-for-medium mro-mobileclient">
+			  <a href="#" alt="MRO Live - Client Logo">
+				<img style="max-width:150px;" src="../../..{{ logo_url }}" alt="{{ user_name }}">
+			  </a>      
+		</div-->
+	</div>
+</div>
+<!-- Off-canvas Menu -->
+
+<div class="off-canvas position-left" id="offCanvas" data-off-canvas>
+
+<!-- Close button -->
+<button class="close-button" aria-label="Close menu" type="button" data-close>
+  <span aria-hidden="true">&times;</span>
+</button>
+
+<!-- Menu -->
+<ul class="vertical mro-menu menu">
+	<li class="mro-menu-logo">
+		<a href="http://mrolive.com/" target="_blank">
+			<img src="{% static 'dist/assets/img/MROlive-logo.png' %}" alt="Where Productivity Takes Flight" alt="MRO Live - Where Productivity Takes Flight">
+		</a>
+	</li>
+	{% if op_apps %}
+	<div class="subhead">Operations</div>
+	{% endif %}
+	{% for app in op_apps %}
+      <li><a target="_blank" href="http://portal.mrolive.com/portal/{{ app.ml_apps_id.code }}/{{ quapi_id }}">{{ app.ml_apps_id.name }}</a></li>
+    {% endfor %}
+	{% if mgmt_apps %}
+	<div class="subhead">Management</div>
+	{% endif %}
+	{% for app in mgmt_apps %}
+      <li><a target="_blank" href="http://portal.mrolive.com/portal/{{ app.ml_apps_id.code }}/{{ quapi_id }}">{{ app.ml_apps_id.name }}</a></li>
+    {% endfor %}
+	{% if dash_apps %}
+	<div class="subhead">Dashboards</div>
+	{% endif %}
+	{% for app in dash_apps %}
+      <li><a target="_blank" href="http://portal.mrolive.com/portal/{{ app.ml_apps_id.code }}/{{ quapi_id }}">{{ app.ml_apps_id.name }}</a></li>
+    {% endfor %}
+	{% if setup_apps %}
+	<div class="subhead">Setup</div>
+	{% endif %}
+	{% for app in setup_apps %}
+      <li><a target="_blank" href="http://portal.mrolive.com/portal/{{ app.ml_apps_id.code }}/{{ quapi_id }}">{{ app.ml_apps_id.name }}</a></li>
+    {% endfor %}
+    <li><a href="/login">Logout</a></li><li><a href="http://portal.mrolive.com/portal/pass-reset/{{ quapi_id }}">Reset Password</a></li>
+</ul>
+</div>
+<!-- Off-canvas Menu - END -->
+    <div class="grid-container mro-top-section">
+      <div class="grid-x grid-padding-x">
+          <div class="mro-top-section-wrapper mro-search">
+            <div class="mro-top-section" style="width:100%;">
+			  <form method="POST" id="teardown_form" name="teardown_form" enctype="multipart/form-data"> 
+				  <input type="hidden" name="active_user" id="active_user" value="{{ user_id }}"/>
+				  <input type="hidden" name="update_session" id="update_session" value="{{ update_session }}"/>
+				  <input type="hidden" name="search_user" id="search_user" value="{{ search_user }}"/> 
+				  <input type="hidden" name="clear_form" id="clear_form" value="0"/>
+				  <input type="hidden" name="auto_click" id="auto_click" value="{{ auto_click }}"/>
+				  <input type="hidden" name="session_id" id="session_id" value="{{session_id}}"/>
+				  <input type="hidden" name="lookup_recs" id="lookup_recs" value="{{ lookup_recs}}"/>
+				  <input type="hidden" name="options_pagesize" id="options_pagesize"/>
+				  <input type="hidden" name="options_col" id="options_col"/>
+				  {% if show_modal != 'show_modal' %}
+				  <input type="hidden" name="show_modal" id="show_modal" value="{{show_modal}}"/>
+				  {% endif %}
+				  
+              <div class="mro-lightsearch">
+			    <div class="large-6 medium-12 small-7 cell hide-for-medium">
+				</div>
+				<div class="large-6 medium-12 small-7 cell hide-for-medium">
+				</div>
+				<div class="cell large-6 medium-6 small-12">
+				  <span class="left-tab"><h1><span style="padding-left:5px;font-size:14px;">{{ user_name }}</span>
+				  </h1></span>
+				  <h1><span style="padding-left:5px;font-size:14px;">TEARDOWN</span>
+				  </h1>
+                  
+				</div>
+				<div class="cell large-4 medium-6 small-12">
+				  {% if msg %}<div class="message-box">{{ msg }}</div>{%  endif %}
+				</div>
+                <div class="grid-x grid-padding-x align-middle">
+				    {% csrf_token %}
+					<div class="cell large-4 medium-6 small-12">
+                     <label><span style="color:red">*</span>WO #</label>					
+						<p><input type="text" name="wo_task" id="wo_task" value="{{wo_task}}"/></p>
+					</div>	
+                    <div class="cell large-4 medium-6 small-12">
+                        <label><span style="color:red">*</span>Part Number</label>
+				      <input type="text" data-value="" value="{{part_number}}" style="background-color:#284a8a;color:white;" list="part_ids" name="part_number" id="part_number"/>
+					  <datalist id="part_ids"></datalist>		  
+                    </div>
+					<div class="cell large-4 medium-6 small-12">
+                     <label><span style="color:red">*</span>QTY</label></span>					
+						<p>{{ form.quantity }}</p>
+					</div>
+					<div class="cell large-4 medium-6 small-12">
+                     <label>SN:</label>				
+						<p>{{ form.serial_number }}</p>
+					</div>
+					{% if lot_teardown %}
+                    <div class="cell large-4 medium-6 small-12">
+                      <label>DESC:</label>
+                        {{ form.description }}										  
+                    </div>
+					<div class="cell large-4 medium-6 small-12">
+					  <label>Location:</label>
+					  <input type="text" list="loc_list" name="upd_loc" id="upd_loc"/>
+					  <datalist id="loc_list">
+						<option value="">--No Selection--</option>
+						{% for loc in locations %}	                              								
+						<option value="{{ loc.location_code }}">{{ loc.location_code }}</option>						
+						{% endfor %}
+					  </datalist>
+					</div>
+                    <div class="cell large-4 medium-6 small-12">
+					  <label>Obtained From:</label>
+					  <!--select style="background-color:#284a8a;color:white;" name="upd_obtained" id="upd_obtained"-->
+					  <input type="text" list="obtained_from" id="upd_obtained" name="upd_obtained"/>
+					  <datalist id="obtained_from">
+						<option value="">--No Selection--</option>
+						{% for cmp in companies %}	                              								
+						<option value="{{ cmp.name }}">{{ cmp.name }}</option>						
+						{% endfor %}
+					  </datalist>
+					</div>
+					<div class="cell large-4 medium-6 small-12">
+					  <label>Actual PN:</label>
+					  <input type="text" name="upd_alt_pn" id="upd_alt_pn"/>
+					</div>
+					<div class="cell large-4 medium-6 small-12">
+					  <label>MFG:</label>
+					  <input type="text" name="upd_mfctr" id="upd_mfctr"/>
+					</div>
+					<div class="cell large-4 medium-6 small-12">
+					  <label>Traceability:</label>
+					  <input type="text" name="upd_trac" id="upd_trac"/>
+					</div>
+					<div class="cell large-4 medium-6 small-12">
+					  <label>S/N:</label>
+					  <input type="text" name="upd_sn" id="upd_sn"/>
+					</div>
+					<div class="cell large-4 medium-6 small-12">
+					  <label>MFG Date:</label>
+					  <input type="text" name="upd_mfg" id="upd_mfg" value="{{ upd_mfg }}"/>
+					</div>
+					<div class="cell large-4 medium-6 small-12">
+					  <label>Tagged By:</label>
+					  <!--select style="background-color:#284a8a;color:white;" name="upd_tagged" id="upd_tagged"-->
+					  <input type="text" list="tagged_by" id="upd_tagged" name="upd_tagged"/>
+					  <datalist id="tagged_by">
+						<option value="">--No Selection--</option>
+						{% for cmp in companies %}	                              								
+						<option value="{{ cmp.name }}">{{ cmp.name }}</option>						
+						{% endfor %}
+					  </datalist>
+					</div>
+					<div class="cell large-4 medium-6 small-12">
+					  <label>Remarks:</label>
+					  <textarea type="text" name="upd_remarks" id="upd_remarks"></textarea>
+					</div>
+					<div class="cell large-4 medium-6 small-12">
+					  <label>Country of Origin:</label>
+					  <input type="text" name="upd_ctry_origin" id="upd_ctry_origin"/>
+					</div>
+					<div class="cell large-4 medium-6 small-12">
+					  <label>Tag Date:</label>
+					  <input type="text" name="upd_tag" id="upd_tag" value="{{ upd_tag }}"/>
+					</div>
+					<!--div class="cell large-4 medium-6 small-12">
+					  <label>Traceable To:</label>
+					  <input type="text" list="traceable_to" name="upd_traceable" id="upd_traceable"/>
+					  <datalist id="traceable_to">
+						<option value="">--No Selection--</option>
+						{% for cert in cert_codes %}	                              								
+						<option value="{{ cert.name }}">{{ cert.name }}</option>						
+						{% endfor %}
+					  </datalist>
+					</div-->						  
+					<div class="cell large-4 medium-6 small-12">
+					  <label>Hold:</label>
+					  <input type="checkbox" name="upd_hold" id="upd_hold" value="T"/>
+					</div>
+					<div class="cell large-4 medium-6 small-12">
+					  <label>Condition:</label>
+					  <select style="background-color:#284a8a;color:white;" name="upd_cond_code" id="upd_cond_code">
+						<option value="">--No Selection--</option>
+						{% for cond in conditions %}	                              								
+						<option value="{{ cond.condition_code }}">{{ cond.condition_code }}</option>						
+						{% endfor %}
+					  </select>
+					</div>
+					<div class="cell large-4 medium-6 small-12">
+					  <label>Status:</label>
+					  <select style="background-color:#284a8a;color:white;" name="upd_status" id="upd_status">
+						<option value="">--No Selection--</option>
+						{% for status in statuses  %}	                              								
+						<option value="{{ status.wos_auto_key }}">{{ status.name }}</option>						
+						{% endfor %}
+					  </select>
+					</div>
+					<div class="cell large-4 medium-6 small-12">
+					  <label>TSO/CSO:</label>
+					  <input type="text" name="upd_tso_cso" id="upd_tso_cso"/>
+					</div>
+					<div class="cell large-4 medium-6 small-12">
+					  <label>TSN/CSN:</label>
+					  <input type="text" name="upd_tsn_csn" id="upd_tsn_csn"/>
+					</div>
+					<div class="cell large-4 medium-6 small-12">
+					  <label>Inspection Date:</label>
+					  <input type="text" name="upd_insp_date" id="upd_insp_date"/>
+					</div>
+					<div class="cell large-4 medium-6 small-12">
+					  <label>Cure Date:</label>
+					  <input type="text" name="upd_cure_date" id="upd_cure_date"/>
+					</div>
+					<div class="cell large-4 medium-6 small-12">
+					  <label>Exp Date:</label>
+					  <input type="text" name="upd_exp_date" id="upd_exp_date"/>
+					</div>
+					<div class="cell large-4 medium-6 small-12"> 
+                     <label>Notes</label>					
+					    {{ form.notes }}
+					</div>	
+					{% endif %}
+						
+					{% if not lot_teardown %}
+					<div class="cell large-4 medium-6 small-12">
+					  <label>Condition</label>
+						<!-- style="background-color:#284a8a;color:white;" -->
+						<select name="cond_selector" id="cond_selector">
+							<option value=""> -- No Selection -- </option>
+							{% for cond in conditions %}	
+								{% if condition_code == cond.condition_code %}
+								<option data-value="{{ cond.id }}" value="{{ cond.condition_code }}" selected>{{ cond.condition_code }}</option>
+								{% else %}
+								<option data-value="{{ cond.id }}" value="{{ cond.condition_code }}">{{ cond.condition_code }}</option>	
+								{% endif %}
+							{% endfor %}
+						</select>		  
+					</div>
+					<div class="cell large-4 medium-6 small-12"> 
+                     <label>Notes</label>					
+					    <textarea id="notes" name="notes">{{notes}}</textarea>
+					</div>	
+					<div class="cell large-6 medium-6 small-12"> 
+                     <label>New WO</label>					
+						<input type="checkbox" id="new_wo" name="new_wo" value="checked" {{ new_wo }}>
+					</div>	
+                    {% endif %}	
+				
+				  <div class="cell large-6 medium-6 small-12"> 
+					<div class="grid-x grid-padding-x align-middle mro-searchbuttonbox">
+					  <div class="cell large-6 medium-6 small-12 mro-searchbuttonbox">
+						<input class="primary button shadow" type="submit" value="OK" name="wo_template_import" id="wo_template_import" onclick="this.disabled=true,this.form.submit();"/>
+					  </div>
+					</div>
+				  </div>
+				</div>
+              </div>			
+			</form>
+			</div>
+        </div>      
+	</div>
+  </div>
+     <div class="mro-top-section-wrapper mro-table">
+      <div class="grid-container mro-top-section">
+	    <div class="grid-x grid-padding-x">
+		  <script>
+            $("#part_number").focus(function () {
+				const part_char = $(this).val();  // get the selected subject ID from the HTML dropdown list 
+				console.log(part_char.length);
+				if ( part_char.length > 1 ) {
+					$.ajax({                       // initialize an AJAX request
+						type: "POST",
+						url: '{% url "get_parts_ajax" %}',
+						data: {
+							'part_char': part_char,
+							'quapi_id': {{ quapi_id }},
+							'csrfmiddlewaretoken':$('input[name=csrfmiddlewaretoken]').val(),
+						},
+						success: function (data) {   // `data` is from `get_parts_ajax` view function
+							let html_data = '<option value="">---------</option>';
+							data.forEach(function (data) {
+								html_data += `<option value="${data.part_number}"/>`
+							});
+							$("#part_ids").html(html_data); // replace the parts list
+						}
+					});
+				}
+			});		  
+			{% if element and auto_click != 'done' %}			
+		        jQuery(document).ready(function() {            	
+					//$("#part_number").val('');
+					//$("#serial_number").val('');
+					//$("#quantity").val('');
+					//$("#notes").val('');
+					$("#auto_click").val('done');			
+                });
+		    {% endif %}	
+          </script>
+        </div>
+	  </div>			
+    </div>
+<script>
+$(function() {
+    $("#serialModal").modal();//if you want you can have a timeout to hide the window after x seconds
+});
+</script>
+    <!-- Modal -->
+    {%  if show_modal == 'show_serials' %}
+      <div class="modal fade" id="serialModal" role="dialog">
+        <div class="modal-dialog">
+          <!-- Modal content-->
+          <div class="modal-content">
+            <div class="modal-header">
+              <!--button type="button" class="close" data-dismiss="modal">&times;</button-->
+              <h4 class="modal-title">Turn in Stock - Update Serial Numbers<br/></h4>
+            </div>
+            <div class="modal-body">
+                <form method="POST" id="serials_form" name="serials_form">
+                  {% csrf_token %}
+				  <input type="hidden" name="user_in" id="user_in" value="{{user_id}}"/>
+				  <input type="hidden" name="wo_task" id="wo_task" value="{{wo_task}}"/>
+				  <input type="hidden" name="part_number" id="part_number" value="{{part_number}}"/>
+				  <input type="hidden" name="quantity" id="quantity" value="{{quantity}}"/>
+				  <input type="hidden" name="serial_number" id="serial_number" value="{{serial_number}}"/>
+				  <input type="hidden" name="notes" id="notes" value="{{notes}}"/>
+				  <input type="hidden" name="cond_selector" id="cond_selector" value="{{condition_code}}"/>
+				  <input type="hidden" name="user_auto_key" id="user_auto_key" value="{{ user_auto_key }}"/>
+				  <input type="hidden" name="show_modal" id="show_modal" value="enter_serials"/>
+				  <input type="hidden" name="session_id" id="session_id" value="{{ session_id }}"/>
+				  <input type="hidden" name="mod_new_wo" id="mod_new_wo" value="{{ mod_new_wo }}"/>
+				  <div class="cell large-6 medium-6 small-12">
+				    {% for stm in serial_stms %}
+					  <!--label>STM</label>
+					  <input type="text" id="modal_stm" name="modal_stm" value="{{stm.stm_auto_key}}"/-->
+					  <label>Serial Number</label>
+					  <input type="text" id="modal_serials[]" name="modal_serials[]" size="120"/>
+					  <label>Notes</label>
+					   <textarea id="serial_notes[]" name="serial_notes[]" size="220"></textarea>
+					{% endfor %}
+				  </div>
+				  <div><br/><br/></div>	
+				  <div class="cell large-6 medium-6 small-12">
+					<button class="secondary button shadow" name="serial_submit" value="1" style="float:left; margin-top:-50px;" id="serial_submit" type="submit" onclick="this.disabled=true,this.form.submit();">Update</button>
+				    <button class="secondary button shadow" class="close" data-dismiss="modal" name="serial_cancel" value="1" style="float:right; margin-top:-50px;" id="serial_cancel" type="submit">Cancel</button>
+				  </div>				  
+                </form>          
+            </div>
+          </div>                
+       </div>
+      </div>
+	  {% endif %}
+	  
+<!-- Modal Error Pop-up -->
+<script>
+$(function() {
+    $("#myModal").modal();//if you want you can have a timeout to hide the window after x seconds
+});
+</script>
+    <!-- Modal -->
+    {%  if show_modal == 'show_modal' %}
+      <div class="modal fade" id="myModal" role="dialog">
+        <div class="modal-dialog">
+          <!-- Modal content-->
+          <div class="modal-content">
+            <div class="modal-header">
+              <!--button type="button" class="close" data-dismiss="modal">&times;</button-->
+              <h4 class="modal-title">PN does not exist.<br/></h4>
+            </div>
+            <div class="modal-body">
+                <form method="POST" id="loc_form" name="loc_form">
+                  {% csrf_token %}
+				  <input type="hidden" name="user_in" id="user_in" value="{{user_id}}"/>
+				  <input type="hidden" name="wo_task" id="wo_task" value="{{wo_task}}"/>
+				  <input type="hidden" name="part_number" id="part_number" value="{{part_number}}"/>
+				  <input type="hidden" name="quantity" id="quantity" value="{{quantity}}"/>
+				  <input type="hidden" name="serial_number" id="serial_number" value="{{serial_number}}"/>
+				  <input type="hidden" name="notes" id="notes" value="{{notes}}"/>
+				  <input type="hidden" name="cond_selector" id="cond_selector" value="{{condition_code}}"/>
+				  <input type="hidden" name="user_auto_key" id="user_auto_key" value="{{ user_auto_key }}"/>
+				  <input type="hidden" name="show_modal" id="show_modal" value="got_data"/>
+				  <input type="hidden" name="session_id" id="session_id" value="{{ session_id }}"/>
+				  <div class="cell large-6 medium-6 small-12">
+					  <label>Part Number</label>
+					  <input type="text" id="modal_pn" name="modal_pn" value="{{modal_pn}}" size="40"/>
+					  <label>Description</label>
+					  <input type="text" id="modal_desc" name="modal_desc" size="50"/>
+					  <label>Serialized</label>
+					  <input type="checkbox" id="modal_serialized" name="modal_serialized" value="T"/>
+				  </div>
+				  <div><br/><br/><br/><br/></div>	
+				  <div class="cell large-6 medium-6 small-12">
+				    <button class="secondary button shadow" class="close" data-dismiss="modal" name="mod_cancel" value="1" style="float:right; margin-top:-50px;" id="mod_cancel">Cancel</button>
+					<button class="secondary button shadow" name="mod_submit" value="1" style="float:left; margin-top:-50px;" id="mod_submit" type="submit" onclick="this.disabled=true,this.form.submit();">Create</button>
+				  </div>				  
+                </form>          
+            </div>
+          </div>                
+       </div>
+      </div>
+	  {% endif %}
+
+<!-- Modal Error Pop-up -->
+<script>
+$(function() {
+    $("#myModal").modal();//if you want you can have a timeout to hide the window after x seconds
+});
+</script>
+    <!-- Modal -->
+    {%  if show_modal == 'show_pns' %}
+      <div class="modal fade" id="myModal" role="dialog">
+        <div class="modal-dialog">
+          <!-- Modal content-->
+          <div class="modal-content">
+            <div class="modal-header">
+              <!--button type="button" class="close" data-dismiss="modal">&times;</button-->
+              <h4 class="modal-title">Choose PN<br/></h4>
+            </div>
+            <div class="modal-body">
+                <form method="POST" id="loc_form" name="pn_info_form">
+                  {% csrf_token %}
+				  <input type="hidden" name="user_in" id="user_in" value="{{user_id}}"/>
+				  <input type="hidden" name="wo_task" id="wo_task" value="{{wo_task}}"/>
+				  <input type="hidden" name="part_number" id="part_number" value="{{part_number}}"/>
+				  <input type="hidden" name="quantity" id="quantity" value="{{quantity}}"/>
+				  <input type="hidden" name="serial_number" id="serial_number" value="{{serial_number}}"/>
+				  <input type="hidden" name="notes" id="notes" value="{{notes}}"/>
+				  <input type="hidden" name="cond_selector" id="cond_selector" value="{{condition_code}}"/>
+				  <input type="hidden" name="user_auto_key" id="user_auto_key" value="{{ user_auto_key }}"/>
+				  <input type="hidden" name="show_modal" id="show_modal" value="done"/>
+				  <input type="hidden" name="session_id" id="session_id" value="{{ session_id }}"/>
+				  {% for part in pn_info %}
+				  <div class="cell large-6 medium-6 small-12">
+					  <input type="radio" id="{{part.pnm_auto_key}}" value="{{part.pnm_auto_key}}" name="pn_sel" style="font-size:14pt;font-weight:bold;"/> {{part.part_number}} | {{part.description}} | {{part.mfg_code}}
+				  </div>
+				  {% endfor %}
+				  <div><br/><br/><br/><br/></div>	
+				  <div class="cell large-6 medium-6 small-12">
+					<button class="secondary button shadow" name="pn_info_submit" value="1" style="float:left; margin-top:-50px;" id="pn_info_submit" type="submit" onclick="this.disabled=true,this.form.submit();">Update</button>
+				    <button class="secondary button shadow" class="close" data-dismiss="modal" name="mod_cancel" value="1" style="float:right; margin-top:-50px;" id="mod_cancel">Cancel</button>
+				  </div>				  
+                </form>          
+            </div>
+          </div>                
+       </div>
+      </div>
+	  {% endif %}
+	  
+<!-- Modal Error Pop-up -->
+<script>
+$(function() {
+    $("#errorModal").modal();//if you want you can have a timeout to hide the window after x seconds
+});
+</script>
+    <!-- Modal -->
+    {%  if error %}
+      <div class="modal fade" id="errorModal" role="dialog" data-backdrop="static">
+        <div class="modal-dialog">
+          <!-- Modal content-->
+          <div class="modal-content">
+		    <form method="POST" id="modal_error_form" name="modal_error_form">
+            <div class="modal-header">
+              <!--button type="button" class="close" id="x_button" data-dismiss="modal">&times;</button-->
+              <h4 class="modal-title">Application Message:</h4>
+            </div>
+            <div class="modal-body">
+			    {%  if error %}<input type="hidden" id="error" name="error" value="{{ error }}"/><div style="font-weight: bold; color:red; font-size: 22px;">{{ error }}</div>{%  endif %}
+                <button class="secondary button shadow" id="error_ok" value="1" style="float:right; margin-top:-20px;" type="button" data-dismiss="modal">OK</button>
+                <div><br/><br/></div>			
+            </div>
+			</form>
+          </div>                
+       </div>
+      </div>
+	  {% endif %}  
+    <!-- End modal error popup --> 	
+	{% if 0 %}
+	<div class="mro-bottom-section-wrapper mro-table">
+      <div class="grid-container mro-bottom-section">
+	      <div class="grid-x grid-padding-x">
+			<div class="centered results_grid" id="results_grid" name="results_grid">
+				<div class="counter_wrap">					  
+					<!--button type="button" id="select_all" class="secondary button shadow" style="margin-left:-45px;padding:9px;">SELECT ALL</button-->
+					<input type="text" class="sel_rows" id="sel_rows" name="sel_rows" size="4" value="{{ sel_rows }}" readonly>
+					of     <input type="text" class="total_rows" id="total_rows" name="total_rows" value="{{ total_rows }}" size="5" readonly>
+				</div>				
+				<script>
+					kendo.ui.Grid.prototype._positionColumnResizeHandle= function() {
+					  var that = this,
+						  indicatorWidth = that.options.columnResizeHandleWidth,
+						  lockedHead = that.lockedHeader ? that.lockedHeader.find("thead:first") : $();
+
+					  that.thead.add(lockedHead).on("mousemove" + ".kendoGrid", "th", function (e) {
+						var th = $(this);
+						if (th.hasClass("k-group-cell") || th.hasClass("k-hierarchy-cell")) {
+						  return;
+						}
+						that._createResizeHandle(th.closest("div"), th);
+					  });
+					};
+			var oldPageSize = 0;
+			$( "#select_all" ).click(function() {
+			    var grid = $("#results_grid").data("kendoGrid");
+				if (grid.dataSource.data().length === grid.select().length) {
+					grid.clearSelection();
+					$("input[type=hidden][class='woos']").remove();	
+					$('#sel_rows').val(0);
+				} 
+				else {
+					grid.select("tr");
+				};
+			});
+			function onChange(e) {
+				var rows = e.sender.select();
+				var grid = $("#results_grid").data("kendoGrid");
+				var currentPage = grid.dataSource.page();
+				//console.log('current page: ' + currentPage + 'selected: ' + rows.length);
+				//first it goes to woos_first and then onchange again, it goes to woos
+				$("input[type=hidden][uipage='" + currentPage + "']").attr('class', 'woos_stale'); 
+				rows.each(function(e) {
+					var dataItem = grid.dataItem(this);	                  					
+					var length = $('input[type=hidden][value=' + dataItem.id + ']').length;
+                    //console.log(length);					
+					if (length != 0) {
+					   $('input[type=hidden][value=' + dataItem.id + ']').attr('class', 'woos'); 					   
+					}
+                    if (!length) {
+					    
+						var inputWoo = '<input type="hidden" uipage="' + currentPage + '" name="opm_list[]" id="opm_list[]" class="woos" value="' + dataItem.id + '" checked="checked"/>';
+						//console.log(inputWoo);	
+						$('#session_id').after(inputWoo);						
+					}
+				var count = $("input[type=hidden][class='woos']").length;
+				$('#sel_rows').val(count);					
+			    $("input[type=hidden][uipage='" + currentPage + "'][class='woos_stale']").remove();				
+				});	
+			};
+			$(document).ready(
+				function () {					
+					var dataSourceArguments = {
+					    autoBind: false,
+						pageSize: 25,
+						serverPaging: true,
+						//serverFiltering: true,
+						serverSorting: true,
+						transport: {
+							read: {
+								url: '/portal/opm-json',
+								dataType: "json",
+								data: {'session_id': '{{ session_id }}'} // the parameter I need to send to the server
+							}
+						},
+						schema: {
+							total: "count",
+							data: "results",
+							model: { id: "opm_auto_key" }
+						}
+					}								
+					var dsg = new kendo.data.DataSource(dataSourceArguments);
+					$("#results_grid").kendoGrid({
+					    toolbar: ["excel"],
+						excel: {
+							fileName: "teardown-opms-export.xlsx",
+							proxyURL: "https://demos.telerik.com/kendo-ui/service/export",
+							allPages: true
+						},
+						dataSource: dsg,
+						filterable: true,
+						resizable: true,
+                        sortable: true,
+						reorderable: true,
+						change: onChange,
+                        selectable: "multiple, row",
+						persistSelection: true,
+                        navigatable: false,
+						pageable: {
+							refresh: true,
+							pageSizes: true,
+							buttonCount: 5,
+						},						
+				        columns: [
+								{
+								  field: 'operation_id',
+								  title: 'Work Plan',
+								  width: screen.availWidth*0.14,
+								},
+								{
+								  field: 'plan_desc',
+								  title: 'Description',
+								  width: screen.availWidth*0.14,
+								},
+								{
+								  field: 'part_number',
+								  title: 'PN',
+								  width: screen.availWidth*0.14,
+								},						
+								
+								{
+								  field: 'part_desc',
+								  title: 'Part Desc',
+								  width: screen.availWidth*0.14,
+								},
+								{
+								  field: 'version_id',
+								  title: 'Version#',
+								  width: screen.availWidth*0.14,
+								},
+								{
+								  field: 'exp_date',
+								  title: 'Exp Date',
+								  width: screen.availWidth*0.14,
+								},							
+								{
+								  field: 'default_repair',
+								  title: 'Def Rep',
+								  width: screen.availWidth*0.14,
+								},	
+							]								
+					});
+					$("select[data-role='dropdownlist']").kendoDropDownList({
+						dataTextField: "pageSize",
+						dataValueField: "sizeValue",
+						dataSource: [
+							{pageSize: 25},
+							{pageSize: 50},
+							{pageSize: 100},
+							{pageSize: 500},
+							{pageSize: 2000},
+							{pageSize: 'All', sizeValue:1000}
+						]
+					});
+		        });
+				  </script>
+			</div>	
+		  </div>
+        <div class="grid-x mro-pagination-section">
+          <div class="cell large-5 medium-6 small-12 ">
+            <a class="mrotop" href="#mrotop" data-smooth-scroll><span>^</span> Back to Top</a>
+          </div>
+        </div>		  
+	  </div>
+	</div>
+	{% endif %}	
+	<div class="mro-bottom-section-wrapper mro-table">
+      <div class="grid-container mro-bottom-section">
+	      <div class="grid-x grid-padding-x">
+				{% if all_woos %}
+					<div class="centered results_grid" id="results_grid" name="results_grid">
+					<div class="counter_wrap">					 
+					<input type="text" class="sel_rows" id="sel_rows" name="sel_rows" size="4" value="{{ sel_rows }}" readonly>of     <input type="text" class="total_rows" id="total_rows" name="total_rows" value="{{ total_rows }}" size="5" readonly>
+					</div>			
+			<script>
+			kendo.ui.Grid.prototype._positionColumnResizeHandle= function() {
+			  var that = this,
+				  indicatorWidth = that.options.columnResizeHandleWidth,
+				  lockedHead = that.lockedHeader ? that.lockedHeader.find("thead:first") : $();
+
+			  that.thead.add(lockedHead).on("mousemove" + ".kendoGrid", "th", function (e) {
+				var th = $(this);
+				if (th.hasClass("k-group-cell") || th.hasClass("k-hierarchy-cell")) {
+				  return;
+				}
+				that._createResizeHandle(th.closest("div"), th);
+			  });
+			};
+		    $('#bom_sched_form').submit(function(e){
+				e.preventDefault();
+				$('#is_bom_sched').val(1);
+				$('#upd_mgmt_form').submit();
+		    });
+			var oldPageSize = 0;
+			$( "#select_all" ).click(function() {
+			  //alert( "Handler for .click() called." );
+			    var grid = $("#results_grid").data("kendoGrid");
+				//oldPageSize = grid.dataSource.pageSize();
+				//grid.dataSource.pageSize(grid.dataSource.data().length);
+
+				if (grid.dataSource.data().length === grid.select().length) {
+					grid.clearSelection();
+					$("input[type=hidden][class='woos_stale']").remove(); 
+					$("input[type=hidden][class='woos']").remove();	
+					$('#sel_rows').val(0);
+				} 
+				else {
+					grid.select("tr");
+				};
+
+				//grid.dataSource.pageSize(oldPageSize);
+			});
+
+			function onChange(e) {
+				var rows = e.sender.select();
+				var grid = $("#results_grid").data("kendoGrid");
+				var currentPage = grid.dataSource.page();
+				rows.each(function(e) {
+					var dataItem = grid.dataItem(this);					
+					var row_item = $('input[type=hidden][class="woos"][value=' + dataItem.id + ']').length;
+                    if (!row_item) {
+						var inputWoo = '<input type="hidden" uipage="' + currentPage + '" name="opm_list[]" id="opm_list[]" class="woos" value="' + dataItem.id + '" checked=checked"/>';
+						$('#session_id').after(inputWoo);					
+					}
+				var count = $("input[type=hidden][class='woos']").length;
+				$('#sel_rows').val(count);						
+				});
+			};
+			$(document).ready(
+				function () {				
+					var dataSourceArguments = {	
+					    autoBind: false,
+						pageSize: 2000,
+						serverPaging: true,
+						serverSorting: true,
+						transport: {
+							read: {
+								url: '/portal/json',
+								dataType: "json",
+								data: { 'user_id': '{{ user_id }}','session_id': '{{ session_id }}','is_wos': '1' } // the parameter I need to send to the server
+							}
+						},
+						schema: {
+							total: "count",
+							data: "results",
+							model: { id: "id" },
+						}
+					}
+					
+					var dsg = new kendo.data.DataSource(dataSourceArguments);
+					$("#results_grid").kendoGrid({
+					    toolbar: ["excel"],
+						excel: {
+							fileName: "teardown-export.xlsx",
+							proxyURL: "https://demos.telerik.com/kendo-ui/service/export",
+							allPages: true
+						},
+						dataSource: dsg,
+						sortable: true,
+						reorderable: true,
+						resizable: true,
+                        selectable: "multiple, row",
+						persistSelection: true,
+                        //navigatable: true,
+						change: onChange,
+						pageable: {
+							refresh: true,
+							pageSizes: true,
+							buttonCount: 5,
+						},
+                        columns: [
+							{
+							  field: 'work_plan',
+							  title: 'WO#',
+							  width: screen.availWidth*0.14,
+							},
+							{
+							  field: 'plan_desc',
+							  title: 'Description',
+							  width: screen.availWidth*0.14,
+							},
+							{
+							  field: 'part_number',
+							  title: 'PN',
+							  width: screen.availWidth*0.14,
+							},						
+							
+							{
+							  field: 'description',
+							  title: 'Part Desc',
+							  width: screen.availWidth*0.14,
+							},
+							{
+							  field: 'version',
+							  title: 'Version#',
+							  width: screen.availWidth*0.14,
+							},
+							{
+							  field: 'exp_date',
+							  title: 'Exp Date',
+							  width: screen.availWidth*0.14,
+							},							
+							{
+							  field: 'def_rep',
+							  title: 'Def Rep',
+							  width: screen.availWidth*0.14,
+							},	
+					    ],								
+					});
+					$("select[data-role='dropdownlist']").kendoDropDownList({
+						dataTextField: "pageSize",
+						dataValueField: "sizeValue",
+						dataSource: [
+							{pageSize: 25},
+							{pageSize: 50},
+							{pageSize: 100},
+							{pageSize: 500},
+							{pageSize: 2000},
+							{pageSize: 'All', sizeValue:10000},
+						],
+					});
+				});
+			  </script>
+	            </div>	
+			{% endif %}
+		  </div>
+        <div class="grid-x mro-pagination-section">
+          <div class="cell large-5 medium-6 small-12 ">
+            <a class="mrotop" href="#mrotop" data-smooth-scroll><span>^</span> Back to Top</a>
+          </div>
+        </div>		  
+	    </div>
+	  </div>
+	<div class="mro-footer-wrapper">
+		<div class="grid-container mro-footer">
+			<div class="grid-x">
+				<div class="cell small-12">
+					<img class="mro-footerlogo" src="{% static 'dist/assets/img/mro-live_header.png' %}" alt="Where Productivity Takes Flight" alt="MRO Live - Where Productivity Takes Flight">
+				</div>
+			</div>
+
+			<div class="grid-x mro-footer-bottom">
+				<div class="cell medium-5 small-12 mro-footer-bottom-left">
+					<p>Copyright &copy; 2024 MRO Live <span>|</span> <img class="mro-usa" src="{% static 'dist/assets/img/usa.png' %}" alt="Based in USA">Based in USA</p>
+				</div>
+			</div>
+		</div>
+	</div>
+    <script src="{% static 'dist/assets/js/app.js' %}"></script>
+  </body>
+</html>
