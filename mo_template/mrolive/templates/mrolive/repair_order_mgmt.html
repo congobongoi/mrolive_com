@@ -5,8 +5,7 @@
     <meta charset="utf-8" />
     <meta http-equiv="x-ua-compatible" content="ie=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MRO Live RO Management - Where Productivity Takes Flight</title>
-																			   
+    <title>MRO Live RO Management - Where Productivity Takes Flight</title>																			   
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
 	<link rel="shortcut icon" type="image/png" href="{% static 'favicon.ico' %}"/>
     <link rel="stylesheet" href="{% static 'dist/assets/css/app.css' %}">
@@ -14,13 +13,16 @@
     <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.common-material.min.css" />
     <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.material.min.css" />
     <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.material.mobile.min.css" />
-    <script src="https://kendo.cdn.telerik.com/2020.1.114/js/jszip.min.js"></script>
+	<!--script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+    <script src="https://kendo.cdn.telerik.com/2025.4.1321/js/kendo.all.min.js"  ></script-->
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/2.4.0/jszip.js"></script>
+    <script src="https://kendo.cdn.telerik.com/2020.1.114/js/jszip.min.js"></script>
     <script src="https://kendo.cdn.telerik.com/2017.2.621/js/jquery.min.js"></script>
     <script src="https://kendo.cdn.telerik.com/2017.2.621/js/kendo.all.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>	
-	<!--script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script-->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/1.7.1/clipboard.min.js"></script>
 	<script type="text/javascript" src="{% static 'jquery-1.12.4.js' %}"></script>
+	<!--script type="text/javascript" src="{% static 'telerik-license.js' %}"></script-->
     <script type="text/javascript" src="{% static 'field_focus.js' %}"></script>
 	<script src="{% static 'jquery.bootstrap.modal.forms.min.js' %}"></script>
 	<script type="text/javascript" src="{% static 'jquery_tab_submit.js' %}"></script>
@@ -144,33 +146,182 @@
 				padding-right: 32px !important;
 			}
 		}
+        @-webkit-keyframes load8 {
+            0% {
+                -webkit-transform: rotate(0deg);
+                transform: rotate(0deg);
+            }
+            100% {
+                -webkit-transform: rotate(360deg);
+                transform: rotate(360deg);
+            }
+        }
+        @keyframes load8 {
+            0% {
+                -webkit-transform: rotate(0deg);
+                transform: rotate(0deg);
+            }
+            100% {
+                -webkit-transform: rotate(360deg);
+                transform: rotate(360deg);
+            }
+        }
+        #loadingDiv {
+            position:fixed;
+            top:0;
+            left:0;
+            width:100%;
+            height:100%;
+            background-color:#000;
+        }
+		/* Hide the spinner by default */
+		.loading-container {
+		  display: none; 
+		  /* Center the spinner on the screen (optional styling) */
+		  position: fixed;
+		  top: 50%;
+		  left: 50%;
+		  transform: translate(-50%, -50%);
+		  z-index: 1000; /* Ensure it is above other content */
+		}
+
+		/* Style the image to ensure correct sizing and centering within its container */
+		.spinner-graphic {
+		  width: 100px; /* Adjust size as needed */
+		  height: 100px; /* Adjust size as needed */
+		  animation: spin 2s linear infinite; /* Apply the spinning animation */
+		}
+
+		/* Keyframes for the spinning animation */
+		@keyframes spin {
+		  0% { transform: rotate(0deg); }
+		  100% { transform: rotate(360deg); }
+		}
+
+		/* Class added by JavaScript to show the spinner */
+		.is-loading {
+		  display: block;
+		}
     </style>
   </head>
   <body>
     <audio src="{% static 'error-trombone.mp3' %}" id="sad_trombone"></audio>
     <script type="text/javascript">
+	
+			function getSpinner() {
+			// Get the spinner element
+			const loadingSpinner = document.getElementById('loadingSpinner');
+            }
+			// Function to show the spinner
+			function showSpinner() {
+			  loadingSpinner.classList.add('is-loading');
+			}
+
+			// Function to hide the spinner
+			function hideSpinner() {
+			  loadingSpinner.classList.remove('is-loading');
+			}
+			
 		$(document).ready(
-			function () {
-			//$("#get_due_date").kendoDatePicker();
-			//$("#due_date").kendoDatePicker();
+		    function () {
 			error = $("#error").val();
 			//console.log(error);
 			if (error) {
 			   $("#sad_trombone").get(0).play();
 			}
 
+            var vendorForm = $("#vendor_form");	
+            var romForm = $("#base_form");
+			var updForm = $("#update_stock");
+			var Form = $("#update_stock");
+			
 			$("input").click(function(e){
+			
+			    var $form = $(this);
 				var id_clicked = e.target.id;
-				var mgmtForm = $("#update_form");
-				if (id_clicked == 'wo_update') {
-					e.preventDefault();				
-					$('#launch_update').val('1');
-					console.log('got here');
-					mgmtForm.submit();	
-				}
-			});		
-		})
+				var charCode = e.keyCode || e.which;
+
+			if (id_clicked=='update_submitted' || id_clicked=='update_cancel') {
+			
+	            showSpinner();
+				$('body').append('<div style="" id="loadingDiv"><div class="loader">Loading...</div></div>');
+					$(window).on('load', function(){
+					setTimeout(removeLoader, 0); //wait for page load PLUS two seconds.
+				});
+					
+				e.preventDefault;								
+				romForm.submit(); 
+				
+				if ($form.data('submitted') === true) {
+					alert("Click or hit enter only once to submit.");
+					// Previously submitted - don't submit again
+					e.preventDefault ? e.preventDefault() : (e.returnValue = false);
+				} 
+
+				else {
+				  // Mark it so that the next submit can be ignored
+				  $form.data('submitted', true);
+				}	
+				   
+			}
+			
+	
+			if (id_clicked=='vendor_submit') {
+                showSpinner();
+				$('body').append('<div style="" id="loadingDiv"><div class="loader">Loading...</div></div>');
+					$(window).on('load', function(){
+					setTimeout(removeLoader, 0); //wait for page load PLUS two seconds.
+				});
+					
+				e.preventDefault;								
+				vendForm.submit(); 
+				$("#is_vendor_submit").val('1');
+				
+				if ($form.data('submitted') === true) {
+					alert("Click or hit enter only once to submit.");
+					// Previously submitted - don't submit again
+					e.preventDefault ? e.preventDefault() : (e.returnValue = false);
+				} 
+
+				else {
+				  // Mark it so that the next submit can be ignored
+				  $form.data('submitted', true);
+				}	
+				   
+			}
+	
+			if (id_clicked=='search_stock') {
+	
+	            showSpinner();
+				$('body').append('<div style="" id="loadingDiv"><div class="loader">Loading...</div></div>');
+					$(window).on('load', function(){
+					setTimeout(removeLoader, 0); //wait for page load PLUS two seconds.
+				});
+					
+				e.preventDefault;								
+				romForm.submit(); 
+				$("#is_search").val('1');
+				
+				if ($form.data('submitted') === true) {
+					alert("Click or hit enter only once to submit.");
+					// Previously submitted - don't submit again
+					e.preventDefault ? e.preventDefault() : (e.returnValue = false);
+				} 
+
+				else {
+				  // Mark it so that the next submit can be ignored
+				  $form.data('submitted', true);
+				}	
+				   
+			}
+                
+		    });					
+	    })
     </script>
+	
+<div class="loading-container" id="loadingSpinner">
+  <img src="{% static 'turbine.gif' %}" alt="Loading..." class="spinner-graphic">
+</div>
 <div class="mro-header-wrapper">
 	<section id="mrotop"></section>
 	<div class="grid-container mro-header">
@@ -259,6 +410,8 @@
 				  <input type="hidden" name="update_session" id="update_session" value="{{ update_session }}"/>
 				  <input type="hidden" name="search_user" id="search_user" value="{{ search_user }}"/> 
 				  <input type="hidden" name="col_data" id="col_data" value=""/>
+				  <input type="hidden" name="is_search" id="is_search" value=""/>
+				  <input type="hidden" name="is_vendor_submit" id="is_vendor_submit" value=""/>
 				  <input type="hidden" name="clear_form" id="clear_form" value="0"/>
 				  <input type="hidden" name="session_id" id="session_id" value="{{session_id}}"/>
 				  <input type="hidden" name="show_user" id="show_user" value="{{show_user}}"/>
@@ -305,12 +458,25 @@
 						{% endfor %}
 					  </select>
 					</div-->
+					<div class="cell large-4 medium-6 small-12">  
+					  <label>Cons</label>
+					  <select name="cons_selector" id="cons_selector" style="background-color:#cacaca;">
+						<option value=""> -- No Selection -- </option>
+						{% for cons in consignments %}	
+							{% if cons_code == cons.code %}
+							<option data-value="{{ cons.id }}" value="{{ cons.code }}" selected>{{ cons.code }}</option>
+							{% else %}
+							<option data-value="{{ cons.id }}" value="{{ cons.code }}">{{ cons.code }}</option>	
+							{% endif %}
+						{% endfor %}
+					  </select>
+					</div>
 					<div class="cell large-4 medium-6 small-12">
                       <label>Stock Status</label>
 				      <select name="stock_status" id="stock_status" style="background-color:#cacaca;">
 						<option value=""> -- No Selection -- </option>
 						{% for sstatus in stock_statuses %}						
-							{% if sstatus.wos_auto_key == stock_status %}
+							{% if sstatus.text_wos == stock_status %}
 							<option value="{{ sstatus.wos_auto_key }}" selected>{{ sstatus.name }}</option>
 							{% else %}
 							<option value="{{ sstatus.wos_auto_key }}">{{ sstatus.name }}</option>
@@ -318,6 +484,10 @@
 						{% endfor %}
 					  </select>
 					</div>
+					<div class="cell large-4 medium-6 small-12">
+                      <label>Vendor</label>
+					  {{ form.vendor }}
+                    </div>
 					<div class="cell large-4 medium-6 small-12">
 					  <label>Part Number</label>
 					  <!--input type="text" id="wo_number" name="wo_number" value="{{ wo_number }}" placeholder="10034-COR-02..." /-->
@@ -344,7 +514,7 @@
                       <!--input type="text" id="customer" name="customer" value="{{ customer }}" placeholder="Bonaero LTD..." /-->  
                     </div>
 				    <div class="cell large-4 medium-6 small-12 mro-searchbuttonbox">
-					  <input class="primary button shadow" type="submit" onclick="this.disabled=true,this.form.submit();" value="Select Stock" name="search_stock" id="search_stock"/>
+					  <input class="primary button shadow" type="submit" value="Select Stock" name="search_stock" id="search_stock"/>
 				    </div>
 				  </div>
                 </div>
@@ -362,7 +532,7 @@
 		  <input type="hidden" name="filter_location" id="filter_location" value="{{ filter_location }}"/>
 		  <input type="hidden" name="filter_condition_code" id="filter_condition_code" value="{{ filter_condition_code }}"/>
 		  <input type="hidden" name="filter_socond_code" id="filter_socond_code" value="{{ filter_socond_code }}"/>
-		  <input type="hidden" name="filter_session" id="filter_session" value="{{ filter_session }}"/>	
+		  <input type="hidden" name="filter_session" id="filter_session" value="{{ filter_session }}"/>
 		  <input type="hidden" name="launch_update" id="launch_update" value="0"/>
 		  <!--div class="mro-darksearch">
 				<div class="grid-x grid-padding-x">
@@ -409,7 +579,11 @@
 				        <input class="primary button shadow" onclick="this.disabled=true,this.form.submit();" type="submit" value="Process" name="wo_update" id="wo_update"/>
 					  </div>
 					</div>
-				</div>				  
+				</div>
+				<div class="cell large-6 medium-6 small-12">
+				  <label>Separate ROs:</label>
+				  <input type="checkbox" name="separate_ros" id="separate_ros">
+				</div>				
 				  </div>
 				</div>
 			  </div>
@@ -418,6 +592,288 @@
 		  </div>
 		</div>      
 	</div>
+	
+<!-- Modal Repair Types Pop-up -->
+<script>
+$(function() {
+    $("#repTypesModal").modal();//if you want you can have a timeout to hide the window after x seconds
+});
+</script>
+    <!-- Modal -->
+    {% if show_reps == '1' %}
+      <div class="modal fade" id="repTypesModal" role="dialog">
+        <div class="modal-dialog">
+          <!-- Modal content-->
+          <div class="modal-content">
+            <div class="modal-header">
+              <!--button type="button" class="close" data-dismiss="modal">&times;</button-->
+              <h4 class="modal-title">Update Stock<br/></h4>
+            </div>
+            <div class="modal-body">
+                <form method="POST" id="reptype_form" name="reptype_form">
+                  <input type="hidden" name="session_id" id="session_id" value="{{ session_id }}"/>
+				  <input type="hidden" name="user_auto_key" id="user_auto_key" value="{{ sysur_auto_key }}"/>
+				  <input type="hidden" name="filter_serial"  id="filter_serial" value="{{ serial_number }}"/>
+				  <input type="hidden" name="filter_status" id="filter_status" value="{{ stock_status }}"/>
+				  <input type="hidden" name="filter_wo" id="filter_wo" value="{{ wo_number }}"/>
+				  <input type="hidden" name="filter_pn" id="filter_pn" value="{{ part_number }}"/>
+				  <input type="hidden" name="filter_desc"  id="filter_desc" value="{{ description }}"/>
+				  <input type="hidden" name="mode_selector" id="mode_selector" value="{{ active_mode }}"/>
+				  <input type="hidden" name="ro_number" id="ro_number" value="{{ ro_number }}"/>
+				  <input type="hidden" name="separate_ros" id="separate_ros" value="{{ separate_ros }}"/>				  
+				  {% csrf_token %}
+				  {% for stm in stm_keys %}
+				     <input type="hidden" name="stm_key_list[]" id="stm_key_list[]" value="{{ stm }}" checked="checked"/>
+				  {% endfor %}
+				  
+				<!--div class="mro-lightsearch">
+				    <div class="grid-x grid-padding-x">
+					  <div class="grid-x grid-padding-x align-middle"-->
+						<div class="cell large-4 medium-6 small-12">
+						  <label>SLs:</label>
+						  <input readonly=1 type="text" name="sl_list" id="sl_list" value="{{ sl_list }}"/>
+						</div>
+						<!--div class="cell large-6 medium-6 small-12">
+						  <label style="color:white">dummy</label>
+						  <input style="background-color:white;border:none;" readonly=1 type="text" name="dummy"/>
+						</div>
+						<div class="cell large-6 medium-6 small-12">
+						  <label style="color:white">dummy</label>
+						  <input style="background-color:white;border:none;" readonly=1 type="text" name="dummy"/>
+						</div-->
+						<div class="cell large-4 medium-6 small-12">
+						  <label>PN:</label>
+						  <input readonly=1 type="text" name="prod_pn" id="prod_pn" value="{{ prod_pn }}"/>
+						</div>
+						<div class="cell large-4 medium-6 small-12">
+						  <label>Desc:</label>
+						  <input readonly=1 type="text" name="prod_desc" id="prod_desc" value="{{ prod_desc }}"/>
+						</div>
+						<div class="cell large-4 medium-6 small-12">
+						  <label>Cons:</label>
+						  <input readonly=1 type="text" name="prod_cons" id="prod_cons" value="{{ prod_cons }}"/>
+						  <!--datalist id="cons_list">
+							<option value="">--No Selection--</option>
+							{% for cons in cons_codes %}
+							{% if cons.code == prod_cons %}	
+							<option value="{{ prod_cons }}">{{ cons.code }}</option>								
+							<option value="{{ cons.code }}">{{ cons.code }}</option>						
+							{% endif %}
+							{% endfor %}
+						  </datalist-->
+						</div>						  
+						<!--div class="cell large-6 medium-6 small-12">
+						  <label><strong>Instructions:</strong></label>
+						  <input type="radio" id="bench_test" name="instr" value="bench test"/>
+						  <label for="html">Bench Test</label>
+						  
+						  <input type="radio" id="inspect" name="instr" value="inspect"/>
+						  <label for="html">Inspect</label>
+						
+						  <input type="radio" id="repair" name="instr" value="repair"/>
+						   <label for="html">Repair</label>
+						  <br/>
+						  <input type="radio" id="overhaul" name="instr" value="overhaul"/>
+						  <label for="html">Overhaul</label>
+						</div> 
+						<div class="cell large-6 medium-6 small-12">
+						  <label><strong>Certificate Required:</strong></label>
+						  
+						  <input type="checkbox" id="faa_8130" name="cert" value="FAA 8130"/>
+						  <label for="html">FAA 8130</label>
+						  
+						  <input type="checkbox" id="caac_tag" name="cert" value="CAAC Tag"/>
+						  <label for="html">CAAC Tag</label>
+						  
+						  <input type="checkbox" id="easa" name="cert" value="EASA"/>
+						  <label for="html">EASA</label>
+						  <br/>
+						  <input type="checkbox" id="others" name="cert" value="Others"/>
+						  <label for="html">Others</label>
+						</div>							
+						<div class="cell large-6 medium-6 small-12">
+						  <label>MOD</label>
+						  
+						  <input type="radio" id="inspect" name="mod" value="Inspect"/>
+						  <label for="html">Inspect</label>
+						 
+						  <input type="radio" id="mod_repair" name="mod" value="Repair"/>
+						   <label for="html">Repair</label>
+						</div>   
+						<div class="cell large-6 medium-6 small-12">
+						  <label>DAR-8130</label>
+						  
+						  <input type="radio" id="domestic" name="dar" value="Domestic"/>
+						  <label for="html">Domestic</label>
+	
+						  <input type="radio" id="export" name="dar" value="Export"/>
+						  <label for="html">Export</label>
+						</div-->
+						<div class="cell large-6 medium-6 small-12">
+						  <label><strong>Notes:</strong></label>
+						  <textarea type="text" name="upd_notes" id="upd_notes"></textarea>
+						</div>
+			<!--/div>
+		  </div>
+		</div-->   
+                  <input type="hidden" name="is_reptype_form" id="is_sysnl_form" value="1"/>
+				  <input type="hidden" name="vendor" id="vendor" value="{{vendor}}"/>
+                  <input type="hidden" name="mode_selector" id="mode_selector" value="{{ active_mode }}"/>
+				  <input type="hidden" name="active_mode" id="active_mode" value="{{ active_mode }}"/>
+				  <input type="hidden" name="cond_code" id="cond_code" value="{{ cond_code }}"/>
+				  <input type="hidden" name="socond_code" id="socond_code" value="{{ socond_code }}"/>
+				  <input type="hidden" name="next_num" id="next_num" value="{{ next_num }}"/>
+				  <input type="hidden" name="ro_number" id="ro_number" value="{{ ro_number }}"/>
+				  <input type="hidden" name="wo_num" id="wo_num" value="{{ wo_num }}"/>
+				  <input type="hidden" name="separate_ros" id="separate_ros" value="{{ separate_ros }}"/>
+				  <input type="hidden" name="part_num" id="part_num" value="{{ part_num }}"/>
+				  <input type="hidden" name="stock_lab" id="stock_lab" value="{{ stock_lab }}"/>
+				  <input type="hidden" name="user_session" id="user_session" value="{{ user_session }}"/>
+				  <input type="hidden" name="user_auto_key" id="user_auto_key" value="{{ user_auto_key }}"/>
+				  <input type="hidden" name="show_reps" id="show_reps" value="done"/>
+				  <input type="hidden" name="session_id" id="session_id" value="{{ session_id }}"/>
+				  
+				  <div class="cell large-6 medium-6 small-12">
+				  	<label><strong>Repair Type:</strong></label>	
+     				  <input type="radio" id="oem" value="OEM" name="repair_type" style="font-size:14pt;font-weight:bold;" checked="checked"/><span style="margin-right:50px;padding-left:10px;">OEM</span>      
+     				  <input type="radio" id="pma" value="PMA" name="repair_type" style="font-size:14pt;font-weight:bold;"/><span style="margin-right:50px;padding-left:10px;">PMA</span>      
+					  <input type="radio" id="overhaul" value="Overhaul" name="repair_type" style="font-size:14pt;font-weight:bold;"/><span style="margin-right:50px;padding-left:10px;">Overhaul</span>           
+					  <input type="radio" id="der" value="DER" name="repair_type" style="font-size:14pt;font-weight:bold;"/><span style="margin-right:50px;padding-left:10px;">DER</span>             
+				  </div> 
+                  <div><br/><br/><br/><br/></div>						  
+				  <div class="cell large-6 medium-6 small-12">
+				    <button class="secondary button shadow" class="close" data-dismiss="modal" name="mod_cancel" value="1" style="float:right; margin-top:-50px;" id="mod_cancel">Cancel</button>
+					<button class="secondary button shadow" name="pn_info_submit" value="1" style="float:left; margin-top:-50px;" id="pn_info_submit" type="submit" onclick="this.disabled=true,this.form.submit();">Update</button>
+				  </div>
+				  <div><br/><br/></div>				  
+                </form>
+         </div>                
+       </div>
+     </div>
+	</div>
+	{% endif %}
+
+<!-- Modal Number Log Selection Pop-up -->
+<script>
+$(function() {
+    $("#seqSelModal").modal();//if you want you can have a timeout to hide the window after x seconds
+});
+</script>
+    <!-- Modal -->
+    {% if show_sysnl == '1' %}
+      <div class="modal fade" id="seqSelModal" role="dialog">
+        <div class="modal-dialog">
+          <!-- Modal content-->
+          <div class="modal-content">
+            <div class="modal-header">
+              <!--button type="button" class="close" data-dismiss="modal">&times;</button-->
+              <h4 class="modal-title">Choose Number Log<br/></h4>
+            </div>
+            <div class="modal-body">
+                <form method="POST" id="sysnl_form" name="sysnl_form">
+                  {% csrf_token %}
+                  <input type="hidden" name="is_sysnl_form" id="is_sysnl_form" value="1"/>
+				  <input type="hidden" name="rdx_sel" id="rdx_sel" value="{{rdx_sel}}"/>
+				  <input type="hidden" name="site_sel" id="site_sel" value="{{site_sel}}"/>
+				  <input type="hidden" name="user_in" id="user_in" value="{{user_in}}"/>
+				  <input type="hidden" name="vend_input" id="vend_input" value="{{vend_input}}"/>
+                  <input type="hidden" name="mode_selector" id="mode_selector" value="{{ active_mode }}"/>
+				  <input type="hidden" name="wo_stock_stat" id="wo_stock_stat" value="{{ stock_status }}"/>
+				  <input type="hidden" name="repair_type" id="repair_type" value="{{ repair_type }}"/>
+				  <input type="hidden" name="socond_code" id="socond_code" value="{{ socond_code }}"/>
+				  <input type="hidden" name="mode_code" id="mode_code" value="{{ mode_code }}"/>
+				  <input type="hidden" name="location_code" id="location_code" value="{{ location_code }}"/>
+				  <input type="hidden" name="ro_number" id="ro_number" value="{{ ro_number }}"/>
+				  <input type="hidden" name="separate_ros" id="separate_ros" value="{{ separate_ros }}"/>
+				  <input type="hidden" name="stock_lab" id="stock_lab" value="{{ stock_lab }}"/>
+				  <input type="hidden" name="user_session" id="user_session" value="{{ user_session }}"/>
+				  <input type="hidden" name="user_auto_key" id="user_auto_key" value="{{ user_auto_key }}"/>
+				  <input type="hidden" name="show_sysnl" id="show_sysnl" value="done"/>
+				  <input type="hidden" name="show_rdx" id="show_rdx" value="{{shown_rdx}}"/>
+				  <input type="hidden" name="shown_site" id="shown_site" value="{{shown_site}}"/>
+				  <input type="hidden" name="session_id" id="session_id" value="{{ session_id }}"/>
+				  
+				  {% for stm in stm_keys %}
+				     <input type="hidden" name="stm_key_list[]" id="stm_key_list[]" value="{{ stm }}" checked="checked"/>
+				  {% endfor %}
+				  
+				  {% for nl in sysnl %}
+				  <div class="cell large-6 medium-6 small-12">
+				      {% if nl.sequence == 0 %}
+     					<input type="radio" id="{{nl.sysnl_auto_key}}" value="{{nl.sysnl_auto_key}}" name="sysnl" style="font-size:14pt;font-weight:bold;" checked="checked"/> {{nl.description}}
+				      {% else %}
+					  <input type="radio" id="{{nl.sysnl_auto_key}}" value="{{nl.sysnl_auto_key}}" name="sysnl" style="font-size:14pt;font-weight:bold;"/> {{nl.description}}
+					  {% endif %}
+				  </div>
+				  {% endfor %}
+				  <div><br/><br/><br/><br/></div>	
+				  <div class="cell large-6 medium-6 small-12">
+				    <button class="secondary button shadow" class="close" data-dismiss="modal" name="mod_cancel" value="1" style="float:right; margin-top:-50px;" id="mod_cancel">Cancel</button>
+					<button class="secondary button shadow" name="seq_submit" value="1" style="float:left; margin-top:-50px;" id="pn_info_submit" type="submit" onclick="this.disabled=true,this.form.submit();">Update</button>
+				  </div>				  
+                </form>          
+            </div>
+          </div>                
+       </div>
+      </div>
+	  {% endif %}
+<script>
+$(function() {
+    $("#myModal").modal();//if you want you can have a timeout to hide the window after x seconds
+});
+</script>
+    <!-- Modal -->
+    {% if warn_user == '1' %}
+      <div class="modal fade" id="myModal" role="dialog">
+        <div class="modal-dialog">
+          <!-- Modal content-->
+          <div class="modal-content">
+            <div class="modal-header">
+              <button type="button" class="close" data-dismiss="modal">&times;</button>
+				  <h4 class="modal-title">Warning: {{ ro_warn_msg }}</h4>
+            </div>
+            <div class="modal-body">
+                <form method="POST" id="comp_form" name="comp_form">
+                  {% csrf_token %}
+                  <input type="hidden" name="ro_warn_form" id="ro_warning_form" value="1"/>
+				  <input type="hidden" name="sysnl" id="sysnl" value="{{log_choice}}"/>
+				  <input type="hidden" name="rdx_sel" id="rdx_sel" value="{{rdx_sel}}"/>
+				  <input type="hidden" name="site_sel" id="site_sel" value="{{site_sel}}"/>
+				  <input type="hidden" name="show_rdx" id="show_rdx" value="{{shown_rdx}}"/>
+				  <input type="hidden" name="shown_site" id="shown_site" value="{{shown_site}}"/>
+				  <input type="hidden" name="vend_input" id="vend_input" value="{{vend_input}}"/>
+                  <input type="hidden" name="mode_selector" id="mode_selector" value="{{ active_mode }}"/>
+				  <input type="hidden" name="wo_stock_stat" id="wo_stock_stat" value="{{ stock_status }}"/>
+				  <input type="hidden" name="repair_type" id="repair_type" value="{{ repair_type }}"/>
+				  <input type="hidden" name="socond_code" id="socond_code" value="{{ socond_code }}"/>
+				  <input type="hidden" name="mode_code" id="mode_code" value="{{ mode_code }}"/>
+				  <input type="hidden" name="location_code" id="location_code" value="{{ location_code }}"/>
+				  <input type="hidden" name="ro_number" id="ro_number" value="{{ ro_number }}"/>
+				  <input type="hidden" name="separate_ros" id="separate_ros" value="{{ separate_ros }}"/>
+				  <input type="hidden" name="stock_lab" id="stock_lab" value="{{ stock_lab }}"/>
+				  <input type="hidden" name="user_session" id="user_session" value="{{ user_session }}"/>
+				  <input type="hidden" name="user_auto_key" id="user_auto_key" value="{{ user_auto_key }}"/>
+				  <input type="hidden" name="show_sysnl" id="show_sysnl" value="done"/>
+				  <input type="hidden" name="session_id" id="session_id" value="{{ session_id }}"/>
+				  {% for stm in stm_keys %}
+				     <input type="hidden" name="stm_key_list[]" id="stm_key_list[]" value="{{ stm }}" checked="checked"/>
+				  {% endfor %}
+				  <div class="cell large-6 medium-6 small-12">
+				      <h4>Proceed with vendor?<h4/>
+			      </div>
+				  <div class="cell large-6 medium-6 small-12">
+					  <button class="secondary button shadow" name="not_proceed"  class="close" data-dismiss="modal" value="T" style="float:right; margin-top:-50px;" id="not_proceed" type="submit">No</button>
+					  <button class="secondary button shadow" name="yes_proceed" value="T" style="float:right; margin-top:-50px;" id="yes_proceed" type="submit">Yes</button>
+
+				  </div>				  
+                </form>          
+            </div>
+          </div>                
+       </div>
+      </div>
+	  {% endif %}
+<!-- Modal Error Pop-up -->
+	  
 <script>
 $(function() {
     $("#updateModal").modal();//if you want you can have a timeout to hide the window after x seconds
@@ -434,8 +890,10 @@ $(function() {
               <h4 class="modal-title">Update Stock</h4>
             </div>
             <div class="modal-body">
-                <form method="POST" id="update_form" name="update_form">
+                <form method="POST" id="update_stock" name="update_stock">
                   {% csrf_token %}
+				  <input type="hidden" name="rdx_sel" id="rdx_sel" value="{{rdx_sel}}"/>
+				  <input type="hidden" name="site_sel" id="site_sel" value="{{site_sel}}"/>
 				  <input type="hidden" name="session_id" id="session_id" value="{{ session_id }}"/>
 				  <input type="hidden" name="user_auto_key" id="user_auto_key" value="{{ sysur_auto_key }}"/>
 				  <input type="hidden" name="filter_serial"  id="filter_serial" value="{{ serial_number }}"/>
@@ -445,6 +903,7 @@ $(function() {
 				  <input type="hidden" name="filter_desc"  id="filter_desc" value="{{ description }}"/>
 				  <input type="hidden" name="mode_selector" id="mode_selector" value="{{ active_mode }}"/>
 				  <input type="hidden" name="ro_number" id="ro_number" value="{{ ro_number }}"/>
+				  <input type="hidden" name="separate_ros" id="separate_ros" value="{{ separate_ros }}"/>
 				  
 				  {% for stm in stm_list %}
 				     <input type="hidden" name="stm_sels[]" id="stm_sels[]" value="{{ stm }}" checked="checked"/>
@@ -487,7 +946,7 @@ $(function() {
                                 {% endfor %}
 							  </datalist-->
 							</div>						  
-							<div class="cell large-4 medium-6 small-12">
+							<!--div class="cell large-4 medium-6 small-12">
 							  <label>Instructions:</label>
 							  <input type="radio" id="bench_test" name="instr" value="bench test"/>
 							  <label for="html">Bench Test</label>
@@ -516,7 +975,7 @@ $(function() {
 							  <input type="checkbox" id="others" name="cert" value="Others"/>
 							  <label for="html">Others</label>
 							</div>							
-							<!--div class="cell large-4 medium-6 small-12">
+							<div class="cell large-4 medium-6 small-12">
 							  <label>MOD</label>
 							  
 							  <input type="radio" id="inspect" name="mod" value="Inspect"/>
@@ -535,7 +994,7 @@ $(function() {
 							  <label for="html">Export</label>
 							</div-->
 							<div class="cell large-4 medium-6 small-12">
-							  <label>Special Instructions:</label>
+							  <label>Notes:</label>
 							  <textarea type="text" name="upd_notes" id="upd_notes"></textarea>
 							</div>
 							<div class="cell large-4 medium-6 small-12">
@@ -563,45 +1022,7 @@ $(function() {
 			  </div>
 		</div>
 	</div>
-	{% endif %}
-    <div class="mro-top-section-wrapper mro-table">
-      <div class="grid-container mro-top-section">
-	    <div class="grid-x grid-padding-x">
-		  <script>		
-					$("input").click(function (e) {
-					    id_clicked = e.target.id
-						if (id_clicked == 'save_opts') {
-						    var grid = $("#grid").data("kendoGrid");
-							e.preventDefault();				
-							$('#options_save').val('1');
-							var pageSize = $('.k-input').text();
-							var cols = grid.getOptions().columns;					
-							var colOptions = kendo.stringify(cols);
-							$.ajax({// initialize an AJAX request
-								type: "POST",
-								url: '{% url "save_grid_options" %}',
-								data: {
-								    'page_size': pageSize,
-								    'col_options': colOptions,
-									'quapi_id': {{ quapi_id }},
-									'csrfmiddlewaretoken':$('input[name=csrfmiddlewaretoken]').val(),
-									},
-
-								success: function (data) {
-									
-									//data.forEach(function (data) {
-									    //col_data += data
-									
-								    //});
-								    $("#col_data").val(data); // replace the col options
-						        }
-						});	
-					} 
-		  </script>
-		</div>
-      </div>
-    </div>
-	
+	{% endif %}	
 <script>
 $(function() {
     $("#myModal").modal();//if you want you can have a timeout to hide the window after x seconds
@@ -615,26 +1036,29 @@ $(function() {
           <div class="modal-content">
             <div class="modal-header">
               <button type="button" class="close" data-dismiss="modal">&times;</button>
-              <h4 class="modal-title">Please enter a vendor for your new RO.</h4>
+              <h4 class="modal-title">Choose Vendor</h4>
             </div>
             <div class="modal-body">
                 <form method="POST" id="vendor_form" name="vendor_form">
                   {% csrf_token %}
+				  <input type="hidden" name="rdx_sel" id="rdx_sel" value="{{rdx_sel}}"/>
+				  <input type="hidden" name="site_sel" id="site_sel" value="{{site_sel}}"/>
                   <input type="hidden" name="is_vendor_form" id="is_vendor_form" value="1"/>
 				  <input type="hidden" name="user_in" id="user_in" value="{{user_in}}"/>
-				  <input type="hidden" name="wo_stat" id="wo_stat" value="{{ wo_stat }}"/>
-				  <input type="hidden" name="wo_stock_stat" id="wo_stock_stat" value="{{ stock_status }}"/>
-				  <input type="hidden" name="cond_code" id="cond_code" value="{{ cond_code }}"/>
+				  <input type="hidden" name="active_mode" id="active_mode" value="{{ active_mode }}"/>
+				  <input type="hidden" name="repair_type" id="repair_type" value="{{ repair_type }}"/>
+                  <input type="hidden" name="mode_selector" id="mode_selector" value="{{ active_mode }}"/>
 				  <input type="hidden" name="socond_code" id="socond_code" value="{{ socond_code }}"/>
-				  <input type="hidden" name="mode_code" id="mode_code" value="{{ mode_code }}"/>
+				  <input type="hidden" name="mode_code" id="mode_code" value="{{ active_mode }}"/>
 				  <input type="hidden" name="location_code" id="location_code" value="{{ location_code }}"/>
 				  <input type="hidden" name="wo_num" id="wo_num" value="{{ wo_num }}"/>
+				  <input type="hidden" name="separate_ros" id="separate_ros" value="{{ separate_ros }}"/>
 				  <input type="hidden" name="part_num" id="part_num" value="{{ part_num }}"/>
 				  <input type="hidden" name="stock_lab" id="stock_lab" value="{{ stock_lab }}"/>
 				  <input type="hidden" name="user_session" id="user_session" value="{{ user_session }}"/>
 				  <input type="hidden" name="user_auto_key" id="user_auto_key" value="{{ user_auto_key }}"/>
 				  {% for stm in stm_keys %}
-				     <input type="hidden" name="stm_keys_sel[]" id="stm_keys_sel[]" value="{{ stm }}" checked="checked"/>
+				     <input type="hidden" name="stm_key_list[]" id="stm_key_list[]" value="{{ stm }}" checked="checked"/>
 				  {% endfor %}
 				  <!--div class="cell large-6 medium-6 small-12">
 					  <label>Vendor</label>
@@ -642,7 +1066,7 @@ $(function() {
 				  </div-->
 				 <input type="hidden" name="vendor_input" id="vendor_input" class="vendor_input"/>
 				  <div class="cell large-6 medium-6 small-12">
-                      <label>Vendor</label>
+                      <!--label>Vendor</label-->
 				      <input type="text" list="vendor_list" id="vend_input" name="vend_input" value="{{ vend_input }}"/>
 					    <datalist id="vendor_list">
 							<option value=""> -- No Selection -- </option>
@@ -653,7 +1077,7 @@ $(function() {
 				  </div>
 				  <div><br/><br/></div>	
 				  <div class="cell large-6 medium-6 small-12">
-					  <button class="secondary button shadow" onclick="this.disabled=true,this.form.submit();" name="vendor_submit" style="float:right; margin-top:-50px;" id="vendor_submit" type="submit">Go</button>
+					  <button class="secondary button shadow" name="vendor_submit" style="float:right; margin-top:-50px;" id="vendor_submit" type="submit">Go</button>
 				  </div>				  
                 </form>          
             </div>
@@ -688,6 +1112,150 @@ $(function() {
       </div>
 	  {% endif %}  
     <!-- End modal error popup -->
+<script>
+$(function() {
+    $("#myModal").modal();//if you want you can have a timeout to hide the window after x seconds
+});
+</script>
+<!-- Modal -->
+{% if company_sites %}
+<div class="modal fade" id="myModal" role="dialog">
+  <div class="modal-dialog">
+	  <!-- Modal content-->
+	<div class="modal-content">
+	  <div class="modal-header">
+		<button type="button" class="close" data-dismiss="modal">&times;</button>
+		  <h4 class="modal-title">Choose Site</h4>
+	  </div>
+	  <div class="modal-body">
+		<form method="POST" id="site_rdx_form" name="site_rdx_form">
+		  {% csrf_token %}
+          <input type="hidden" name="rdx_sel" id="rdx_sel" value="{{rdx_sel}}"/>
+		  <input type="hidden" name="site_sel_form" id="site_sel_form" value="1"/>
+		  <input type="hidden" name="sysnl" id="sysnl" value="{{log_choice}}"/>
+		  <input type="hidden" name="vend_input" id="vend_input" value="{{vend_input}}"/>
+		  <input type="hidden" name="mode_selector" id="mode_selector" value="{{ active_mode }}"/>
+		  <input type="hidden" name="wo_stock_stat" id="wo_stock_stat" value="{{ stock_status }}"/>
+		  <input type="hidden" name="repair_type" id="repair_type" value="{{ repair_type }}"/>
+		  <input type="hidden" name="socond_code" id="socond_code" value="{{ socond_code }}"/>
+		  <input type="hidden" name="mode_code" id="mode_code" value="{{ mode_code }}"/>
+		  <input type="hidden" name="location_code" id="location_code" value="{{ location_code }}"/>
+		  <input type="hidden" name="ro_number" id="ro_number" value="{{ ro_number }}"/>
+		  <input type="hidden" name="separate_ros" id="separate_ros" value="{{ separate_ros }}"/>
+		  <input type="hidden" name="stock_lab" id="stock_lab" value="{{ stock_lab }}"/>
+		  <input type="hidden" name="user_session" id="user_session" value="{{ user_session }}"/>
+		  <input type="hidden" name="user_auto_key" id="user_auto_key" value="{{ user_auto_key }}"/>
+		  <input type="hidden" name="show_sysnl" id="show_sysnl" value="done"/>
+		  <input type="hidden" name="shown_site" id="shown_site" value="{{shown_site}}"/>
+		  <input type="hidden" name="shown_rdx" id="shown_rdx" value="{{shown_rdx}}"/>
+		  <input type="hidden" name="session_id" id="session_id" value="{{ session_id }}"/>
+		 {% for stm in stm_keys %}
+		 <input type="hidden" name="stm_key_list[]" id="stm_key_list[]" value="{{ stm }}" checked="checked"/>				
+		 {% endfor %}
+		 <div class="mro-lightsearch">
+		   <div class="grid-x grid-padding-x">
+			 <div class="large-6 small-12 cell" style="width:100%;">
+			   <div class="grid-x grid-padding-x align-middle">
+				 {% if company_sites %}
+				 <div class="cell large-6 medium-6 small-12">
+					<label>Use Default</label>
+					<input type="checkbox" name="use_default_site" value="1"/>
+				  </div>	
+				 <div class="cell large-6 medium-6 small-12">					  
+				  <label>Sites</label>
+				  <select name="site_sel" id="site_sel" style="background-color:#cacaca;">
+					<option value=""> -- No Selection -- </option>
+					{% for cst in company_sites %}	
+						<option value="{{ cst.cst_auto_key }}">{{ cst.description }}-{{ cst.ship_name }}</option>
+					{% endfor %}
+				  </select>
+				</div>
+				{% endif %}
+				<div><br/><br/><br/><br/><br/><br/></div>	
+				<div class="cell large-6 medium-6 small-12">
+				  <button class="secondary button shadow" name="cst_submit" style="float:right;" id="cst_submit" type="submit">Go</button>
+				</div>					 
+              </form>
+			</div>
+		  </div>                
+		</div>
+      </div>				
+    </div>
+  </div>                
+</div>
+</div>
+{% endif %}
+<script>
+$(function() {
+    $("#myModal").modal();//if you want you can have a timeout to hide the window after x seconds
+});
+</script>
+<!-- Modal -->
+{% if rolodexes %}
+<div class="modal fade" id="myModal" role="dialog">
+  <div class="modal-dialog">
+  <!-- Modal content-->
+    <div class="modal-content">
+	  <div class="modal-header">
+	    <button type="button" class="close" data-dismiss="modal">&times;</button>
+		<h4 class="modal-title">Choose Rolodexes</h4>
+	  </div>
+	  <div class="modal-body">
+        <form method="POST" id="rdx_form" name="rdx_form">
+		  {% csrf_token %}
+		  <input type="hidden" name="ro_warn_form" id="ro_warning_form" value="1"/>
+		  <input type="hidden" name="site_sel" id="site_sel" value="{{site_sel}}"/>
+		  <input type="hidden" name="sysnl" id="sysnl" value="{{log_choice}}"/>
+		  <input type="hidden" name="vend_input" id="vend_input" value="{{vend_input}}"/>
+		  <input type="hidden" name="mode_selector" id="mode_selector" value="{{ active_mode }}"/>
+		  <input type="hidden" name="wo_stock_stat" id="wo_stock_stat" value="{{ stock_status }}"/>
+		  <input type="hidden" name="repair_type" id="repair_type" value="{{ repair_type }}"/>
+		  <input type="hidden" name="socond_code" id="socond_code" value="{{ socond_code }}"/>
+		  <input type="hidden" name="mode_code" id="mode_code" value="{{ mode_code }}"/>
+		  <input type="hidden" name="location_code" id="location_code" value="{{ location_code }}"/>
+		  <input type="hidden" name="ro_number" id="ro_number" value="{{ ro_number }}"/>
+		  <input type="hidden" name="separate_ros" id="separate_ros" value="{{ separate_ros }}"/>
+		  <input type="hidden" name="stock_lab" id="stock_lab" value="{{ stock_lab }}"/>
+		  <input type="hidden" name="user_session" id="user_session" value="{{ user_session }}"/>
+		  <input type="hidden" name="user_auto_key" id="user_auto_key" value="{{ user_auto_key }}"/>
+		  <input type="hidden" name="show_sysnl" id="show_sysnl" value="done"/>
+		  <input type="hidden" name="shown_site" id="shown_site" value="{{shown_site}}"/>
+		  <input type="hidden" name="shown_rdx" id="shown_rdx" value="{{shown_rdx}}"/>
+		  <input type="hidden" name="session_id" id="session_id" value="{{ session_id }}"/>
+		  {% for stm in stm_keys %}
+		  <input type="hidden" name="stm_key_list[]" id="stm_key_list[]" value="{{ stm }}" checked="checked"/>				
+		  {% endfor %}
+		 <div class="mro-lightsearch">
+		   <div class="grid-x grid-padding-x">
+			 <div class="large-6 small-12 cell" style="width:100%;">
+			   <div class="grid-x grid-padding-x align-middle">
+				 <div class="cell large-6 medium-6 small-12">
+					<label>Use Default Rolodex</label>
+					<input type="checkbox" name="use_default_rdx" value="1"/>
+				 </div>
+				 <div class="cell large-6 medium-6 small-12">					  
+				   <label>Rolodex</label>
+				   <select name="rdx_sel" id="rdx_sel" style="background-color:#cacaca;">
+					 <option value=""> -- No Selection -- </option>
+					 {% for rdx in rolodexes %}	
+					 <option value="{{ rdx.rdx_auto_key }}">{{ rdx.name }}, {{ rdx.title }}</option>
+					 {% endfor %}
+				   </select>
+				 </div>
+				 <div><br/><br/><br/><br/><br/><br/></div>	
+				 <div class="cell large-6 medium-6 small-12">
+				   <button class="secondary button shadow" name="rdx_submit" style="float:right;" id="rdx_submit" type="submit">Go</button>
+				 </div>
+			   </div>                
+			 </div>
+		   </div>	
+         </div>			
+       </form>          
+	  </div>
+	</div>                
+  </div>
+</div>
+	{% endif %}
 	<script type="text/x-kendo-template" id="template">
 		<div id="toolbar"></div>
 	</script> 
@@ -695,21 +1263,18 @@ $(function() {
       <div class="grid-container mro-bottom-section">
 	      <div class="grid-x grid-padding-x">	
 			{% if all_woos %}
-																																				  
-																																			 
-																								  
-																																																																																											  
-		  
 			<div class="centered grid" id="grid" name="grid">
-			  <!--div class="counter_wrap">
-		         
+			<ul id="context-menu">
+				<li id="copyText">Copy Text</li>
+			</ul>
+		    <!--div class="counter_wrap">
 			     <input type="button" class="primary button shadow" value="UPDATE" name="wo_update" id="wo_update"/>			 
 				 <input type="text" class="sel_rows" id="sel_rows" name="sel_rows" size="4" value="{{ sel_rows }}" readonly>of     <input type="text" class="total_rows" id="total_rows" name="total_rows" value="{{ total_rows }}" size="5" readonly>
 			  </div>
 			<div class="counter_wrap">					  
-			  <input type="text" class="sel_rows" id="sel_rows" name="sel_rows" size="4" value="{{ sel_rows }}" readonly>of     <input type="text" class="total_rows" id="total_rows" name="total_rows" value="{{ total_rows }}" size="5" readonly>
+			  <input type="text" class="sel_rows" id="sel_rows" name="sel_rows" size="4" value="{{ sel_rows }}" readonly>of    
+			  <input type="text" class="total_rows" id="total_rows" name="total_rows" value="{{ total_rows }}" size="5" readonly>
 			</div-->	
-
 			<!--/script-->
 								
 			<script>
@@ -727,30 +1292,13 @@ $(function() {
 			  });
 			};
 			var oldPageSize = 0;
-										
-											   
-											   
-											   
-																																		
-
-																 
-						   
-																						
-																			   
-						   
-	  
-		  
-					   
-	  
-
-											
 	  
 			function onChange(e) {
 			    //$('.woos').remove();
 				var rows = e.sender.select();
 				var grid = $("#grid").data("kendoGrid");
 				var currentPage = grid.dataSource.page();
-				//console.log('current page: ' + currentPage + 'selected: ' + rows.length);
+				console.log('current page: ' + currentPage + 'selected: ' + rows.length);
 				//first it goes to woos_first and then onchange again, it goes to woos
 				$("input[type=hidden][uipage='" + currentPage + "']").attr('class', 'woos_stale'); 
 				rows.each(function(e) {
@@ -779,7 +1327,7 @@ $(function() {
 						if ($form.data('submitted') === true) {
 							alert("Can only submit the form once!");
 							// Previously submitted - don't submit again
-							evt.preventDefault ? evt.preventDefault() : (evt.returnValue = false);
+							e.preventDefault ? e.preventDefault() : (e.returnValue = false);
 						} else {
 							// Mark it so that the next submit can be ignored
 							$form.data('submitted', true);
@@ -806,6 +1354,8 @@ $(function() {
 					}						
 					var dsg = new kendo.data.DataSource(dataSourceArguments);
 					var options = localStorage["grid-options"];
+					var options_col = $("#col_data").val();
+					
 					$("#grid").kendoGrid({
 						toolbar: kendo.template($("#template").html()),
 						excel: {
@@ -818,7 +1368,8 @@ $(function() {
 						reorderable: true,
 						resizable: true,
 						columnMenu: true,
-                        selectable: "multiple, row",
+                        selectable: "multiple",
+						//allowCopy: true,
 						persistSelection: true,
                         navigatable: false,
 						change: onChange,
@@ -829,9 +1380,7 @@ $(function() {
 						},
 						// Auto Fit Columns to resize columns to fit data on load
 						dataBound: function() {
-						    
-						    //console.log('The options:' + {{options_col}});
-							var options_col = $("#col_data").val();
+
 						    if (!options_col) {
 								for (var i = 0; i < this.columns.length; i++) {
 									this.autoFitColumn(i);
@@ -841,18 +1390,7 @@ $(function() {
 						mobile: true,
 						// Disable width to allow for dataBound function to work
 						//console.log('The options:' + {{options_col}});
-						var options_col = $("#col_data").val();
-						if (options_col) {
-							for col in options_col {
-								{						
-								  field: col.field,
-								  title: col.name,
-								  width: col.width,
-								  template: col.template,
-								},
-							}
-                        }
-                        else {						
+					
 							columns: [
 								{
 								  field: 'wo_number',
@@ -891,6 +1429,11 @@ $(function() {
 								//   width: "2cm",	
 								},
 								{
+								  field: 'consignment_code',
+								  title: 'CONS',
+								//   width: "2cm",	
+								},
+								{
 								  field: 'condition_code',
 								  title: 'CUR CD',
 								//   width: "2cm",	
@@ -899,17 +1442,7 @@ $(function() {
 								  field: 'cond_level_gsix',
 								  title: 'BUY CD',
 								//   width: "2cm",	
-								},
-			  
-							 
-									 
-											
-					  
-								{
-								  field: 'stm_auto_key',
-								  title: 'STM',
-								  //   width: "2cm",
-								},							
+								},						
 								{
 								  field: 'status',
 								  title: 'Status',
@@ -918,7 +1451,7 @@ $(function() {
 								{
 								  field: 'quantity',
 								  title: 'QTY OH',
-								//   width: "2cm",	
+								//   width: "2cm",
 								},
 								{
 								  field: 'location_code',
@@ -935,15 +1468,7 @@ $(function() {
 								  title: 'Last Vendor',
 								//   width: "2.2cm",	
 								},
-								//{
-								  //field: 'sub_wo_gate',
-								  //title: 'Gate',
-								  //width: "1.8cm",
-								//},
-							]
-						
-						}
-					
+							]					
 					});
 
 					$("select[data-role='dropdownlist']").kendoDropDownList({
@@ -995,20 +1520,65 @@ $(function() {
 							{
 								template: `
 									<div class="toolbar-buttons">
-										<input type="button" class="secondary button shadow save_buttons" id="save_opts" value="SAVE"/>
-										<!--a href="#" class="secondary button shadow" id="save">SET GRID</a-->
+										<input type="button" class="secondary button shadow save_buttons" id="save_opts" name="save_opts" value="SAVE"/>
 										<input type="button" id="select_all" name="select_all" class="secondary button shadow" value="SELECT ALL"/>
-										<input type="button" id="update" name="update" class="primary button shadow" value="UPDATE"/>
+										<input type="button" id="launch_upd" name="launch_upd" class="primary button shadow" value="UPDATE"/>
 										<input type="text" class="sel_rows" id="sel_rows" name="sel_rows" size="4" value="{{ sel_rows }}" readonly>of     <input type="text" class="total_rows" id="total_rows" name="total_rows" value="{{ total_rows }}" size="5" readonly>
 									</div>`,
 								attributes: {"class":"align-buttons"}
 							},
 						]
 					});	
+
+					$("input").click(function(e){
+
+						var id_clicked = e.target.id;
+						var updateForm = $("#update_form");
+						if (id_clicked == 'launch_upd') {
+						    showSpinner();
+							$('body').append('<div style="" id="loadingDiv"><div class="loader">Loading...</div></div>');
+								$(window).on('load', function(){
+								setTimeout(removeLoader, 0); //wait for page load PLUS two seconds.
+							});					
+							$('#launch_update').val('1');
+							updateForm.submit();
+						}
+					}) 					
+					$("#save_opts" ).click(function() {
+						var grid = $("#grid").data("kendoGrid");			
+						$('#options_save').val('1');
+						var pageSize = $('.k-input').text();
+						var cols = grid.getOptions().columns;					
+						var colOptions = kendo.stringify(cols);
+						console.log('got here at save_opts');
+						$.ajax({// initialize an AJAX request
+							type: "POST",
+							url: '{% url "save_grid_options" %}',
+							data: {
+								'page_size': pageSize,
+								'col_options': colOptions,
+								'quapi_id': {{ quapi_id }},
+								'user_id': {{ user_id }},
+								'ml_app_id': 'repair-order-mgmt',
+								'csrfmiddlewaretoken':$('input[name=csrfmiddlewaretoken]').val(),
+								},
+
+							success: function (data) {
+								
+								//data.forEach(function (data) {
+									//col_data += data
+								
+								//});
+								console.log('the data: ' + data);
+								$("#col_data").val(data); // replace the col options
+							}
+						});	
+					})			
 					
-					$( "#select_all" ).click(function() {
+					$("#select_all" ).click(function() {
 					//   alert( "Handler for .click() called." );
 						var grid = $("#grid").data("kendoGrid");
+
 						//oldPageSize = grid.dataSource.pageSize();
 						//grid.dataSource.pageSize(grid.dataSource.data().length);
 
@@ -1037,12 +1607,16 @@ $(function() {
 							selected = $.grep(selected, function(x) {
 								var itemToRemove = grid.dataItem(row);
 								var currentItem = grid.dataItem(x);
-								return itemToRemove.stm_auto_key != currentItem.stm_auto_key
+								return itemToRemove.id != currentItem.id
 							})
 
 							grid.clearSelection();
 							$('#sel_rows').val(0);
 							grid.select(selected);
+						
+     						if (selected==false) {
+							    $('#sel_rows').val(0);
+							}
 							e.stopPropagation();
 
 						} else {
@@ -1050,25 +1624,40 @@ $(function() {
 							e.stopPropagation();
 						}
 					});
+				    //////////////////////////////////////////////////////////////////////////////////
+
+					$("#context-menu").kendoContextMenu({
+						target: "#grid",
+						filter: "td",
+						select: function (e) {
+							var cell = e.target;
+							var row = $(cell).parent()[0];
+							var grid = $("#grid").getKendoGrid();
+							var itemId = e.item.id;
+                            console.lo
+							var cellText = cell.innerText;
+
+							if (itemId === 'copyText') {
+								new Clipboard('#copyText', {
+									text: function (trigger) {
+										return cellText;
+									}
+								});
+							};
+						}
+					});
+
+					$(document).on("mousedown", "td", function (e) {
+						setTimeout(function () {
+							$("#grid").data("kendoGrid").saveRow();
+						})
+					});
 				});
 			  </script>	
 	            </div>	
 			{% endif %}
 		  </div>
-        <!--div class="grid-x mro-pagination-section">
-          <!-- <div class="cell large-5 medium-6 small-12">
-            <a class="mrotop" href="#mrotop" data-smooth-scroll><span>^</span> Back to Top</a>
-          </div> -->
-			<!--div class="cell large-4 medium-4 small-4"></div>
-        	<div class="cell large-4 medium-4 small-4 grid-x align-center">
-            	<a class="mrotop" href="#mrotop" data-smooth-scroll><span>^</span> Back to Top</a>
-          	</div>
-		  	<div class="cell large-4 medium-4 small-4"></div>	
-        </div>		  
-	    </div>
-	  </div-->
-   
-				
+
 <div class="mro-footer-wrapper">
 	<div class="grid-container mro-footer">
 		<div class="grid-x">
@@ -1079,10 +1668,10 @@ $(function() {
 
 		<div class="grid-x mro-footer-bottom">
 			<div class="cell medium-5 small-12 mro-footer-bottom-left">
-				<p>Copyright &copy; 2025 MRO Live <span>|</span> <img class="mro-usa" src="{% static 'dist/assets/img/usa.png' %}" alt="Based in USA">Based in USA</p>
+				<p>Copyright &copy; 2026 MRO Live <span>|</span> <img class="mro-usa" src="{% static 'dist/assets/img/usa.png' %}" alt="Based in USA">Based in USA</p>
 			</div>
 		</div>
 	</div>
 </div><script src="{% static 'dist/assets/js/app.js' %}"></script>
 </body>
-</html>
+</html>																																																																																																																																																		
