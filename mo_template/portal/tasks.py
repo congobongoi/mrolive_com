@@ -1,4 +1,10 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
+"""MRO Live Demo Version 1.01.01.03
+Trailing last to numbers:
+Patch .01 - Fixes labor mgmt and labor tracking apps
+Patch .02 - Fixes to Labor Tracking batching functionality.
+Patch .03 - Fixes to Labor batching, interface, added spinning wheel"""
+
 import requests
 import importlib
 import dateparser
@@ -21,9 +27,135 @@ FILE_PATH = settings.MEDIA_URL
 
 #*****************************************************************************#
 @shared_task
+def check_rolodex(quapi_id,session_id,stm_list):
+    
+    error,msg = '','' 
+    from polls.models import QueryApi,Rolodex
+    quapi = QueryApi.objects.filter(id=quapi_id)
+    quapi = quapi and quapi[0] or None
+    cr,con = get_cursor_con(quapi)
+    if not cr:
+        return 'Quantum connection failed.',msg
+
+    for stm in stm_list:
+        query="""
+            SELECT CST.CST_AUTO_KEY,CST.SHIP_NAME,CST.SITE_DESCRIPTION
+            FROM COMPANY_SITES CST
+            LEFT JOIN COMPANIES C ON C.CMP_AUTO_KEY=CST.CMP_AUTO_KEY
+            WHERE C.CMP_AUTO_KEY = (SELECT CMP_AUTO_KEY
+            FROM STOCK WHERE STM_AUTO_KEY = %s)
+        """%stm
+    
+    rdx = selection_dir(query,cr)
+    
+    if len(rdx) > 1:
+        
+        msg = 'Multiple Rolodexes'
+        rdx_data = []
+        
+        for rdx in rdxs:
+            rdx_data.append(Rolodex(
+                session_id = session_id,
+                rdx_auto_key = rdx[0],
+                ship_name = rdx[1],
+                description = rdx[2],
+                session_id = session_id,
+                )
+            )
+            
+        try:
+            new_statii = rdx_data and Rolodex.objects.bulk_create(rdx_data) or None
+            
+        except Exception as exc:
+            error = "Error with rolodex: %s"%exc 
+        
+    return error,msg
+
+@shared_task
+def check_company_sites(quapi_id,session_id,stm_list):
+    
+    error,msg = '','' 
+    from polls.models import QueryApi,CompanySite
+    quapi = QueryApi.objects.filter(id=quapi_id)
+    quapi = quapi and quapi[0] or None
+    cr,con = get_cursor_con(quapi)
+    
+    if not cr:
+        return 'Quantum connection failed.',msg
+
+    for stm in stm_list:
+        query="""
+            SELECT CST.CST_AUTO_KEY,CST.SHIP_NAME,CST.SITE_DESCRIPTION
+            FROM COMPANY_SITES CST
+            LEFT JOIN COMPANIES C ON C.CMP_AUTO_KEY=CST.CMP_AUTO_KEY
+            WHERE C.CMP_AUTO_KEY = (SELECT CMP_AUTO_KEY
+            FROM STOCK WHERE STM_AUTO_KEY = %s)
+        """%stm
+    
+    cst = selection_dir(query,cr)
+    
+    if len(cst) > 1:
+        
+        msg = 'Multiple Sites'
+        cst_data = []
+        
+        for cst in csts:
+            
+            cst_data.append(CompanySite(
+                session_id = session_id,
+                cst_auto_key = cst[0],
+                ship_name = cst[1],
+                description = cst[2],
+                session_id = session_id,
+                )
+            )
+            
+        try:
+            new_statii = cst_data and CompanySite.objects.bulk_create(cst_data) or None
+            
+        except Exception as exc:
+            error = "Error with creating company sites: %s"%exc 
+        
+    return error,msg
+    
+@shared_task
+def get_uoms(quapi_id,session_id):
+    error,msg = '','' 
+    from polls.models import QueryApi,UomCodes
+    quapi = QueryApi.objects.filter(id=quapi_id)
+    quapi = quapi and quapi[0] or None
+    cr,con = get_cursor_con(quapi)
+    if not cr:
+        return 'Quantum connection failed.',msg
+        
+    query = """SELECT UOM_AUTO_KEY,UOM_CODE,
+    DESCRIPTION,SEQUENCE FROM UOM_CODES ORDER BY UOM_CODE
+    """    
+    uoms = selection_dir(query,cr)
+    
+    uom_data = []
+    for uom in uoms:
+        uom_data.append(UomCodes(
+            session_id = session_id,
+            uom_auto_key = uom[0],
+            uom_code = uom[1],
+            description = uom[2],
+            sequence = uom[3],
+            )
+        )
+        
+    try:
+        new_statii = uom_data and UomCodes.objects.bulk_create(uom_data) or None
+        
+    except Exception as exc:
+        error = "Error with creating the units of measure: %s"%exc 
+        
+    return error,msg
+    
+@shared_task
 def check_stock(quapi_id,ctrl_id,ctrl_number):
     error,msg = '','' 
-    from polls.models import QueryApi,Warehouse
+    from polls.models import QueryApi
     quapi = QueryApi.objects.filter(id=quapi_id)
     quapi = quapi and quapi[0] or None
     cr,con = get_cursor_con(quapi)   
@@ -36,10 +168,12 @@ def check_stock(quapi_id,ctrl_id,ctrl_number):
         AND QTY_OH > 0 AND HISTORICAL_FLAG = 'F'
         """%(ctrl_id,ctrl_number)
         
+                                 
+
     stm = selection_dir(query,cr)
     #check if there are more than 1 stm_auto_key's for that combo
     if len(stm) > 1:
-        error = 'Multiple stock lines found.'   
+        error = 'Multiple stock lines found. Reprint the label.'   
         
     return error,msg
 	
@@ -206,7 +340,8 @@ def search_val_stock(quapi_id,user_id,sysur_auto_key,\
     query ="""SELECT DISTINCT S.STM_AUTO_KEY,S.STOCK_LINE,P.PN,P.DESCRIPTION, 
           S.SERIAL_NUMBER,L.LOCATION_CODE,S.REMARKS,CNC.CONSIGNMENT_CODE,
           PCC.CONDITION_CODE,UC.UOM_CODE,UDL.UDL_CODE,S.QTY_OH,
-          CASE WHEN W.SI_NUMBER IS NOT NULL THEN W.SI_NUMBER ELSE WB.SI_NUMBER END
+          CASE WHEN W.SI_NUMBER IS NOT NULL THEN W.SI_NUMBER ELSE WB.SI_NUMBER END,
+          S.CTRL_NUMBER,S.CTRL_ID
           FROM STOCK S
             LEFT JOIN STOCK_RESERVATIONS SR ON SR.STM_AUTO_KEY = S.STM_AUTO_KEY
             LEFT JOIN WO_OPERATION W ON W.WOO_AUTO_KEY = SR.WOO_AUTO_KEY
@@ -242,6 +377,8 @@ def search_val_stock(quapi_id,user_id,sysur_auto_key,\
             cart = rec[10],
             quantity = rec[11],
             wo_number = rec[12],
+            ctrl_number = rec[13],
+            ctrl_id = rec[14],
             session_id = session_id,
             ))
         
@@ -641,7 +778,7 @@ def create_open_labor(session_id,timestamp,recs):
         hours = rec[6] 
         if rec[1]:
             start_time = datetime.strptime(rec[1],'%Y-%m-%d %H:%M:%S')
-            start_time = start_time + timedelta(hours=1)        
+            #start_time = start_time - timedelta(hours=1)   
             if not hours:
                 diff = timestamp - start_time
                 days, seconds = diff.days, diff.seconds
@@ -651,6 +788,7 @@ def create_open_labor(session_id,timestamp,recs):
             session_id = session_id,
             wo_number = rec[2],
             sequence = rec[3],
+            loc_code = rec[3],
             task_desc = rec[4], 
             hours = hours,
             user_name = rec[0],
@@ -679,9 +817,10 @@ def open_labor(quapi_id,session_id):
 
     date_format = '%Y-%m-%d %H:%M:%S'
     today = datetime.now()
-    timestamp = today and today.strftime(date_format)    
+    timestamp = today and today.strftime(date_format)
+    lo_timestamp = timestamp and datetime.strptime(timestamp,'%Y-%m-%d %H:%M:%S')    
     #MTU: makes it CST    
-    timestamp = today - timedelta(hours=1)        
+    #timestamp = today - timedelta(hours=1)        
     """time_query = "SELECT SYSTIMESTAMP FROM DUAL"
     today = selection_dir(time_query,cr)
     today = today and today[0] and today[0][0] and today[0][0][:18] or None
@@ -699,7 +838,7 @@ def open_labor(quapi_id,session_id):
     recs = selection_dir(query,cr)
     
     if recs:
-        error = create_open_labor(session_id,timestamp,recs)
+        error = create_open_labor(session_id,lo_timestamp,recs)
     else:
         error = 'No open labor found.'
 
@@ -910,7 +1049,7 @@ def get_conditions(quapi_id,session_id):
     cr,con = get_cursor_con(quapi)
     if not cr:
         return 'Quantum connection failed.'
-    cond_query = """SELECT DISTINCT CONDITION_CODE
+    cond_query = """SELECT DISTINCT CONDITION_CODE,DESCRIPTION
         FROM PART_CONDITION_CODES WHERE HISTORICAL = 'F'"""
     conditions = selection_dir(cond_query,cr)
     cond_data = []
@@ -918,6 +1057,7 @@ def get_conditions(quapi_id,session_id):
     for cond in conditions:
         cond_data.append(part_cond(
             condition_code = cond[0],
+            description = cond[1],
             session_id = session_id,
         ))                   
     try:
@@ -948,6 +1088,7 @@ def get_stock_status(quapi_id,session_id):
             wos_auto_key = stat[0],
             name = stat[1],
             severity = stat[2],
+            text_wos = str(stat[0]),
             session_id = session_id,
         ))                   
     try:
@@ -981,6 +1122,8 @@ def create_bulk_lots(session_id,recs,is_dashboard=False):
             consignment_code = rec[15],
             loc_validated_date = rec[16] or None,#S.EXP_DATE
             supdate_msg = rec[17],#S.REMARKS
+            ctrl_number = rec[18],
+            ctrl_id = rec[19],
             session_id = session_id,
             is_dashboard = is_dashboard,
         ))                   
@@ -1004,68 +1147,15 @@ def get_lots(quapi_id,session_id,filters):
     serial_no = filters[3]
     stock_status = filters[4]
     consignment = filters[5]
-    where_clause = " WHERE S.HISTORICAL_FLAG <> 'T' AND S.QTY_OH > 0"   
+    where_clause = " WHERE S.HISTORICAL_FLAG <> 'T' AND S.QTY_OH > 0"
 
-    if lot_number:
-        where_clause += """ AND S.STM_LOT IN (SELECT STM_AUTO_KEY FROM STOCK_RESERVATIONS 
-        WHERE WOO_AUTO_KEY IN (SELECT WOO_AUTO_KEY FROM WO_OPERATION WHERE SI_NUMBER = '%s'))
-        AND (WB.WOO_AUTO_KEY IN 
-        (SELECT WOO_AUTO_KEY FROM WO_OPERATION WHERE SI_NUMBER = '%s'))"""%(lot_number,lot_number)
-        
-    if part_number:       
-        where_clause += " AND UPPER(P.PN) LIKE UPPER('%s%s')"%(part_number,'%')
-    if description: 
-        where_clause += " AND UPPER(P.DESCRIPTION) LIKE UPPER('%s%s')"%(description,'%')
-    if serial_no:       
-        where_clause += " AND WB.EXPECTED_SN LIKE UPPER('%s%s')"%(serial_no,'%s')
-    if stock_status:       
-        where_clause += " AND S.IC_UDL_004='%s'"%stock_status
-    if consignment:
-        where_clause += """ AND S.CNC_AUTO_KEY=(SELECT CNC_AUTO_KEY FROM
-        CONSIGNMENT_CODES WHERE UPPER(CONSIGNMENT_CODE) = UPPER('%s'))"""%consignment 
-        
-    query = """SELECT      
-        W.SI_NUMBER,
-        P.PN,
-        P.DESCRIPTION,
-        WB.EXPECTED_SN,        
-        UDL.UDL_CODE,        
-        WB.QTY_NEEDED, 
-        S.QTY_OH,
-        PCC.CONDITION_CODE,
-        SPC.CONDITION_CODE,
-        TO_CHAR(S.NOTES),
-        S.STOCK_LINE,
-        S.STM_AUTO_KEY,
-        S.SERIAL_NUMBER,
-        S.HOLD_LINE,
-        S.SERIES_ID,
-        CC.CONSIGNMENT_CODE,
-        S.EXP_DATE,
-        TO_CHAR(S.REMARKS)
-        FROM WO_BOM WB
-        JOIN WO_OPERATION W ON WB.WOO_AUTO_KEY = W.WOO_AUTO_KEY
-        JOIN STOCK_TI STI ON STI.WOB_AUTO_KEY = WB.WOB_AUTO_KEY
-        JOIN STOCK S ON S.STM_AUTO_KEY = STI.STM_AUTO_KEY
-        LEFT JOIN PART_CONDITION_CODES PCC ON PCC.PCC_AUTO_KEY = WB.PCC_AUTO_KEY
-        LEFT JOIN USER_DEFINED_LOOKUPS UDL ON UDL.UDL_AUTO_KEY = S.IC_UDL_004
-        LEFT JOIN PART_CONDITION_CODES SPC ON SPC.PCC_AUTO_KEY = S.PCC_AUTO_KEY
-        LEFT JOIN CONSIGNMENT_CODES CC ON CC.CNC_AUTO_KEY = S.CNC_AUTO_KEY
-        JOIN PARTS_MASTER P ON P.PNM_AUTO_KEY = S.PNM_AUTO_KEY%s
-        """%(where_clause)
-    recs = selection_dir(query,cr)
-    #if the stock is not reserved to the woo, then we need to look for the rod
-    """
-    need to make the same adjustment for the import. 
-    if the main component isn't reserved to the WOO it will be on an ROD. 
-    if we don't have the woo when we import we don't assign the stm_lot 
-    which is what links all stock to the lot they are part of"""
-    
-    if not recs and lot_number:       
-        where_clause = """ WHERE S.STM_LOT IN (SELECT STM_AUTO_KEY FROM STOCK_RESERVATIONS 
-        WHERE ROD_AUTO_KEY IN (SELECT ROD_AUTO_KEY FROM RO_DETAIL WHERE WOO_AUTO_KEY IN 
-        (SELECT WOO_AUTO_KEY FROM WO_OPERATION WHERE SI_NUMBER = '%s')))"""%lot_number
-        
+    if filters:
+        if lot_number:
+            where_clause += """ AND S.STM_LOT IN (SELECT STM_AUTO_KEY FROM STOCK_RESERVATIONS 
+            WHERE WOO_AUTO_KEY IN (SELECT WOO_AUTO_KEY FROM WO_OPERATION WHERE SI_NUMBER = '%s'))
+            AND (WB.WOO_AUTO_KEY IN 
+            (SELECT WOO_AUTO_KEY FROM WO_OPERATION WHERE SI_NUMBER = '%s'))"""%(lot_number,lot_number)
+            
         if part_number:       
             where_clause += " AND UPPER(P.PN) LIKE UPPER('%s%s')"%(part_number,'%')
         if description: 
@@ -1074,7 +1164,10 @@ def get_lots(quapi_id,session_id,filters):
             where_clause += " AND WB.EXPECTED_SN LIKE UPPER('%s%s')"%(serial_no,'%s')
         if stock_status:       
             where_clause += " AND S.IC_UDL_004='%s'"%stock_status
-        
+        if consignment:
+            where_clause += """ AND S.CNC_AUTO_KEY=(SELECT CNC_AUTO_KEY FROM
+            CONSIGNMENT_CODES WHERE UPPER(CONSIGNMENT_CODE) = UPPER('%s'))"""%consignment 
+            
         query = """SELECT      
             W.SI_NUMBER,
             P.PN,
@@ -1093,68 +1186,141 @@ def get_lots(quapi_id,session_id,filters):
             S.SERIES_ID,
             CC.CONSIGNMENT_CODE,
             S.EXP_DATE,
-            TO_CHAR(S.REMARKS)
+            TO_CHAR(S.REMARKS),
+            S.CTRL_NUMBER,
+            S.CTRL_ID
             FROM WO_BOM WB
-                LEFT JOIN STOCK_TI STI ON STI.WOB_AUTO_KEY = WB.WOB_AUTO_KEY
-                LEFT JOIN STOCK S ON S.STM_AUTO_KEY = STI.STM_AUTO_KEY
-                LEFT JOIN WO_OPERATION W ON WB.WOO_AUTO_KEY = W.WOO_AUTO_KEY
-                LEFT JOIN PART_CONDITION_CODES PCC ON PCC.PCC_AUTO_KEY = WB.PCC_AUTO_KEY
-                LEFT JOIN PART_CONDITION_CODES SPC ON SPC.PCC_AUTO_KEY = S.PCC_AUTO_KEY
-                LEFT JOIN CONSIGNMENT_CODES CC ON CC.CNC_AUTO_KEY = S.CNC_AUTO_KEY
-                LEFT JOIN USER_DEFINED_LOOKUPS UDL ON UDL.UDL_AUTO_KEY = S.IC_UDL_004
-                JOIN PARTS_MASTER P ON P.PNM_AUTO_KEY = S.PNM_AUTO_KEY%s 
-            """%(where_clause) 
-        recs = selection_dir(query,cr)
-        
-    where_clause = ''    
-    if lot_number:
-        where_clause = """ WHERE S.STM_LOT IN (SELECT STM_AUTO_KEY FROM STOCK_RESERVATIONS 
-        WHERE WOO_AUTO_KEY IN (SELECT WOO_AUTO_KEY FROM WO_OPERATION WHERE SI_NUMBER = '%s'))"""%(lot_number)
-        
-        query = """SELECT      
-            '',
-            P.PN,
-            P.DESCRIPTION,
-            '',        
-            UDL.UDL_CODE,        
-            '', 
-            S.QTY_OH,
-            '',
-            SPC.CONDITION_CODE,
-            TO_CHAR(S.NOTES),
-            S.STOCK_LINE,
-            S.STM_AUTO_KEY,
-            S.SERIAL_NUMBER,
-            S.HOLD_LINE,
-            S.SERIES_ID,
-            CC.CONSIGNMENT_CODE,
-            S.EXP_DATE,
-            TO_CHAR(S.REMARKS)
-            FROM STOCK S
+            JOIN WO_OPERATION W ON WB.WOO_AUTO_KEY = W.WOO_AUTO_KEY
+            JOIN STOCK_TI STI ON STI.WOB_AUTO_KEY = WB.WOB_AUTO_KEY
+            JOIN STOCK S ON S.STM_AUTO_KEY = STI.STM_AUTO_KEY
+            LEFT JOIN PART_CONDITION_CODES PCC ON PCC.PCC_AUTO_KEY = WB.PCC_AUTO_KEY
             LEFT JOIN USER_DEFINED_LOOKUPS UDL ON UDL.UDL_AUTO_KEY = S.IC_UDL_004
             LEFT JOIN PART_CONDITION_CODES SPC ON SPC.PCC_AUTO_KEY = S.PCC_AUTO_KEY
             LEFT JOIN CONSIGNMENT_CODES CC ON CC.CNC_AUTO_KEY = S.CNC_AUTO_KEY
             JOIN PARTS_MASTER P ON P.PNM_AUTO_KEY = S.PNM_AUTO_KEY%s
             """%(where_clause)
-        recs += selection_dir(query,cr) 
+        recs = selection_dir(query,cr)
+
+        #if the stock is not reserved to the woo, then we need to look for the rod
+        """
+        need to make the same adjustment for the import. 
+        if the main component isn't reserved to the WOO it will be on an ROD. 
+        if we don't have the woo when we import we don't assign the stm_lot 
+        which is what links all stock to the lot they are part of"""
         
-    add_recs = []
-    stm_keys = []
-    final_recs = []
-    series_id = ''
-    for srec in recs:
-        #loop over all records and get all stock
-        #records that have the same series_number 
-        #but different series_ids
-        if srec[11] in stm_keys:
-            #we found a duplicate
-            continue
-        else:
-            stm_keys.append(srec[11])
-            final_recs.append(srec)      
-            series_id = srec[14]
+        if not recs and lot_number:       
+            where_clause = """ WHERE S.STM_LOT IN (SELECT STM_AUTO_KEY FROM STOCK_RESERVATIONS 
+            WHERE ROD_AUTO_KEY IN (SELECT ROD_AUTO_KEY FROM RO_DETAIL WHERE WOO_AUTO_KEY IN 
+            (SELECT WOO_AUTO_KEY FROM WO_OPERATION WHERE SI_NUMBER = '%s')))"""%lot_number
             
-    error = create_bulk_lots(session_id,final_recs,is_dashboard=True)
+            if part_number:       
+                where_clause += " AND UPPER(P.PN) LIKE UPPER('%s%s')"%(part_number,'%')
+            if description: 
+                where_clause += " AND UPPER(P.DESCRIPTION) LIKE UPPER('%s%s')"%(description,'%')
+            if serial_no:       
+                where_clause += " AND WB.EXPECTED_SN LIKE UPPER('%s%s')"%(serial_no,'%s')
+            if stock_status:       
+                where_clause += " AND S.IC_UDL_004='%s'"%stock_status
+            if consignment:
+                where_clause += """ AND S.CNC_AUTO_KEY=(SELECT CNC_AUTO_KEY FROM
+                CONSIGNMENT_CODES WHERE UPPER(CONSIGNMENT_CODE) = UPPER('%s'))"""%consignment 
+            
+            query = """SELECT      
+                W.SI_NUMBER,
+                P.PN,
+                P.DESCRIPTION,
+                WB.EXPECTED_SN,        
+                UDL.UDL_CODE,        
+                WB.QTY_NEEDED, 
+                S.QTY_OH,
+                PCC.CONDITION_CODE,
+                SPC.CONDITION_CODE,
+                TO_CHAR(S.NOTES),
+                S.STOCK_LINE,
+                S.STM_AUTO_KEY,
+                S.SERIAL_NUMBER,
+                S.HOLD_LINE,
+                S.SERIES_ID,
+                CC.CONSIGNMENT_CODE,
+                S.EXP_DATE,
+                TO_CHAR(S.REMARKS),
+                S.CTRL_NUMBER,
+                S.CTRL_ID
+                FROM WO_BOM WB
+                    LEFT JOIN STOCK_TI STI ON STI.WOB_AUTO_KEY = WB.WOB_AUTO_KEY
+                    LEFT JOIN STOCK S ON S.STM_AUTO_KEY = STI.STM_AUTO_KEY
+                    LEFT JOIN WO_OPERATION W ON WB.WOO_AUTO_KEY = W.WOO_AUTO_KEY
+                    LEFT JOIN PART_CONDITION_CODES PCC ON PCC.PCC_AUTO_KEY = WB.PCC_AUTO_KEY
+                    LEFT JOIN PART_CONDITION_CODES SPC ON SPC.PCC_AUTO_KEY = S.PCC_AUTO_KEY
+                    LEFT JOIN CONSIGNMENT_CODES CC ON CC.CNC_AUTO_KEY = S.CNC_AUTO_KEY
+                    LEFT JOIN USER_DEFINED_LOOKUPS UDL ON UDL.UDL_AUTO_KEY = S.IC_UDL_004
+                    JOIN PARTS_MASTER P ON P.PNM_AUTO_KEY = S.PNM_AUTO_KEY%s 
+                """%(where_clause) 
+            recs = selection_dir(query,cr)
+            
+        where_clause = ''    
+        if lot_number:
+            where_clause = """ WHERE S.STM_LOT IN (SELECT STM_AUTO_KEY FROM STOCK_RESERVATIONS 
+            WHERE WOO_AUTO_KEY IN (SELECT WOO_AUTO_KEY FROM WO_OPERATION WHERE SI_NUMBER = '%s'))"""%(lot_number)
+            
+            if part_number:       
+                where_clause += " AND UPPER(P.PN) LIKE UPPER('%s%s')"%(part_number,'%')
+            if description: 
+                where_clause += " AND UPPER(P.DESCRIPTION) LIKE UPPER('%s%s')"%(description,'%')
+            if serial_no:       
+                where_clause += " AND WB.EXPECTED_SN LIKE UPPER('%s%s')"%(serial_no,'%s')
+            if stock_status:       
+                where_clause += " AND S.IC_UDL_004='%s'"%stock_status
+            if consignment:
+                where_clause += """ AND S.CNC_AUTO_KEY=(SELECT CNC_AUTO_KEY FROM
+                CONSIGNMENT_CODES WHERE UPPER(CONSIGNMENT_CODE) = UPPER('%s'))"""%consignment
+            
+            query = """SELECT      
+                '',
+                P.PN,
+                P.DESCRIPTION,
+                '',        
+                UDL.UDL_CODE,        
+                '', 
+                S.QTY_OH,
+                '',
+                SPC.CONDITION_CODE,
+                TO_CHAR(S.NOTES),
+                S.STOCK_LINE,
+                S.STM_AUTO_KEY,
+                S.SERIAL_NUMBER,
+                S.HOLD_LINE,
+                S.SERIES_ID,
+                CC.CONSIGNMENT_CODE,
+                S.EXP_DATE,
+                TO_CHAR(S.REMARKS),
+                S.CTRL_NUMBER,
+                S.CTRL_ID
+                FROM STOCK S
+                LEFT JOIN USER_DEFINED_LOOKUPS UDL ON UDL.UDL_AUTO_KEY = S.IC_UDL_004
+                LEFT JOIN PART_CONDITION_CODES SPC ON SPC.PCC_AUTO_KEY = S.PCC_AUTO_KEY
+                LEFT JOIN CONSIGNMENT_CODES CC ON CC.CNC_AUTO_KEY = S.CNC_AUTO_KEY
+                JOIN PARTS_MASTER P ON P.PNM_AUTO_KEY = S.PNM_AUTO_KEY%s
+                """%(where_clause)
+            recs += selection_dir(query,cr) 
+            
+        add_recs = []
+        stm_keys = []
+        final_recs = []
+        series_id = ''
+        for srec in recs:
+            #loop over all records and get all stock
+            #records that have the same series_number 
+            #but different series_ids
+            if srec[11] in stm_keys:
+                #we found a duplicate
+                continue
+            else:
+                stm_keys.append(srec[11])
+                final_recs.append(srec)      
+                series_id = srec[14]
+                
+        error = create_bulk_lots(session_id,final_recs,is_dashboard=True)
     return error,msg
     
 def get_stock_import(cr,stm_auto_key):
@@ -1393,7 +1559,7 @@ def qry_stock_import(cr,sysur_auto_key,user_id,stm_auto_key,pnm_auto_key,qty_upd
 @shared_task
 def update_lots(quapi_id,\
     user_id,session_id,sysur_auto_key,\
-    stm_keys,parameters,filters,stm_lists=[],\
+    stm_keys,params,filters,stm_lists=[],\
     is_mgmt=False): 
     error,msg = '','' 
     from polls.models import QueryApi  
@@ -1402,18 +1568,18 @@ def update_lots(quapi_id,\
     cr,con = get_cursor_con(quapi)   
     if not cr:
         return 'Quantum connection failed.',''
-    stock_status = parameters[0]
-    notes = parameters[1]
-    quantity = parameters[2]
+    stock_status = params[0]
+    notes = params[1] and params[1].replace("'","''") or ''
+    quantity = params[2]
     
     if quantity:
         try:
             quantity = quantity and float(quantity)
         except Exception as exc:
             return 'Quantity must be a number.',msg
-        
-    condition = parameters[3]
-    serial_number = parameters[4]
+   
+    condition = params[3]
+    serial_number = params[4] and params[4].replace("'","''") or ''
     traceable,tag_date,mfg_date,tagged,obtained,hold_flag = '','','','','',False
     manufacturer,ctry_origin,tag_type,tsn_csn,tso_cso,exp_date = '','','','','',''
     insp_date,pn,desc,cons,loc,should_be,loc_auto_key = '','','','','','',''
@@ -1421,45 +1587,46 @@ def update_lots(quapi_id,\
     traceable_to = ''
     #update the stock now
     set_clause = ''
-
+    
     if not is_mgmt:
         lot_number = filters[0]
         
         if lot_number:
             qty_need_sub = """(SELECT WB.QTY_NEEDED FROM WO_BOM WB,STOCK S,STOCK_TI STI WHERE WB.WOO_AUTO_KEY IN (SELECT WOO_AUTO_KEY FROM WO_OPERATION WHERE SI_NUMBER = '%s') AND S.STM_AUTO_KEY = STI.STM_AUTO_KEY AND STI.WOB_AUTO_KEY = WB.WOB_AUTO_KEY AND ROWNUM <= 1)"""%lot_number         
             set_clause = ' QTY_REC_FROM_LOT = %s'%qty_need_sub
-            
-        if len(parameters) > 5:
+        
+        if len(params) > 5:
             """         
-                parameters += [upd_traceable,upd_tag_date,upd_mfg_date,upd_tagged]
-                parameters += [upd_obtained,upd_hold,upd_mfctr,upd_ctry_origin,upd_tag_type]
-                parameters += [upd_tsn_csn,upd_tso_cso,upd_insp_date]
-                parameters += [upd_pn,upd_desc,upd_cons,upd_loc,upd_should_be]
-                parameters += [upd_trac,upd_alt_pn,upd_remarks,upd_cure_date]
-                parameters += [upd_exp_date,]
+                params += [upd_traceable,upd_tag_date,upd_mfg_date,upd_tagged]
+                params += [upd_obtained,upd_hold,upd_mfctr,upd_ctry_origin,upd_tag_type]
+                params += [upd_tsn_csn,upd_tso_cso,upd_insp_date]
+                params += [upd_pn,upd_desc,upd_cons,upd_loc,upd_should_be]
+                params += [upd_trac,upd_alt_pn,upd_remarks,upd_cure_date]
+                params += [upd_exp_date,]
             """
-            traceable_to = parameters[5]
-            tag_date = parameters[6]
-            mfg_date = parameters[7]
-            tagged = parameters[8]
-            obtained = parameters[9]
-            hold_flag = parameters[10]
-            manufacturer = parameters[11]
-            ctry_origin = parameters[12]
-            tag_type = parameters[13]
-            tsn_csn = parameters[14]
-            tso_cso = parameters[15]
-            insp_date = parameters[16]
-            pn = parameters[17]
-            desc = parameters[18]
-            cons = parameters[19]
-            loc = parameters[20]
-            should_be = parameters[21]
-            trac = parameters[22]
-            alt_pn = parameters[23]
-            remarks = parameters[24]
-            cure_date = parameters[25]
-            exp_date = parameters[26]
+            
+            traceable_to = params[5] and params[5].replace("'","''") or ''
+            tag_date = params[6]
+            mfg_date = params[7]
+            tagged = params[8] and params[8].replace("'","''") or ''
+            obtained = params[9] and params[9].replace("'","''") or ''
+            hold_flag = params[10]
+            manufacturer = params[11] and params[11].replace("'","''") or ''
+            ctry_origin = params[12] and params[12].replace("'","''") or ''
+            tag_type = params[13] and params[13].replace("'","''") or ''
+            tsn_csn = params[14] and params[14].replace("'","''") or ''
+            tso_cso = params[15] and params[15].replace("'","''") or ''
+            insp_date = params[16]
+            pn = params[17] and params[17].replace("'","''") or ''
+            desc = params[18] and params[18].replace("'","''") or ''
+            cons = params[19] and params[19].replace("'","''") or ''
+            loc = params[20] and params[20].replace("'","''") or ''
+            should_be = params[21] and params[21].replace("'","''") or ''
+            trac = params[22] and params[22].replace("'","''") or ''
+            alt_pn = params[23] and params[23].replace("'","''") or ''
+            remarks = params[24] and params[24].replace("'","''") or ''
+            cure_date = params[25]
+            exp_date = params[26]
         
     if not stm_lists:
         stm_lists = construct_akl(stm_keys)
@@ -1571,30 +1738,27 @@ def update_lots(quapi_id,\
             set_clause += ','
         set_clause += " remarks = '%s'"%remarks
         
-    if cure_date:
-        if set_clause:
-            set_clause += ','
-        set_clause += " CURE_DATE = TO_DATE('%s','')"%cure_date
-            
-    if exp_date:
-        if set_clause:
-            set_clause += ','
-        set_clause += " EXP_DATE = TO_DATE('%s','')"%exp_date
+    #if cure_date:
+        #if set_clause:
+        #    set_clause += ','
+        #set_clause += " CURE_DATE = TO_DATE('%s','')"%cure_date                                                    
         
     if set_clause:
   
         for stm in stm_keys:
             query = """UPDATE STOCK SET%s WHERE STM_AUTO_KEY = %s"""%(set_clause,stm) 
             error = updation_dir(query,cr)
+
             if error != '{"recs": ""}':
-                break
+                return error,''
        
         for stm_auto_key in stm_keys:
             squery = """UPDATE SA_LOG SET SYSUR_AUTO_KEY=%s, EMPLOYEE_CODE='%s' WHERE STA_AUTO_KEY = 
             (SELECT MAX(STA_AUTO_KEY) FROM SA_LOG WHERE STM_AUTO_KEY = %s AND EMPLOYEE_CODE = 'DBA')"""%(sysur_auto_key,user_id[:9],stm_auto_key)
-            error = updation_dir(squery,cr) 
+            error = updation_dir(squery,cr)
+
             if error != '{"recs": ""}': 
-                break
+                return error,''
   
     if alt_pn:
         query="""SELECT PNM_AUTO_KEY FROM PARTS_MASTER WHERE UPPER(PN)=UPPER('%s')"""%alt_pn
@@ -1602,8 +1766,8 @@ def update_lots(quapi_id,\
         pnm_auto_key = pnm and pnm[0] and pnm[0][0]  
         
         if not pnm:
-            error = 'PN not found.'
-                    
+            return 'PN not found.',''
+                  
     if quantity or condition or cons or loc or pnm_auto_key:
         pcc_auto_key = ''
         
@@ -1616,18 +1780,18 @@ def update_lots(quapi_id,\
             pcc_auto_key = pcc and pcc[0] and pcc[0][0]
 
             if not pcc_auto_key:
-                error = 'Part condition not found.'
+                return 'Part condition not found.',''
       
         if cons:
             query = """SELECT CNC_AUTO_KEY FROM CONSIGNMENT_CODES
-                WHERE UPPER(CONDITION_CODE) = UPPER('%s')
+                WHERE UPPER(CONSIGNMENT_CODE) = UPPER('%s')
                 """%cons
                
             cnc = selection_dir(query,cr)
             cnc_auto_key = cnc and cnc[0] and cnc[0][0]
             
             if not cnc_auto_key:
-                error = 'Consignment not found.'
+                return 'Consignment not found.',''
             
         if loc:
             query = """SELECT LOC_AUTO_KEY FROM LOCATION
@@ -1638,8 +1802,7 @@ def update_lots(quapi_id,\
             loc_auto_key = loc and loc[0] and loc[0][0]
             
             if not loc_auto_key:
-                error = 'Location not found.'
-
+                return 'Location not found.',''
 
         for stm_auto_key in stm_keys:
             
@@ -1696,18 +1859,20 @@ def update_lots(quapi_id,\
             error = synch_new_stms(cr,session_id,len(stm_keys))
                         
     aud_status = 'failure'
+    
     if not error or error == '{"recs": ""}':
         error = ''
         orcl_commit(con=con)     
         aud_status = 'success'
         msg = 'Successful update.'
-        if not is_mgmt:
+        
+        if filters and not is_mgmt:
             error,filter_msg = get_lots(quapi_id,session_id,filters)
         
         right_now = datetime.now()
         right_now = right_now.strftime('%Y-%m-%d %H:%M:%S')                   
         from polls.models import MLApps as maps,QuantumUser as qu
-        app_id = maps.objects.filter(code='lot-management')   
+        app_id = maps.objects.filter(code='lot-inspection')   
         user_rec = qu.objects.filter(user_auto_key=sysur_auto_key)
         user_rec = user_rec and user_rec[0] or None
         if user_rec:
@@ -1739,7 +1904,9 @@ def synch_new_stms(cr,session_id,len_stm_keys):
         S.SERIES_ID,
         CC.CONSIGNMENT_CODE,
         S.EXP_DATE,
-        TO_CHAR(S.REMARKS)
+        TO_CHAR(S.REMARKS),
+        S.CTRL_NUMBER,
+        S.CTRL_ID
         FROM STOCK S
         LEFT JOIN STOCK_TI STI ON S.STM_AUTO_KEY = STI.STM_AUTO_KEY
         LEFT JOIN WO_BOM WB ON STI.WOB_AUTO_KEY = WB.WOB_AUTO_KEY
@@ -1927,6 +2094,23 @@ def lookup_stock_cart(quapi_id,session_id,cart):
     quapi = QueryApi.objects.filter(id=quapi_id)
     quapi = quapi and quapi[0] or None
     cr,con = get_cursor_con(quapi)
+    if not (cr and con):
+        return 'Not connected to Oracle.',''
+        
+                                  
+            
+                                                   
+         
+                                 
+                    
+
+            
+                                                
+                     
+                                       
+                                                
+                                      
+                                  
     query = """SELECT UDL_AUTO_KEY,UDL_DESCRIPTION,
     UDL_CODE FROM USER_DEFINED_LOOKUPS WHERE
     UPPER(UDL_CODE) = UPPER('%s')"""%cart
@@ -1935,24 +2119,28 @@ def lookup_stock_cart(quapi_id,session_id,cart):
         error = create_stock_carts(recs,session_id)
     else:
         error = 'Cart not found.'
-    return error,msg
+    return error,msg  
 
-@shared_task
-def lookup_stock_cart(quapi_id,session_id,cart):
+@shared_task    
+def lookup_task(quapi_id,session_id,wot_auto_key):
     error,msg = '',''
     from polls.models import QueryApi  
     quapi = QueryApi.objects.filter(id=quapi_id)
     quapi = quapi and quapi[0] or None
     cr,con = get_cursor_con(quapi)
-    query = """SELECT UDL_AUTO_KEY,UDL_DESCRIPTION,
-    UDL_CODE FROM USER_DEFINED_LOOKUPS WHERE
-    UPPER(UDL_CODE) = UPPER('%s')"""%cart
+    if not (cr and con):
+        return 'Not connected to Oracle.',''
+        
+    query = """SELECT LOC_AUTO_KEY,DESCRIPTION,
+    LOCATION_CODE,IQ_ENABLE FROM LOCATION WHERE
+    UPPER(LOCATION_CODE) = UPPER('%s') AND
+    HISTORICAL='F'"""%location
     recs = selection_dir(query,cr)
     if recs:
-        error = create_stock_carts(recs,session_id)
+        error = create_tasks(recs,session_id)
     else:
-        error = 'Cart not found.'
-    return error,msg
+        error = 'Location not found.'
+    return error,msg                   
 
 @shared_task    
 def lookup_location(quapi_id,session_id,location):
@@ -1961,6 +2149,9 @@ def lookup_location(quapi_id,session_id,location):
     quapi = QueryApi.objects.filter(id=quapi_id)
     quapi = quapi and quapi[0] or None
     cr,con = get_cursor_con(quapi)
+    if not (cr and con):
+        return 'Not connected to Oracle.',''
+        
     query = """SELECT LOC_AUTO_KEY,DESCRIPTION,
     LOCATION_CODE,IQ_ENABLE FROM LOCATION WHERE
     UPPER(LOCATION_CODE) = UPPER('%s') AND
@@ -1979,7 +2170,10 @@ def lookup_warehouse(quapi_id,session_id,warehouse):
     quapi = QueryApi.objects.filter(id=quapi_id)
     quapi = quapi and quapi[0] or None
     cr,con = get_cursor_con(quapi)
-    
+
+    if not (cr and con):
+        return 'Not connected to Oracle.',''
+        
     query = """SELECT WHS_AUTO_KEY,DESCRIPTION,
         WAREHOUSE_CODE FROM WAREHOUSE WHERE
         UPPER(WAREHOUSE_CODE) = UPPER('%s') AND
@@ -2155,7 +2349,10 @@ def get_wola_recs(quapi_id,user_id,date_from,date_to):
        left join user_defined_lookups udl on udl.udl_auto_key = s.ic_udl_005 
        left join sys_users sys on sys.sysur_auto_key = wot.sysur_auto_key
        left join wo_skills wok on wok.wok_auto_key = sys.wok_auto_key
-       WHERE WOT.WOT_AUTO_KEY = %s"""%wot_auto_key 
+       left join labor_batch_detail lbd on lbd.wot_auto_key = wot.wot_auto_key
+       left join labor_batch_header lbh on lbh.lbh_auto_key = lbd.lbh_auto_key 
+       WHERE WOT.WOT_AUTO_KEY = %s AND (LBH.LBH_AUTO_KEY AND 
+       LBH.STOP_TIME IS NULL OR LBH.LBH_AUTO_KEY IS NULL)"""%wot_auto_key 
     stock_recs = selection_dir(query,cr)
     stock_rec = stock_recs and stock_recs[0] or None
     from polls.models import WOStatus as wos
@@ -2212,7 +2409,7 @@ def labor_synch(session_id,recs,is_mgmt=False,systime=None):
                 hours = days * 24 + seconds // 3600 + 1
                 total_hours += hours
             #makes it EST
-                            
+                
         wtl_data.append(TaskLabor(
             session_id = session_id,
             user_name = rec[0],
@@ -2241,10 +2438,62 @@ def labor_synch(session_id,recs,is_mgmt=False,systime=None):
     return total_hours
 
 @shared_task
+def import_part_image(quapi_id,session_id,lot_list,file_name,file_ext,file_hash,img_desc='PART PHOTO'):
+
+    error,msg='',''
+    from polls.models import QueryApi  
+    quapi = QueryApi.objects.filter(id=quapi_id)
+    quapi = quapi and quapi[0] or None
+    cr,con = get_cursor_con(quapi)             
+    if not (cr and con):
+        return 'Cannot connect to Oracle',msg
+
+    date_format = '%Y-%m-%d %H:%M:%S'
+    today = datetime.now()
+    today = today and today.strftime(date_format)  
+
+    query = """SELECT IMC_AUTO_KEY FROM IMAGE_CODES WHERE DESCRIPTION = '%s'
+    """%img_desc
+    imc = selection_dir(query,cr)
+    imc_auto_key = imc and imc[0] and imc[0][0] or 0
+    
+    for stm in lot_list:
+        query="""INSERT INTO IMAGE_LIST (IMC_AUTO_KEY,SOURCE_PK,SOURCE_TABLE,DATE_CREATED,FILE_NAME,FILE_EXT,IMAGE_GUID)
+        VALUES('%s','%s','%s',TO_TIMESTAMP('%s','yyyy-mm-dd hh:mi:ss'),'%s','%s','%s')"""%(imc_auto_key,stm,'STOCK',today,file_name,file_ext,file_hash)
+        error = insertion_dir(query,cr)
+            
+    orcl_commit(con=con)
+
+    import paramiko
+
+    ssh_client = paramiko.SSHClient()
+    ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    hostname='18.188.56.36'
+    username='adam'
+    password='12&12=144Bam'
+    port = 22
+    ssh_client.connect(hostname=hostname, username=username, password=password, port=port)
+    from polls.models import Document
+    import_file = Document.objects.filter(session_id=session_id)
+    import_file = import_file and import_file[0] or None
+    #local_file_path = import_file and os.path.join(import_file.docfile.path) or ''
+    
+    local_file_path = 'C:/Users/Adam/Envs/mro_portal/mo_template/media/%s'%file_name
+    remote_file_path = 'C:/QuantumDocData/Data/%s'%file_name
+
+    #SFTP client, open sftp and put
+    sftp_client = ssh_client.open_sftp()    
+    sftp_client.put(local_file_path, remote_file_path)
+    sftp_client.close()
+    ssh_client.close()
+    
+    return error,msg
+
+@shared_task
 def labor_dashboard(quapi_id,session_id,\
     user_auto_key=0,user_id='',date_from='',\
     date_to='',is_mgmt=False,is_detail=False,\
-    wo_number=''):
+    is_dashboard=False,wo_number=''):
     error,msg,date_clause,user_clause,wo_clause = '','','','',''
     recs,mgmt_recs = [],[]
     from polls.models import QueryApi  
@@ -2254,6 +2503,7 @@ def labor_dashboard(quapi_id,session_id,\
     if not (cr and con):
         return 'Cannot connect to Oracle',msg
     total_hours = 0
+
     """time_query = "SELECT SYSTIMESTAMP FROM DUAL"
     today = selection_dir(time_query,cr)
     today = today and today[0] and today[0][0] and today[0][0][:18] or None
@@ -2268,11 +2518,9 @@ def labor_dashboard(quapi_id,session_id,\
     #MTU: makes it CST    
     ts_today = today - timedelta(hours=1)
     #ts_today = today and datetime.strptime(today,'%Y-%m-%d %H:%M:%S')
-    
+
     if user_id:
-        user_clause = """ WTL.SYSUR_AUTO_KEY=
-            (SELECT SYSUR_AUTO_KEY FROM 
-            SYS_USERS WHERE UPPER(USER_NAME)=UPPER('%s'))"""%(user_id)
+        user_clause = """ UPPER(SUR.USER_NAME)=UPPER('%s')"""%(user_id)
     if user_auto_key:
         user_clause = """ WTL.SYSUR_AUTO_KEY=%s"""%(user_auto_key)
     if date_from:
@@ -2286,6 +2534,7 @@ def labor_dashboard(quapi_id,session_id,\
              
                                    
         date_clause += " TO_DATE('%s','mm/dd/yyyy') <= WTL.ENTRY_DATE"%(date_from[:10])
+    
     if not error:
 
         if wo_number:
@@ -2297,7 +2546,7 @@ def labor_dashboard(quapi_id,session_id,\
                 date_clause += ' AND'
                                        
             date_clause += " TO_DATE('%s','mm/dd/yyyy') >= WTL.ENTRY_DATE"%(date_to[:10])
-              
+                     
         if is_detail:       
             query = """SELECT SUR.USER_NAME, WTL.ENTRY_DATE, 
                     WTL.START_TIME, WTL.STOP_TIME, 
@@ -2316,11 +2565,41 @@ def labor_dashboard(quapi_id,session_id,\
                     LEFT JOIN WO_SKILLS WOK ON WTL.WOK_AUTO_KEY = WOK.WOK_AUTO_KEY
                     LEFT JOIN DEPARTMENT DPT ON WTL.DPT_AUTO_KEY = DPT.DPT_AUTO_KEY
                     LEFT JOIN LABOR_BATCH_DETAIL LBD ON WTL.LBD_AUTO_KEY = LBD.LBD_AUTO_KEY
-                    LEFT JOIN LABOR_BATCH_HEADER LBH ON LBD.LBD_AUTO_KEY = LBH.LBH_AUTO_KEY
+                    LEFT JOIN LABOR_BATCH_HEADER LBH ON LBD.LBH_AUTO_KEY = LBH.LBH_AUTO_KEY
                 WHERE %s
           
                 ORDER BY WTL.WTL_AUTO_KEY DESC
                 """%(user_clause + date_clause + wo_clause)
+            recs = selection_dir(query,cr)
+            
+        elif is_dashboard:
+            where_clause = user_clause + date_clause + wo_clause
+            
+            query="""SELECT SUR.USER_NAME, WTL.ENTRY_DATE, 
+                    WTL.START_TIME, WTL.STOP_TIME, 
+                    WOO.SI_NUMBER, WTM.DESCRIPTION, 
+                    WTL.HOURS, DPT.DEPT_NAME, 
+                    WOK.DESCRIPTION, PNM.PN, 
+                    LBH.BATCH_ID,WTL.WTL_AUTO_KEY,
+                    CASE WHEN WTL.STOP_TIME IS NULL THEN 
+                    TO_TIMESTAMP('%s','yyyy-mm-dd hh24:mi:ss') - WTL.START_TIME
+                    ELSE TO_TIMESTAMP('%s','yyyy-mm-dd hh24:mi:ss') - WTL.STOP_TIME 
+                    END,
+                    WTL.SYSUR_AUTO_KEY,
+                    SUR.FIRST_NAME || ' ' || SUR.LAST_NAME
+                    FROM WO_TASK_LABOR WTL 
+                    JOIN SYS_USERS SUR ON SUR.SYSUR_AUTO_KEY = WTL.SYSUR_AUTO_KEY
+                    JOIN WO_TASK WOT ON WTL.WOT_AUTO_KEY = WOT.WOT_AUTO_KEY
+                    JOIN WO_TASK_MASTER WTM ON WTM.WTM_AUTO_KEY = WOT.WTM_AUTO_KEY
+                    JOIN WO_OPERATION WOO ON WOT.WOO_AUTO_KEY = WOO.WOO_AUTO_KEY 
+                    LEFT JOIN PARTS_MASTER PNM ON WOO.PNM_AUTO_KEY = PNM.PNM_AUTO_KEY
+                    LEFT JOIN WO_SKILLS WOK ON WTL.WOK_AUTO_KEY = WOK.WOK_AUTO_KEY
+                    LEFT JOIN DEPARTMENT DPT ON WTL.DPT_AUTO_KEY = DPT.DPT_AUTO_KEY
+                    LEFT JOIN LABOR_BATCH_DETAIL LBD ON WTL.LBD_AUTO_KEY = LBD.LBD_AUTO_KEY
+                    LEFT JOIN LABOR_BATCH_HEADER LBH ON LBD.LBH_AUTO_KEY = LBH.LBH_AUTO_KEY
+                    WHERE %s ORDER BY WTL.WTL_AUTO_KEY DESC
+            """%(timestamp,timestamp,where_clause)
+
             recs = selection_dir(query,cr)
             
         elif not is_mgmt: 
@@ -2362,7 +2641,7 @@ def labor_dashboard(quapi_id,session_id,\
                      AND WTL.WOK_AUTO_KEY = WOK.WOK_AUTO_KEY  (+)
                      AND WTL.DPT_AUTO_KEY = DPT.DPT_AUTO_KEY  (+)
                      AND WTL.LBD_AUTO_KEY = LBD.LBD_AUTO_KEY  (+)
-                     AND LBD.LBD_AUTO_KEY = LBH.LBH_AUTO_KEY  (+)
+                     AND LBD.LBH_AUTO_KEY = LBH.LBH_AUTO_KEY  (+)
                      AND SUR.WO_FLAG = 'T'
                      AND WTL.START_TIME IS NOT NULL
                     ORDER BY SUR.USER_NAME DESC,WTL.WTL_AUTO_KEY DESC
@@ -2376,7 +2655,7 @@ def labor_dashboard(quapi_id,session_id,\
                     SUM(WTL.HOURS), '1', 
                     '1', '1', 
                     '1',1,'',
-                    '',''                   
+                    '',''           
                 FROM WO_TASK_LABOR WTL
                 JOIN SYS_USERS SUR ON WTL.SYSUR_AUTO_KEY = SUR.SYSUR_AUTO_KEY
                 JOIN WO_TASK WOT ON WTL.WOT_AUTO_KEY = WOT.WOT_AUTO_KEY
@@ -2386,13 +2665,14 @@ def labor_dashboard(quapi_id,session_id,\
                 LEFT JOIN WO_SKILLS WOK ON WTL.WOK_AUTO_KEY = WOK.WOK_AUTO_KEY
                 LEFT JOIN DEPARTMENT DPT ON WTL.DPT_AUTO_KEY = DPT.DPT_AUTO_KEY
                 LEFT JOIN LABOR_BATCH_DETAIL LBD ON WTL.LBD_AUTO_KEY = LBD.LBD_AUTO_KEY
-                LEFT JOIN LABOR_BATCH_HEADER LBH ON LBD.LBD_AUTO_KEY = LBH.LBH_AUTO_KEY
+                LEFT JOIN LABOR_BATCH_HEADER LBH ON LBD.LBH_AUTO_KEY = LBH.LBH_AUTO_KEY
                 WHERE %s
                 GROUP BY SUR.USER_NAME
                 ORDER BY SUR.USER_NAME
                 """%(user_clause + date_clause)
            
             mgmt_recs = selection_dir(query,cr)
+
         if recs:         
             total_hours = labor_synch(session_id,recs,is_mgmt=False,systime=ts_today)
         if mgmt_recs:
@@ -2525,6 +2805,58 @@ def get_part_numbers(quapi_id,session_id,part_char=''):
     if recs:
         error = create_parts(session_id,recs)
     return error,msg
+
+@shared_task
+def get_stock_uom(quapi_id,session_id,label):
+    ctrl_number,ctrl_id,stm_auto_key='','',''
+    error,uom_code,recs = '','',[]
+    from polls.models import QueryApi 
+    quapi = QueryApi.objects.filter(id=quapi_id)
+    quapi = quapi and quapi[0] or None
+    cr,con = get_cursor_con(quapi)
+
+    if not (cr and con):
+        return 'Cannot connect to Oracle',uom_code
+       
+    if not label:
+        return 'Label must not be empty.',uom_code
+
+    if label[0] in ['c','C']:
+        stm_auto_key = label[1:]
+        stock_label = label[1:]
+              
+    elif len(label) < 7:
+        error = "Your barcode is not long enough."
+                      
+    if not stm_auto_key:
+        ctrl_number = label[0:6]               
+        ctrl_id = label[7:len(label)].partition('0')
+        ctrl_id = ctrl_id and ctrl_id[2]
+        
+        if not ctrl_number and ctrl_id:
+            error = "Something is wrong with the control#/control id combination."
+
+    if stm_auto_key:
+        query = """SELECT U.UOM_CODE FROM STOCK S
+        JOIN PARTS_MASTER P ON P.PNM_AUTO_KEY = S.PNM_AUTO_KEY
+        JOIN UOM_CODES U ON U.UOM_AUTO_KEY = P.UOM_AUTO_KEY
+        WHERE S.STM_AUTO_KEY = '%s'"""%stm_auto_key
+        recs = selection_dir(query,cr)
+
+    elif ctrl_number and ctrl_id:
+        query = """SELECT U.UOM_CODE FROM STOCK S
+        JOIN PARTS_MASTER P ON P.PNM_AUTO_KEY = S.PNM_AUTO_KEY
+        JOIN UOM_CODES U ON U.UOM_AUTO_KEY = P.UOM_AUTO_KEY
+        WHERE S.CTRL_NUMBER = %s AND S.CTRL_ID = %s"""%(ctrl_number,ctrl_id)
+        recs = selection_dir(query,cr)
+
+    else:
+        error = ''
+                                                                                           
+    uom_code = recs and recs[0] and recs[0][0] or 'EA'
+    uom_code = uom_code.upper()
+
+    return error,uom_code
     
 def create_parts(session_id,parts):
     error = ''
@@ -2983,7 +3315,8 @@ def create_shipping(quapi_id,session_id,sysur_auto_key,filter_list):
     
     FROM 
     """    
-    return error,msg            
+    return error,msg    
+    
 def lot_import_grid_rows(grid_rows,session_id):
     from polls.models import WOStatus
     req_data,error = [],''
@@ -3006,13 +3339,13 @@ def lot_import_grid_rows(grid_rows,session_id):
     return error
 
 @shared_task
-def lot_create(quapi_id,user_id,sysur_auto_key,session_id): 
+def lot_create(quapi_id,user_id,sysur_auto_key,session_id,file_name): 
     error,msg,fail_msg,cr,got_there = '','','',None,False  
-    good_rows = {} 
+    good_rows,lot_error = {},'' 
     from polls.models import QueryApi,Document  
     quapi = QueryApi.objects.filter(id=quapi_id)
-    quapi = quapi and quapi[0] or None                                                                                                      
-    import_file = Document.objects.filter(session_id=session_id)
+    quapi = quapi and quapi[0] or None
+    import_file = Document.objects.filter(file_name=file_name,session_id=session_id,)
     import_file = import_file and import_file[0] or None
     file_path = import_file and os.path.join(import_file.docfile.path) or ''
     from openpyxl import load_workbook
@@ -3044,19 +3377,29 @@ def lot_create(quapi_id,user_id,sysur_auto_key,session_id):
         location = dict_row.get('Location','')
         consignment = dict_row.get('Consignment Code','') 
         lot_no = dict_row.get('Lot #','')
-        unit_cost = dict_row.get('Unit Cost',0)                                  
+
+        if lot_no and isinstance(lot_no,float):
+            lot_no = str(lot_no)[:-2]                   
+                
+        lot_no = lot_no and str(lot_no) or ''
+        unit_cost = dict_row.get('Unit Cost',0)  
+        
         if not unit_cost:
             unit_cost = 0
+            
         if isinstance(unit_cost,str):
             if not unit_cost.isnumeric():
-                unit_cost = 0             
+                unit_cost = 0
+                
         pn = dict_row.get('Part Number','')
-        pn = pn.replace("'","''")                                                         
+        pn = pn and str(pn).replace("'","''") or str(pn)   
+        pn = pn and pn.strip() or pn    
         desc = dict_row.get('Description','')
                          
         if isinstance(desc,str):
             if len(desc) > 49:
                 desc = desc[:49]
+                
         serial_no = dict_row.get('Serial Number','')                                                                                 
         if serial_no:
             if isinstance(serial_no,str) and len(serial_no) > 39:
@@ -3117,7 +3460,7 @@ def lot_create(quapi_id,user_id,sysur_auto_key,session_id):
         import_row += [lot_apl_ro_cost,length,width,height,desc,hold_line] 
         import_row += [traceable_to,obtained_from,item_num]        
         import_row += [line_count-1]            
-
+        
         if not lot_no:           
             error += ' Line %s has no lot.'%(line_count-1)
         if not pn:           
@@ -3136,7 +3479,8 @@ def lot_create(quapi_id,user_id,sysur_auto_key,session_id):
         if lot_error:
             grid_rows.append(import_row)
             
-    error = lot_import_grid_rows(grid_rows,session_id) 
+    if lot_error:
+        error = lot_import_grid_rows(grid_rows,session_id)
     
     if len(grid_rows) < line_count-1:                                          
         msg = 'Successfully imported ' 
@@ -3817,7 +4161,7 @@ def e_signoff(quapi_id,session_id,sysur_auto_key,wot_auto_key):
     today_time = right_now.strftime('%m/%d/%Y %H:%M:%S')
     right_now = right_now.strftime('%Y-%m-%d %H:%M:%S')   
     query = """SELECT WT.SYSUR_SIGN_OFF,WT.SYSUR_SIGN_OFF2,
-        WOS.STATUS_TYPE,WT.WOS_AUTO_KEY,WT.WOT_AUTO_KEY
+        WOS.STATUS_TYPE,WT.WOS_AUTO_KEY,WT.WOT_AUTO_KEY,WT.SEQUENCE
         FROM WO_TASK WT
         LEFT JOIN WO_STATUS WOS ON WOS.WOS_AUTO_KEY = WT.WOS_AUTO_KEY
         WHERE WT.WOT_AUTO_KEY = %s
@@ -3825,6 +4169,8 @@ def e_signoff(quapi_id,session_id,sysur_auto_key,wot_auto_key):
     wot = selection_dir(query,cr)
     wot = wot and wot[0]
     wot_auto = wot and wot[4]
+    wot_seq = wot and wot[5]
+    
     if not wot_auto:
         return 'No task found for: %s.'%wot_auto_key,''
         
@@ -3834,7 +4180,7 @@ def e_signoff(quapi_id,session_id,sysur_auto_key,wot_auto_key):
     wos_auto_key = wot and wot[3]  
 
     if signoff1 and signoff2:
-        return 'Task already signed off: %s.'%wot_auto_key,''
+        return 'Task already signed off: %s.'%wot_seq,''
     
     if status_type != 'Closed':
         """
@@ -3930,8 +4276,8 @@ def e_signoff(quapi_id,session_id,sysur_auto_key,wot_auto_key):
         error = ''
         orcl_commit(con=con)     
         aud_status = 'success'
-        msg = 'Successful signoff on task: %s. '%wot_auto_key 
-                
+        msg = 'Successful signoff on task: %s. '%wot_seq
+        
     from polls.models import MLApps as maps,QuantumUser as qu
     app_id = maps.objects.filter(code='e-signoff')   
     user_rec = qu.objects.filter(user_auto_key=sysur_auto_key)
@@ -3943,15 +4289,17 @@ def e_signoff(quapi_id,session_id,sysur_auto_key,wot_auto_key):
         error += register_audit_trail(user_rec,field_changed,new_val,right_now,app_id,quapi,status=aud_status)  
     else:
         error = 'Incorrect Quantum User ID.'    
-    return error,msg
+    return error,msg 
 
 @shared_task
-def get_signoff_tasks(quapi_id,session_id,wot_auto_key='',wo_number='',woo_auto_key=''):
+def get_signoff_tasks(quapi_id,session_id,wot_auto_key='',wo_number='',woo_auto_key='',batch_id=''):
     error,msg = '',''
     from polls.models import QueryApi,WOTask    
     quapi = QueryApi.objects.filter(id=quapi_id)
     quapi = quapi and quapi[0] or None
+    
     cr,con = get_cursor_con(quapi)
+    
     query="""SELECT DISTINCT WT.WOT_AUTO_KEY, WT.SEQUENCE, WT.SQUAWK_DESC,
         WOS.SEVERITY || ' - ' || CASE WHEN WT.WOS_AUTO_KEY IS NOT NULL 
         THEN WOS.DESCRIPTION
@@ -3967,20 +4315,31 @@ def get_signoff_tasks(quapi_id,session_id,wot_auto_key='',wo_number='',woo_auto_
         LEFT JOIN WO_TASK_MASTER WTM ON WTM.WTM_AUTO_KEY = WT.WTM_AUTO_KEY
         LEFT JOIN WO_OPERATION WO ON WT.WOO_AUTO_KEY = WO.WOO_AUTO_KEY
         LEFT JOIN VIEW_WO_STATUS_TASK VTS ON WT.WOT_AUTO_KEY = VTS.WOT_AUTO_KEY
-        LEFT JOIN WO_STATUS WOS ON WOS.WOS_AUTO_KEY = WT.WOS_AUTO_KEY
-        """    
+        JOIN WO_STATUS WOS ON WOS.WOS_AUTO_KEY = WT.WOS_AUTO_KEY
+        """     
+    
     if wot_auto_key:
         query+="""
         WHERE WT.WOT_AUTO_KEY = %s
         """%wot_auto_key
+        
     elif wo_number:        
         query+="""
         WHERE UPPER(WO.SI_NUMBER) = UPPER('%s')
         """%wo_number
+        
     elif woo_auto_key:
         query+="""
         WHERE WO.WOO_AUTO_KEY = %s
-        """%woo_auto_key           
+        """%woo_auto_key
+        
+    elif batch_id:
+         query+="""
+        LEFT JOIN LABOR_BATCH_DETAIL LBD ON LBD.WOT_AUTO_KEY=WT.WOT_AUTO_KEY
+        LEFT JOIN LABOR_BATCH_HEADER LBH ON LBH.LBH_AUTO_KEY=LBD.LBH_AUTO_KEY
+        WHERE UPPER(LBH.BATCH_ID) = UPPER('%s')
+        """%batch_id
+        
     #query += " AND (WOS.STATUS_TYPE IS NULL OR WOS.STATUS_TYPE NOT IN ('Closed', 'Cancel'))"
     #query += " ORDER BY WT.SEQUENCE ASC"    
     recs = selection_dir(query,cr)
@@ -3989,12 +4348,15 @@ def get_signoff_tasks(quapi_id,session_id,wot_auto_key='',wo_number='',woo_auto_
         existing_tasks = WOTask.objects.filter(session_id=session_id)
         del_existings = existing_tasks.delete()
         for rec in recs:
+            
+            query = """
+            """
             rec += [1,session_id]
         res = create_tasks_bulk(recs)
         if not res:
             error = 'There was a problem with creating the tasks locally. Try again please.'
-    else:
-        error = 'No tasks found.'    
+    #else:
+        #error = 'No tasks found.'    
     return error,msg
     
 @shared_task
@@ -5118,7 +5480,7 @@ def update_inspection(user_id,quapi_id,session_id,sysur_auto_key,stm_auto_key,\
             error = 'No PN found.'
                           
     if notes:
-        query = """UPDATE STOCK SET NOTES = '%s'
+        query = """UPDATE STOCK SET NOTES = NOTES || '; ' || '%s'
             WHERE STM_AUTO_KEY = %s"""%(notes,stm_auto_key)
         error = updation_dir(query,cr)
         
@@ -5202,6 +5564,7 @@ def update_inspection(user_id,quapi_id,session_id,sysur_auto_key,stm_auto_key,\
                 call the stock transfer procedure with user-entered qty and see
                 if new stock record gets created.
                 """
+                              
                 if quantity != '':
                 
                     if float(quantity) > rec[29]:
@@ -5210,6 +5573,7 @@ def update_inspection(user_id,quapi_id,session_id,sysur_auto_key,stm_auto_key,\
                         
                     else:
                         qty_update = quantity 
+                                                                              
                 
                 params=[]
                 params.append(stm_auto_key)#stm_auto_key
@@ -5230,6 +5594,12 @@ def update_inspection(user_id,quapi_id,session_id,sysur_auto_key,stm_auto_key,\
                 params.append(rec[11] or '')#woo_auto_key                     
                 error = qry_stock_transfer(sysur_auto_key,user_id,params,\
                     quapi,recs=srecs,cr=cr,con=con)                
+                    
+                                                               
+                                       
+                                            
+                                       
+                                            
                 
                 squery = """UPDATE SA_LOG SET SYSUR_AUTO_KEY=%s, 
                     EMPLOYEE_CODE='%s' WHERE STA_AUTO_KEY =
@@ -5349,11 +5719,13 @@ def update_inspection(user_id,quapi_id,session_id,sysur_auto_key,stm_auto_key,\
                     
                     if error != '{"recs": ""}':
                         return error,msg 
+                                         
 
     hold_line = False            
     if error == '{"recs": ""}' or error == '':
         #get updated stock line and synch it
         #locally for lookup and display 
+        
         error,msg,hold_line = get_inspection(quapi_id,session_id,\
             wo_number,ctrl_number,ctrl_id,del_previous=True,cr=cr)        
         if not error:
@@ -5419,7 +5791,8 @@ def update_inspection(user_id,quapi_id,session_id,sysur_auto_key,stm_auto_key,\
             app_id,
             quapi,
             status=aud_status,
-            reg_events= reject_part and ['Condition Code to REJ'] or [],
+            #reg_events= reject_part and ['Condition Code to REJ'] or [],
+            reg_events = [],
             parameters=parameters,
             sysur_auto_key=sysur_auto_key,
             ) 
@@ -5428,9 +5801,12 @@ def update_inspection(user_id,quapi_id,session_id,sysur_auto_key,stm_auto_key,\
     return error,msg 
     
 @shared_task
-def get_inspection(quapi_id,session_id,wo_number,ctrl_number,ctrl_id,del_previous=True,cr=False):
+def get_inspection(quapi_id,\
+    session_id,wo_number,ctrl_number,\
+    ctrl_id,del_previous=True,cr=False):
     error,msg = '',''
     recs = []
+    
     if not cr:
         from polls.models import QueryApi    
         quapi = QueryApi.objects.filter(id=quapi_id)
@@ -5438,7 +5814,7 @@ def get_inspection(quapi_id,session_id,wo_number,ctrl_number,ctrl_id,del_previou
         cr,con = get_cursor_con(quapi)  
         if not (cr and con):
             return 'Cannot connect to Oracle',msg
-            
+       
     if ctrl_number and ctrl_id:
     
         where_clause = " WHERE S.CTRL_NUMBER = %s AND S.CTRL_ID = %s"%(ctrl_number,ctrl_id)
@@ -5452,14 +5828,14 @@ def get_inspection(quapi_id,session_id,wo_number,ctrl_number,ctrl_id,del_previou
             WO.SI_NUMBER,CC.CONSIGNMENT_CODE,L.LOCATION_CODE,S.SERIAL_NUMBER,
             S.CTRL_NUMBER,S.CTRL_ID,
             S.STOCK_LINE,TO_CHAR(S.NOTES),S.IC_UDF_008,PCC.DESCRIPTION,P.PNM_AUTO_KEY,
-            S.REC_DATE,'','',SR.STR_AUTO_KEY,WB.WOB_AUTO_KEY,PCC.COND_LEVEL,
+            S.REC_DATE,'','',SR.STR_AUTO_KEY,'',PCC.COND_LEVEL,
             S.IC_UDF_020,                                                          
             C.COMPANY_NAME,                                                                                           
             WO.WO_UDF_002,S.HOLD_LINE,WO.SI_NUMBER,P.LIST_PRICE
             FROM STOCK S        
             LEFT JOIN STOCK_RESERVATIONS SR ON SR.STM_AUTO_KEY = S.STM_AUTO_KEY
-            LEFT JOIN WO_BOM WB ON WB.WOB_AUTO_KEY = SR.WOB_AUTO_KEY
-            LEFT JOIN WO_OPERATION WO ON WO.WOO_AUTO_KEY = WB.WOO_AUTO_KEY
+            --LEFT JOIN WO_BOM WB ON WB.WOB_AUTO_KEY = SR.WOB_AUTO_KEY
+            LEFT JOIN WO_OPERATION WO ON WO.WOO_AUTO_KEY = SR.WOO_AUTO_KEY
             LEFT JOIN COMPANIES C ON C.CMP_AUTO_KEY = WO.CMP_AUTO_KEY             
             LEFT JOIN PARTS_MASTER P ON P.PNM_AUTO_KEY = S.PNM_AUTO_KEY
             LEFT JOIN LOCATION L ON L.LOC_AUTO_KEY = S.LOC_AUTO_KEY
@@ -5486,18 +5862,18 @@ def get_inspection(quapi_id,session_id,wo_number,ctrl_number,ctrl_id,del_previou
                   AND S.HISTORICAL_FLAG = 'F'
                   AND S.QTY_OH > 0"""                
 
-            query = """SELECT S.STM_AUTO_KEY,P.PN,P.DESCRIPTION,S.QTY_OH,PCC.CONDITION_CODE,                                                                        
+            query = """SELECT     S.STM_AUTO_KEY,P.PN,P.DESCRIPTION,S.QTY_OH,PCC.CONDITION_CODE,                                                                        
                 WO.SI_NUMBER,CC.CONSIGNMENT_CODE,L.LOCATION_CODE,S.SERIAL_NUMBER,
                 S.CTRL_NUMBER,S.CTRL_ID,
                 S.STOCK_LINE,TO_CHAR(S.NOTES),S.IC_UDF_008,PCC.DESCRIPTION,P.PNM_AUTO_KEY,
-                S.REC_DATE,'','',SR.STR_AUTO_KEY,WB.WOB_AUTO_KEY,PCC.COND_LEVEL,
+                S.REC_DATE,'','',SR.STR_AUTO_KEY,'',PCC.COND_LEVEL,
                 S.IC_UDF_020,                                                          
                 C.COMPANY_NAME,                                                                                           
                 WO.WO_UDF_002,S.HOLD_LINE,WO.SI_NUMBER,P.LIST_PRICE
                 FROM STOCK S        
                 LEFT JOIN STOCK_RESERVATIONS SR ON SR.STM_AUTO_KEY = S.STM_AUTO_KEY
-                LEFT JOIN WO_BOM WB ON WB.WOB_AUTO_KEY = SR.WOB_AUTO_KEY
-                LEFT JOIN WO_OPERATION WO ON WO.WOO_AUTO_KEY = WB.WOO_AUTO_KEY
+                --LEFT JOIN WO_BOM WB ON WB.WOB_AUTO_KEY = SR.WOB_AUTO_KEY
+                LEFT JOIN WO_OPERATION WO ON WO.WOO_AUTO_KEY = SR.WOO_AUTO_KEY
                 LEFT JOIN COMPANIES C ON C.CMP_AUTO_KEY = WO.CMP_AUTO_KEY             
                 LEFT JOIN PARTS_MASTER P ON P.PNM_AUTO_KEY = S.PNM_AUTO_KEY
                 LEFT JOIN LOCATION L ON L.LOC_AUTO_KEY = S.LOC_AUTO_KEY
@@ -5510,8 +5886,8 @@ def get_inspection(quapi_id,session_id,wo_number,ctrl_number,ctrl_id,del_previou
         if ctrl_number:
             wo_number = ctrl_number + ctrl_id
     
-        where_clause = """ WHERE UPPER(W.SI_NUMBER) = UPPER('%s')
-            OR UPPER(WO.SI_NUMBER) = UPPER('%s')"""%(wo_number,wo_number)
+        where_clause = """ WHERE UPPER(W.SI_NUMBER) = UPPER('%s')"""%wo_number
+                                                                         
             
         where_clause += """ AND (SR.STR_AUTO_KEY IN (SELECT STR.STR_AUTO_KEY FROM STOCK_RESERVATIONS STR 
               WHERE STR.STM_AUTO_KEY=SR.STM_AUTO_KEY) 
@@ -5523,23 +5899,23 @@ def get_inspection(quapi_id,session_id,wo_number,ctrl_number,ctrl_id,del_previou
                 '%s',
                 CC.CONSIGNMENT_CODE,L.LOCATION_CODE,S.SERIAL_NUMBER,S.CTRL_NUMBER,S.CTRL_ID,
                 S.STOCK_LINE,TO_CHAR(S.NOTES),S.IC_UDF_008,PCC.DESCRIPTION,P.PNM_AUTO_KEY,
-                S.REC_DATE,'','',SR.STR_AUTO_KEY,WB.WOB_AUTO_KEY,PCC.COND_LEVEL,
+                S.REC_DATE,'','',SR.STR_AUTO_KEY,'',PCC.COND_LEVEL,
                 S.IC_UDF_020,
-                CASE WHEN C.COMPANY_NAME IS NOT NULL THEN C.COMPANY_NAME ELSE
-                CO.COMPANY_NAME END,
-                CASE WHEN W.WO_UDF_002 IS NOT NULL THEN W.WO_UDF_002 ELSE
-                WO.WO_UDF_002 END,S.HOLD_LINE,'%s',P.LIST_PRICE
+                C.COMPANY_NAME,
+                                    
+                                                                         
+                W.WO_UDF_002,S.HOLD_LINE,'%s',P.LIST_PRICE
                 FROM STOCK S                                                                         
-                LEFT JOIN STOCK_RESERVATIONS SR ON SR.STM_AUTO_KEY = S.STM_AUTO_KEY
-                LEFT JOIN WO_OPERATION W ON W.WOO_AUTO_KEY = SR.WOO_AUTO_KEY
-                LEFT JOIN COMPANIES C ON C.CMP_AUTO_KEY = W.CMP_AUTO_KEY             
-                LEFT JOIN PARTS_MASTER P ON P.PNM_AUTO_KEY = S.PNM_AUTO_KEY
-                LEFT JOIN LOCATION L ON L.LOC_AUTO_KEY = S.LOC_AUTO_KEY
+                JOIN STOCK_RESERVATIONS SR ON SR.STM_AUTO_KEY = S.STM_AUTO_KEY
+                JOIN WO_OPERATION W ON W.WOO_AUTO_KEY = SR.WOO_AUTO_KEY
+                JOIN COMPANIES C ON C.CMP_AUTO_KEY = W.CMP_AUTO_KEY             
+                JOIN PARTS_MASTER P ON P.PNM_AUTO_KEY = S.PNM_AUTO_KEY
+                JOIN LOCATION L ON L.LOC_AUTO_KEY = S.LOC_AUTO_KEY
                 LEFT JOIN PART_CONDITION_CODES PCC ON PCC.PCC_AUTO_KEY = S.PCC_AUTO_KEY
                 LEFT JOIN CONSIGNMENT_CODES CC ON CC.CNC_AUTO_KEY = S.CNC_AUTO_KEY
-                LEFT JOIN WO_BOM WB ON WB.WOB_AUTO_KEY = SR.WOB_AUTO_KEY
-                LEFT JOIN WO_OPERATION WO ON WO.WOO_AUTO_KEY = WB.WOO_AUTO_KEY
-                LEFT JOIN COMPANIES CO ON CO.CMP_AUTO_KEY = WO.CMP_AUTO_KEY            
+                --LEFT JOIN WO_BOM WB ON WB.WOB_AUTO_KEY = SR.WOB_AUTO_KEY
+                --LEFT JOIN WO_OPERATION WO ON WO.WOO_AUTO_KEY = WB.WOO_AUTO_KEY
+                --LEFT JOIN COMPANIES CO ON CO.CMP_AUTO_KEY = WO.CMP_AUTO_KEY            
                 %s"""%(wo_number,wo_number,where_clause)
                 
         recs = selection_dir(query,cr)
@@ -6091,6 +6467,7 @@ def check_exp_date(conn_string,quantum_cmp_key):
     cr,con = orcl_phone_home(conn_string)
     if not (cr and con):
         return 'Cannot connect to Oracle'
+        
     query = "SELECT APPROVAL_EXPIRE FROM COMPANIES WHERE CMP_AUTO_KEY = %s"%quantum_cmp_key
     res = selection_dir(query,cr)
     exp_date = res and res[0] and res[0][0] or None
@@ -6400,14 +6777,24 @@ def tools_checkin(quapi_id,session_id,sysur_auto_key,ctrl_number,ctrl_id,kiosk_a
     if str_auto_key:
         qury = """DELETE FROM STOCK_RESERVATIONS WHERE STR_AUTO_KEY=%s"""%str_auto_key
         error = updation_dir(qury,cr)
-    #else:
-        #return 'Not reserved.',''       
+
+    """SYSUR_OUT = is the user entered into input for "User Name"
+    SYSUR_TOOL_ISSUED = is the user logged into Tool app in MRO Live
+    """      
     if wtt_auto_key:
         query = """UPDATE WO_TASK_TOOLS SET DATE_CHECK_IN = TO_TIMESTAMP('%s','yyyy-mm-dd hh24:mi:ss'),
            SYSUR_IN = %s, QTY_RESERVED = 0, QTY_CHECKED_OUT=1, QTY_CHECKED_IN=1 WHERE WTT_AUTO_KEY = %s"""%(date_now,kiosk_auto_key,wtt_auto_key)
         error = updation_dir(query,cr)
     else:
         return 'Invalid tool.',''
+        
+    #get the history line and update the users        
+    query = """UPDATE WO_TOOLS_HISTORY SET SYSUR_TOOL_ISSUED = %s,
+    SYSUR_AUTO_KEY = %s
+    WHERE WTT_AUTO_KEY = %s
+    """%(sysur_auto_key,sysur_auto_key,wtt_auto_key)
+    error = updation_dir(query,cr)
+    
     if not error or error == '{"recs": ""}':
         orcl_commit(con=con)
         aud_status = 'success'
@@ -6452,7 +6839,7 @@ def tools_checkout(quapi_id,session_id,sysur_auto_key,ctrl_number,ctrl_id,wo_tas
     #stm_sub = "SELECT STM_AUTO_KEY FROM STOCK WHERE CTRL_NUMBER = %s AND CTRL_ID = %s"%(ctrl_number,ctrl_id)
     
     query = """select s.stm_auto_key,wo.si_number,sys.user_name,sr.stm_auto_key,
-        wo.woo_auto_key
+        wo.woo_auto_key,s.hold_line
         from stock s
         left join stock_reservations sr on sr.stm_auto_key = s.stm_auto_key
         left join wo_operation wo on wo.woo_auto_key = sr.woo_auto_key
@@ -6460,12 +6847,17 @@ def tools_checkout(quapi_id,session_id,sysur_auto_key,ctrl_number,ctrl_id,wo_tas
         where s.ctrl_number = %s and s.ctrl_id = %s"""%(ctrl_number,ctrl_id)
         
     stm = selection_dir(query,cr)
+
     stm = stm and stm[0] or []
     stm_auto_key = stm and stm[0]
     wo_number = stm and stm[1]
     sys_user = stm and stm[2]
     str_stm = stm and stm[3]
+    hold_line = stm and stm[5]
     
+    if hold_line == 'T':
+         return 'Tool is on Hold.',''
+         
     if wo_task[-1] not in ['s','S','c','C']:
         query = """SELECT WOO_AUTO_KEY FROM WO_OPERATION
             WHERE SI_NUMBER = '%s'
@@ -6491,10 +6883,12 @@ def tools_checkout(quapi_id,session_id,sysur_auto_key,ctrl_number,ctrl_id,wo_tas
             error = insertion_dir(query,cr)   
         if error:
             return error,''
+            
+        #go ahead and put in the sysur_auto_key and sysur_
     else:
         return 'Invalid tool.',''
     """2. INSERT INTO WO_TASK_TOOLS
-]
+
     WWT_AUTO_KEY = '(NEXTGEN VAL)',
     WOT_AUTO_KEY = '(USER INPUT)' - 'S',
     PNM_AUTO_KEY = '(PNM_AUTO_KEY FROM STOCK TABLE FROM USER ENTERED CTRL#/ID COMBO)',
@@ -6517,10 +6911,11 @@ def tools_checkout(quapi_id,session_id,sysur_auto_key,ctrl_number,ctrl_id,wo_tas
                         AND (WT.WOS_AUTO_KEY NOT IN 
                        (SELECT WOS_AUTO_KEY FROM WO_STATUS WHERE STATUS_TYPE IN ('Closed','Cancel'))
                        OR WT.WOS_AUTO_KEY IS NULL)
-                       ORDER BY WT.WOT_AUTO_KEY
+                       ORDER BY WT.SEQUENCE,WT.WOT_AUTO_KEY
                     """%wo_task
             wot = selection_dir(query,cr)
             wot_auto_key = wot and wot[0] and wot[0][0] or None
+
         query = """INSERT INTO WO_TASK_TOOLS 
             (WTT_AUTO_KEY,WOT_AUTO_KEY,PNM_AUTO_KEY,QTY_NEEDED,QTY_RESERVED,QTY_CHECKED_OUT,QTY_CHECKED_IN,DATE_CHECK_OUT,SYSUR_OUT) 
             VALUES(G_WTT_AUTO_KEY.NEXTVAL,%s,'%s',%s,%s,%s,%s,TO_TIMESTAMP('%s','yyyy-mm-dd hh24:mi:ss'),%s)
@@ -6529,6 +6924,14 @@ def tools_checkout(quapi_id,session_id,sysur_auto_key,ctrl_number,ctrl_id,wo_tas
         query = "SELECT WTT_AUTO_KEY FROM WO_TASK_TOOLS ORDER BY WTT_AUTO_KEY DESC"
         wtt = selection_dir(query,cr)
         wtt_auto_key = wtt and wtt[0] and wtt[0][0] or None
+        
+        #get the history line and update the users
+        query = """UPDATE WO_TOOLS_HISTORY SET SYSUR_TOOL_ISSUED = %s,
+        SYSUR_AUTO_KEY = %s
+        WHERE WTT_AUTO_KEY = %s
+        """%(kiosk_auto_key,sysur_auto_key,wtt_auto_key)
+        error = updation_dir(query,cr)
+        
         """2. UPDATE RESERVATION"""
         query = """
         SELECT STR_AUTO_KEY FROM STOCK_RESERVATIONS
@@ -6537,6 +6940,7 @@ def tools_checkout(quapi_id,session_id,sysur_auto_key,ctrl_number,ctrl_id,wo_tas
         """%stm_auto_key
         str_auto=selection_dir(query,cr)
         str_auto_key = str_auto and str_auto[0] and str_auto[0][0] or None
+        
         if str_auto_key:
             query = """UPDATE STOCK_RESERVATIONS 
             SET WTT_AUTO_KEY = %s WHERE STR_AUTO_KEY = 
@@ -6965,7 +7369,9 @@ def issue_consumables(quapi_id,session_id,\
     quapi = quapi and quapi[0] or None
     cr,con = get_cursor_con(quapi)
     if not (cr and con):
-        return 'Cannot connect to Oracle',msg,'',''    
+        return 'Cannot connect to Oracle',msg,'',''   
+    qty_insuff = "ORA-20406: Stock Line amount" 
+    qty_insuff += " reserved can not be greater than qty on hand"        
     #User enters task, enters stock line and then the app should populate
     #    the qty field with the qty_reserved from the str related to the WOB.  
     
@@ -7061,6 +7467,10 @@ def issue_consumables(quapi_id,session_id,\
                             TO_TIMESTAMP('%s', 'yyyy-mm-dd hh24:mi:ss'))
                             """%(woo_auto_key,sysur_auto_key,wot_auto_key,pnm_auto_key,quantity,'Consumable',pcc_auto_key,cond_level,timestamp)
                         error = insertion_dir(q_wob,cr)
+                    
+                        if error:
+                            return error,msg,qty_res,must_reserve
+                                
                         if not error:
                             #get new wob_auto_key
                             query = """SELECT WOB_AUTO_KEY FROM WO_BOM ORDER BY WOB_AUTO_KEY DESC FETCH NEXT 1 ROWS ONLY
@@ -7070,8 +7480,15 @@ def issue_consumables(quapi_id,session_id,\
                             #Create a stock reservation for the wob
                             squery = """INSERT INTO STOCK_RESERVATIONS 
                             (STR_AUTO_KEY,STM_AUTO_KEY,WOB_AUTO_KEY,QTY_RESERVED,SYSUR_AUTO_KEY) 
-                            VALUES(G_STR_AUTO_KEY.NEXTVAL,'%s','%s',%s,%s)"""%(stm_auto_key,new_wob_key,quantity,sysur_auto_key)
+                            VALUES(G_STR_AUTO_KEY.NEXTVAL,'%s','%s',%s,%s)
+                            """%(stm_auto_key,new_wob_key,quantity,sysur_auto_key)
                             error = insertion_dir(squery,cr)
+                            res_error = "Stock Line amount reserved"
+                            res_error += " cannot be greater than the qty on hand"
+                            
+                            if qty_insuff in error:
+                                return res_error,msg,qty_res,must_reserve
+                              
                             query = """
                                 SELECT STR_AUTO_KEY FROM STOCK_RESERVATIONS
                                 WHERE STM_AUTO_KEY = %s        
@@ -7113,6 +7530,10 @@ def issue_consumables(quapi_id,session_id,\
                                 VALUES('T','%s','%s','%s','%s','%s','%s','%s','%s',
                                 TO_TIMESTAMP('%s', 'yyyy-mm-dd hh24:mi:ss'))"""%(woo_auto_key,sysur_auto_key,wot_auto_key,pnm_auto_key,quantity,'Consumable',pcc_auto_key,cond_level,timestamp)
                             error = insertion_dir(q_wob,cr)
+                            
+                            if error:
+                                return error,msg,qty_res,must_reserve
+                                
                             if not error:
                                 #get new wob_auto_key
                                 query = """SELECT WOB_AUTO_KEY FROM WO_BOM
@@ -7125,6 +7546,12 @@ def issue_consumables(quapi_id,session_id,\
                                 (STR_AUTO_KEY,STM_AUTO_KEY,WOB_AUTO_KEY,QTY_RESERVED,SYSUR_AUTO_KEY) 
                                 VALUES(G_STR_AUTO_KEY.NEXTVAL,'%s','%s',%s,%s)"""%(stm_auto_key,new_wob_key,quantity,sysur_auto_key)
                                 error = insertion_dir(squery,cr) 
+                                res_error = "Stock Line amount reserved"
+                                res_error += " cannot be greater than the qty on hand"
+                                
+                                if error:
+                                    return res_error,msg,qty_res,must_reserve
+                             
                                 query = """
                                     SELECT STR_AUTO_KEY FROM STOCK_RESERVATIONS
                                     WHERE STM_AUTO_KEY = %s        
@@ -7136,11 +7563,17 @@ def issue_consumables(quapi_id,session_id,\
                                 squery = """UPDATE SA_LOG SET SYSUR_AUTO_KEY=%s, EMPLOYEE_CODE='%s' WHERE STA_AUTO_KEY = 
                                     (SELECT MAX(STA_AUTO_KEY) FROM SA_LOG WHERE WOB_AUTO_KEY = %s AND EMPLOYEE_CODE = 'DBA')"""%(sysur_auto_key,user_id[:9],new_wob_key)
                                 error = updation_dir(squery,cr)
-                                squery = """UPDATE SA_LOG SET SYSUR_AUTO_KEY=%s, EMPLOYEE_CODE='%s' WHERE STA_AUTO_KEY = 
-                                    (SELECT MAX(STA_AUTO_KEY) FROM SA_LOG WHERE WOB_AUTO_KEY = %s AND EMPLOYEE_CODE = 'DBA')"""%(sysur_auto_key,user_id[:9],new_wob_key)
-                                error = updation_dir(squery,cr)                
+                                    
                                 if error != '{"recs": ""}':
                                     return error,msg,qty_res,must_reserve
+                                    
+                                squery = """UPDATE SA_LOG SET SYSUR_AUTO_KEY=%s, EMPLOYEE_CODE='%s' WHERE STA_AUTO_KEY = 
+                                    (SELECT MAX(STA_AUTO_KEY) FROM SA_LOG WHERE WOB_AUTO_KEY = %s AND EMPLOYEE_CODE = 'DBA')"""%(sysur_auto_key,user_id[:9],new_wob_key)
+                                error = updation_dir(squery,cr)  
+                                
+                                if error != '{"recs": ""}':
+                                    return error,msg,qty_res,must_reserve
+                             
                                 
                                 squery = """UPDATE AUDIT_TRAIL
                                     SET SYSUR_AUTO_KEY=%s 
@@ -7149,8 +7582,10 @@ def issue_consumables(quapi_id,session_id,\
                                     AND SOURCE_TABLE IN ('STM','QUANTUM')
                                     AND STAMPTIME >= SYSDATE - 1"""%sysur_auto_key  
                                 error = updation_dir(squery,cr)
+                                
                                 if error != '{"recs": ""}':
-                                    return error,msg,qty_res,must_reserve                                
+                                    return error,msg,qty_res,must_reserve  
+                                    
                                 orcl_commit(con=con)                                 
                 
             if str_auto_key and wot_auto_key and not error or error == '{"recs": ""}':
@@ -7171,6 +7606,7 @@ def issue_consumables(quapi_id,session_id,\
                 #if error != '{"recs": ""}':
                 #    return error,msg,qty_res,must_reserve
                 #else:
+
                 error,msg,qty_res,must_reserve = stock_issue(quapi_id,session_id,\
                     sysur_auto_key,user_id,ctrl_number,\
                     ctrl_id,wo_task,quantity,active_mode,\
@@ -7178,12 +7614,11 @@ def issue_consumables(quapi_id,session_id,\
                 #return error,msg,qty_res,must_reserve    
                                                                
     return error,msg,qty_res,must_reserve
-  
 @shared_task
 def stock_issue(quapi_id,session_id,\
     sysur_auto_key,user_id,ctrl_number,\
     ctrl_id,wo_task,quantity,active_mode,\
-    must_reserve):
+    must_reserve,is_consu=False):
     wob_auto_key,wot_auto_key,str_auto_key = '','',''
     error,msg,qty_res,qty_reserved,part_number,wot_sequence,si_number = '','','','','','',''
     from polls.models import QueryApi    
@@ -7208,6 +7643,7 @@ def stock_issue(quapi_id,session_id,\
     entry_date = right_now.strftime('%m-%d-%Y %H:%M:%S') 
     #if not must_reserve or must_reserve=='F':       
     #qty_reserved becomes the qty issued.    
+
     if not wo_task:
         return 'Must enter WO# or task.','',qty_res,must_reserve      
     if quantity:
@@ -7222,8 +7658,9 @@ def stock_issue(quapi_id,session_id,\
             pnm_auto_key = stm and stm[0] and stm[0][2] or ''
             #part_number = stm and stm[0] and stm[0][4] or ''
             qty_oh = stm and stm[0] and stm[0][5] or 0
+
             res_found = stm and isinstance(stm[0],list) and len(stm[0]) > 6
-            if not res_found:
+            if not res_found and not is_consu:
                 return 'No reservation found.','',qty_res,must_reserve
                 #if not qty_oh or float(quantity) > qty_oh:
                     #return 'Qty not available.','',qty_res,must_reserve
@@ -7486,7 +7923,9 @@ def get_stock_res(cr,wo_task,ctrl_number,ctrl_id):
     if not stm:
         #check if the STM exists without the task
         query = """SELECT S.STM_AUTO_KEY,S.QTY_AVAILABLE,P.PNM_AUTO_KEY,
-            S.HISTORICAL_FLAG,P.PN,S.QTY_OH            
+            S.HISTORICAL_FLAG,P.PN,S.QTY_OH
+            --,'','','','',
+            --'','',''            
             FROM STOCK S
             LEFT JOIN PARTS_MASTER P ON P.PNM_AUTO_KEY = S.PNM_AUTO_KEY
             WHERE S.CTRL_NUMBER = %s AND S.CTRL_ID = %s
@@ -7631,7 +8070,7 @@ def file_retrieval(quapi_id,wo_number,session_id):
     """%wo_number
     stms = selection_dir(query,cr)
     stm_list = construct_id_list(stms,id_pos=0)
-
+    
     query = """select iml.source_pk,iml.source_table,iml.file_name,ims.server_ip,
         ims.server_port,ims.url_path,iml.image_key,iml.file_ext,iml.date_created 
         from image_list iml
@@ -7799,16 +8238,19 @@ def check_serialization(quapi_id,cr,con,\
                 """
                 pnm = selection_dir(query,cr)
                 pnm_auto_key = pnm and pnm[0] and pnm[0][0] or None    
+    
     if is_serialized == 'T' and quantity > 1:
         #raise exception because the part is serialized but the quantity is greater than 1.
         error = 'Serialized parts cannot have quantity > 1.'
         #need a pop-up to read in a list
         return [error,msg,'',pnm_auto_key,activity,description]
-    if is_serialized == 'F':
         
+    if is_serialized == 'F':    
         serial_no = ''
+    
     #1. check for serialized first:
     if is_serialized and is_serialized == 'T' and not serial_no:
+        
         #raise exception because the part is serialized.
         if lot_import:
             serial_no = 'NSN'
@@ -7848,17 +8290,33 @@ def lot_teardown(quapi_id,sysur_auto_key,user_id,row,lot_import=False,line_count
         quantity = quantity and float(row[1])
     except Exception as exc:
         return 'Quantity must be a number - %s.'%(exc),msg,''
+
     pn = row[2]
-    #pn = pn.replace("'","''")
+
     if not pn:
         return 'Part number is required.',msg,'' 
+
     serial_no = row[3]
     session_id = row[4]
     notes = row[5]
     notes = notes.replace("'", r'')
     notes = notes.replace('"', r'')
     description = row[6]
-
+    pcc_auto_key = None
+    pcc_desc = ''
+    
+    if not lot_import and row[9]:
+        
+        query = """SELECT PCC_AUTO_KEY,DESCRIPTION FROM PART_CONDITION_CODES WHERE UPPER(CONDITION_CODE) = UPPER('%s')"""%row[9]
+        pcc = selection_dir(query,cr)
+        pcc_auto_key = pcc and pcc[0] and pcc[0][0] or None
+        pcc_desc = pcc and pcc[0] and pcc[0][1] or ''
+        
+        if not pcc_auto_key:
+            
+            error = 'Condition not found.'
+            return error,msg,''
+            
     if wo_task:                                  
         woo_sub = """SELECT WO.WOO_AUTO_KEY,'',WO.SI_NUMBER,S.STM_AUTO_KEY,
                        S.GLA_AUTO_KEY,WO.GLA_AUTO_KEY,S.PNM_AUTO_KEY,WO.DPT_AUTO_KEY,
@@ -7885,13 +8343,14 @@ def lot_teardown(quapi_id,sysur_auto_key,user_id,row,lot_import=False,line_count
         wot_data = selection_dir(woo_sub,cr)      
                                                                                    
     stock_rec = wot_data and wot_data[0] and wot_data[0][3] or []
+
     if not stock_rec:
         woo_sub = """SELECT WO.WOO_AUTO_KEY,'',WO.SI_NUMBER,S.STM_AUTO_KEY,
                        S.GLA_AUTO_KEY,WO.GLA_AUTO_KEY,S.PNM_AUTO_KEY,WO.DPT_AUTO_KEY,
                        WO.CMP_AUTO_KEY,WO.SYSCM_AUTO_KEY,WO.KIT_QTY,WO.OPM_AUTO_KEY,WO.DUE_DATE,
                        WO.ATTENTION,WO.ECD_METHOD,WO.WWT_AUTO_KEY,WO.SVC_AUTO_KEY,
                        WO.NEW_WIP_ACCT,WO.BGS_DEFAULT,WO.CUR_AUTO_KEY,WO.GLA_LABOR,WO.GLA_MISC,
-                       WO.LOT_CORE_SETTINGS,S.RECEIVER_NUMBER,WO.PCC_AUTO_KEY,WO.CNC_AUTO_KEY,
+                       WO.LOT_CORE_SETTINGS,S.RECEIVER_NUMBER,S.PCC_AUTO_KEY,WO.CNC_AUTO_KEY,
                        S.LOC_AUTO_KEY,S.STC_AUTO_KEY,S.CTS_AUTO_KEY,S.WHS_AUTO_KEY,S.STM_ORIGINAL,
                        WO.LOT_APL_RO_COST,WO.LOT_ALW_PRECOST,WO.LOT_REQ_INSPECTION,WO.LOT_COST_DELAYED,
                        S.ORIGINAL_PO_NUMBER,S.SERIAL_NUMBER,WO.WOO_AUTO_KEY,S.IC_UDF_008,S.CTRL_ID,
@@ -7910,6 +8369,7 @@ def lot_teardown(quapi_id,sysur_auto_key,user_id,row,lot_import=False,line_count
                        LEFT JOIN COMPANIES CMP ON CMP.CMP_AUTO_KEY = WO.CMP_AUTO_KEY                       
                        WHERE UPPER(WO.SI_NUMBER) = UPPER('%s') AND WO.WO_TYPE = 'Lot' AND ROWNUM <= 1"""%(wo_task)
         wot_data = selection_dir(woo_sub,cr)
+
     if not wot_data:
         error = 'No lot found.'
     else:
@@ -8005,19 +8465,43 @@ def lot_teardown(quapi_id,sysur_auto_key,user_id,row,lot_import=False,line_count
             obtained_from = row[30] or ''
             item_num = row[31] or ''
             #search for consignment and get cnc_auto_key
+
             query = """SELECT PCC_AUTO_KEY FROM PART_CONDITION_CODES WHERE UPPER(CONDITION_CODE) = UPPER('%s')"""%row[12]
             pcc = selection_dir(query,cr)
             pcc_auto_key = pcc and pcc[0] and pcc[0][0] or pcc_auto_key
             
+            if not pcc_auto_key:
+                
+                #looked it up, found it and if not got it from the woo
+                error = 'Condition not found.'
+                return error,msg,''
+                
             #search for condition and get pcc_auto_key
             query = """(SELECT CNC_AUTO_KEY FROM CONSIGNMENT_CODES WHERE UPPER(CONSIGNMENT_CODE) = UPPER('%s'))"""%row[9]
             cnc = selection_dir(query,cr)
-            cnc_auto_key = cnc and cnc[0] and cnc[0][0] or cnc_auto_key
+            cnc_auto_key = cnc and cnc[0] and cnc[0][0] or None
             
-            #search for location and get loc_auto_key
-            query = """(SELECT LOC_AUTO_KEY FROM LOCATION WHERE UPPER(LOCATION_CODE)=UPPER('%s'))"""%row[7]
-            loc = selection_dir(query,cr)
-            loc_auto_key = loc and loc[0] and loc[0][0] or loc_auto_key
+            if row[9] and not cnc_auto_key:
+                error = 'Consignment not found.'
+                return error,msg,''
+            
+            if row[7]:
+                #search for location and get loc_auto_key
+                query = """(SELECT LOC_AUTO_KEY FROM LOCATION WHERE UPPER(LOCATION_CODE)=UPPER('%s'))"""%row[7]
+                loc = selection_dir(query,cr)
+                loc_auto_key = loc and loc[0] and loc[0][0] or None
+            
+            if not loc_auto_key:
+                query ="""SELECT WS.LOC_AUTO_KEY FROM WO_OPERATION W
+                JOIN WO_STATION WS ON WS.WON_AUTO_KEY = W.WON_AUTO_KEY
+                WHERE W.WOO_AUTO_KEY = '%s'
+                """%woo_auto_key
+                loc = selection_dir(query,cr)
+                loc_auto_key = loc and loc[0] and loc[0][0] or None
+                
+                if not loc_auto_key:
+                    error = 'Location not found.'
+                    return error,msg,''
 
             ex_esn = row[11]
             
@@ -8105,19 +8589,8 @@ def lot_teardown(quapi_id,sysur_auto_key,user_id,row,lot_import=False,line_count
                                          
                                                                              
             if item_num:
-                update_clause += ", SDF_STM_001 = '%s'"%item_num
-
-                                                        
-                                                                                                                                         
-                                
-                                                                                                                                 
-                                                      
-                                                                                                              
-                                                                            
-                                                          
-                                       
-                     
-                                 
+                update_clause += ", SDF_STM_001 = '%s'"%item_num               
+                                                 
         if not woo_auto_key:
             #raise exception because the part is serialized.
             error = 'Lot not found.'
@@ -8146,11 +8619,12 @@ def lot_teardown(quapi_id,sysur_auto_key,user_id,row,lot_import=False,line_count
             """%(pnm_auto_key)
             wob = selection_dir(query,cr)
             wob_auto_key = wob and wob[0] and wob[0][0] or None
-            cond_sub = """SELECT COND_LEVEL,PCC_AUTO_KEY 
+            cond_sub = """SELECT COND_LEVEL,PCC_AUTO_KEY,DESCRIPTION 
                 FROM PART_CONDITION_CODES WHERE 
                 PCC_AUTO_KEY = (SELECT PCC_TURN_IN FROM WO_CONTROL)"""
             pcc_data = selection_dir(cond_sub,cr)
             pcc_in = pcc_data and pcc_data[0] and pcc_data[0][1] or None
+            #pcc_desc = pcc_data and pcc_data[0] and pcc_data[0][2] or ''
             if wob_auto_key:
                 error = stock_turn_in(cr,wob_auto_key,woo_auto_key,pnm_auto_key,serial_no,quantity,pcc_auto_key or pcc_in) 
             else:
@@ -8162,7 +8636,7 @@ def lot_teardown(quapi_id,sysur_auto_key,user_id,row,lot_import=False,line_count
                 #ctrl_id,ctrl_number,stock_line,description,si_number
                 query = """SELECT S.STM_AUTO_KEY,S.CTRL_ID,S.CTRL_NUMBER,S.STOCK_LINE,P.DESCRIPTION,
                             S.QTY_OH,S.QTY_RESERVED,SR.STR_AUTO_KEY,S.SERIES_ID,S.SERIES_NUMBER,
-                            STI.WOB_AUTO_KEY
+                            STI.WOB_AUTO_KEY,S.QTY_OH
                             FROM STOCK S
                             LEFT JOIN PARTS_MASTER P ON P.PNM_AUTO_KEY = S.PNM_AUTO_KEY 
                             LEFT JOIN STOCK_RESERVATIONS SR ON SR.STM_AUTO_KEY = S.STM_AUTO_KEY 
@@ -8172,7 +8646,7 @@ def lot_teardown(quapi_id,sysur_auto_key,user_id,row,lot_import=False,line_count
                                                                            
                 stm = selection_dir(query,cr)
                 stm_auto_key = stm and stm[0] and stm[0][0] or ''  
-                ctrl_id = stm and stm[0] and stm[0][1] or 0 
+                ctrl_id = stm and stm[0] and stm[0][1] or 1
                 ctrl_number = stm and stm[0] and stm[0][2] or 0 
                 stock_line = stm and stm[0] and stm[0][3] or ''
                 description = description or (stm and stm[0] and stm[0][4]) or ''
@@ -8180,19 +8654,27 @@ def lot_teardown(quapi_id,sysur_auto_key,user_id,row,lot_import=False,line_count
                 series_id = stm and stm[0] and stm[0][8] or 0 
                 series_number = stm and stm[0] and stm[0][9] or 0
                 sti_wob_auto_key = stm and stm[0] and stm[0][10] or 0
+                quantity = stm and stm[0] and stm[0][11] or 0
+
                 record = [activity,quantity,exp_date]
                 record += [serial_no,notes,woo_auto_key]
-                record += [wo_task,pn,condition]
+                record += [wo_task,pn,pcc_desc]
                 record += [ctrl_id,ctrl_number,stock_line]
                 record += [description,si_number,pnm_auto_key]
                 record += [loc_code,mfg_lot_num,consignment_code]
-                record += [stm_auto_key,customer,eng_model,ata_code]
-                                                             
+                record += [stm_auto_key,customer,eng_model,ata_code]                                       
+                record += [ex_esn,quantity,'']                                                             
                 error = synch_new_wob(session_id,record)
+
                 if not ctrl_id:
                     ctrl_id = 1
                 if stm_auto_key: 
+                    
                     if si_number:
+                        
+                        if serial_number:
+                             update_clause += ", IC_UDF_007= '%s'"%serial_number 
+                        
                         if '-' in si_number:
                             wo_number = si_number.split('-')[0]                    
                             query = """SELECT S.SERIAL_NUMBER FROM STOCK S
@@ -8202,6 +8684,7 @@ def lot_teardown(quapi_id,sysur_auto_key,user_id,row,lot_import=False,line_count
                                 """%wo_number
                             serial = selection_dir(query,cr)
                             serial_number = serial and serial[0] and serial[0][0] or serial_number
+                           
                     query = """UPDATE STOCK SET RECEIVER_NUMBER = '%s',PCC_AUTO_KEY = '%s',CNC_AUTO_KEY = '%s',LOC_AUTO_KEY = '%s',STC_AUTO_KEY = '%s',CMP_AUTO_KEY = '%s',CTS_AUTO_KEY = '%s',WHS_AUTO_KEY = '%s',SYSCM_AUTO_KEY = '%s',STM_ORIGINAL = '%s',LOT_APL_RO_COST = '%s',LOT_ALW_PRECOST = '%s',LOT_COST_DELAYED = '%s',ORIGINAL_PO_NUMBER = '%s',SYSUR_AUTO_KEY = '%s',PNM_AUTO_KEY = '%s',SERIAL_NUMBER = '%s',NOTES = TO_CLOB('%s'),OWNER = (SELECT COMPANY_NAME FROM SYS_COMPANIES WHERE SYSCM_AUTO_KEY = '%s'),INCIDENT_RELATED_FLAG = 'F',IC_UDF_008 = '%s',CTRL_ID = '%s',STM_LOT = '%s'%s WHERE STM_AUTO_KEY = %s"""%(\
                         receiver_number,pcc_auto_key,cnc_auto_key,loc_auto_key,stc_auto_key,\
                         cmp_auto_key,cts_auto_key,whs_auto_key,syscm_auto_key,stm_parent_key,\
@@ -8247,15 +8730,15 @@ def lot_teardown(quapi_id,sysur_auto_key,user_id,row,lot_import=False,line_count
                 if sa_error != '{"recs": ""}':
                     sa_error = 'Line: ' + str(line_count) + '-:>' + sa_error
                     return sa_error,msg,'done'                 
-                record = [activity,quantity,exp_date]
-                record += [serial_no,notes,woo_auto_key]
-                record += [wo_task,pn,condition]
-                record += [ctrl_id,ctrl_number,stock_line]
-                record += [description,si_number,pnm_auto_key]
-                record += [loc_code,mfg_lot_num,consignment_code]
-                record += [stm_auto_key,customer,eng_model,ata_code]
+                #record = [activity,quantity,exp_date]
+                #record += [serial_no,notes,woo_auto_key]
+                #record += [wo_task,pn,condition]
+                #record += [ctrl_id,ctrl_number,stock_line]
+                #record += [description,si_number,pnm_auto_key]
+                #record += [loc_code,mfg_lot_num,consignment_code]
+                #record += [stm_auto_key,customer,eng_model,ata_code]
                                                              
-                synch_error = synch_new_wob(session_id,record)                                   
+                #synch_error = synch_new_wob(session_id,record)                                   
                 """if stm_auto_key:
                     squery = """"""UPDATE SA_LOG SET SYSUR_AUTO_KEY=%s, EMPLOYEE_CODE='%s' WHERE STA_AUTO_KEY = 
                         (SELECT MAX(STA_AUTO_KEY) FROM SA_LOG WHERE STM_AUTO_KEY = %s AND EMPLOYEE_CODE = 'DBA')""""""%(sysur_auto_key,user_id[:9],stm_auto_key)
@@ -8307,14 +8790,18 @@ def teardown_rows(quapi_id,sysur_auto_key,user_id,row,\
     today = datetime.now()
     timestamp = today.strftime('%m/%d/%Y %H:%M:%S')
     datestamp = today.strftime('%m/%d/%Y')
+    
     if orcl_conn:
         cr,con = orcl_connect(orcl_conn)
+        
     if not (cr and con):
         return 'Cannot connect to Oracle',msg,'',new_woo_key,default_repair,part_info 
     wo_task = row[0]
+    
     if not (wo_task and wo_task[:-1].isdigit()) and wo_task[-1] in ['S','s'] :
         return 'WO Task is required and must be a number.',msg,'',new_woo_key,default_repair,part_info 
     quantity = row[1]
+    
     if not quantity:
         return 'Quantity is required.',msg,'',new_woo_key,default_repair,part_info 
     try:
@@ -8364,8 +8851,9 @@ def teardown_rows(quapi_id,sysur_auto_key,user_id,row,\
                 mfg_code = stm[5]
                 part_num = stm[6]
                 part_info.append([pnm_auto_key,part_num,part_desc,mfg_code])
-            
-        return '','','show_pns',new_woo_key,default_repair,part_info
+                              
+        if len(part_info) > 1:    
+            return '','','show_pns',new_woo_key,default_repair,part_info
         
     is_serialized = stms and stms[0] and stms[0][0] or None
     is_serialized = (is_serialized == 'T' and 'T') or 'F'   
@@ -8381,7 +8869,7 @@ def teardown_rows(quapi_id,sysur_auto_key,user_id,row,\
                 
     if not pnm_auto_key:
         #raise exception because the part was not found.     
-        return '','','show_modal',new_woo_key,default_repair,part_info
+        return '','','',new_woo_key,default_repair,part_info
         
     elif serial_no and is_serialized == 'F':
         return 'Part not serialized',msg,'',new_woo_key,default_repair,part_info  
@@ -8407,7 +8895,8 @@ def teardown_rows(quapi_id,sysur_auto_key,user_id,row,\
                        S.ORIGINAL_PO_NUMBER,S.SERIAL_NUMBER,WO.COMPANY_REF_NUMBER,S.IC_UDF_008,S.EXP_DATE,
                        PCC.DESCRIPTION,L.LOCATION_CODE,S.MFG_LOT_NUM,CNC.CONSIGNMENT_CODE,
                        CMP.COMPANY_NAME,
-                       WO.WO_UDF_001,WO.WO_UDF_002,WO.WO_UDF_003,WO.WO_UDF_004,S.QTY_OH
+                       WO.WO_UDF_001,WO.WO_UDF_002,WO.WO_UDF_003,WO.WO_UDF_004,S.QTY_OH,
+                       WWT.DESCRIPTION
                        FROM WO_TASK WT
                        LEFT JOIN WO_BOM WOB ON WT.WOT_AUTO_KEY = WOB.WOT_AUTO_KEY
                        LEFT JOIN WO_OPERATION WO ON WO.WOO_AUTO_KEY = WT.WOO_AUTO_KEY
@@ -8419,6 +8908,7 @@ def teardown_rows(quapi_id,sysur_auto_key,user_id,row,\
                        LEFT JOIN LOCATION L ON L.LOC_AUTO_KEY = S.LOC_AUTO_KEY
                        LEFT JOIN CONSIGNMENT_CODES CNC ON CNC.CNC_AUTO_KEY = WO.CNC_AUTO_KEY
                        JOIN COMPANIES CMP ON CMP.CMP_AUTO_KEY = WO.CMP_AUTO_KEY
+                       LEFT JOIN WO_WORK_TYPE WWT ON WWT.WWT_AUTO_KEY = WO.WWT_AUTO_KEY
                        WHERE WT.WOT_AUTO_KEY = '%s'
                        ORDER BY S.STM_AUTO_KEY DESC"""%(wo_task[:-1])
                        
@@ -8434,7 +8924,8 @@ def teardown_rows(quapi_id,sysur_auto_key,user_id,row,\
                        S.ORIGINAL_PO_NUMBER,S.SERIAL_NUMBER,WO.COMPANY_REF_NUMBER,S.IC_UDF_008,S.EXP_DATE,
                        PCC.DESCRIPTION,L.LOCATION_CODE,S.MFG_LOT_NUM,CNC.CONSIGNMENT_CODE,
                        CMP.COMPANY_NAME,
-                       WO.WO_UDF_001,WO.WO_UDF_002,WO.WO_UDF_003,WO.WO_UDF_004,S.QTY_OH
+                       WO.WO_UDF_001,WO.WO_UDF_002,WO.WO_UDF_003,WO.WO_UDF_004,S.QTY_OH,
+                       WWT.DESCRIPTION
                        FROM WO_OPERATION WO
                        LEFT JOIN STOCK_RESERVATIONS SR ON SR.WOO_AUTO_KEY = WO.WOO_AUTO_KEY
                        LEFT JOIN STOCK S ON S.STM_AUTO_KEY = SR.STM_AUTO_KEY
@@ -8444,6 +8935,7 @@ def teardown_rows(quapi_id,sysur_auto_key,user_id,row,\
                        LEFT JOIN LOCATION L ON L.LOC_AUTO_KEY = S.LOC_AUTO_KEY
                        LEFT JOIN CONSIGNMENT_CODES CNC ON CNC.CNC_AUTO_KEY = WO.CNC_AUTO_KEY
                        JOIN COMPANIES CMP ON CMP.CMP_AUTO_KEY = WO.CMP_AUTO_KEY
+                       LEFT JOIN WO_WORK_TYPE WWT ON WWT.WWT_AUTO_KEY = WO.WWT_AUTO_KEY
                        WHERE UPPER(WO.SI_NUMBER) = UPPER('%s')
                        AND WO.OPEN_FLAG = 'T'                       
                        ORDER BY S.STM_AUTO_KEY DESC"""%(wo_task)
@@ -8502,6 +8994,7 @@ def teardown_rows(quapi_id,sysur_auto_key,user_id,row,\
         ata_code = wot_data[0][47] or ''#WO_UDF_003
         wo_udf_004 = wot_data[0][48] or ''#WO_UDF_004
         qty_oh = wot_data[0][49] or ''#S.QTY_OH
+        wwt_descrip = wot_data[0][50] or ''#WO.WWT_AUTO_KEY
         
         if quantity > 1 and stms and is_serialized == 'T' and not stm_serials:
         
@@ -8811,7 +9304,7 @@ def teardown_rows(quapi_id,sysur_auto_key,user_id,row,\
                     ser = selection_dir(query,cr)
                     ex_esn = ser and ser[0] and ser[0][0] or ''
       
-                    error = updation_dir(squery,cr)                                                             
+                    error = updation_dir(squery,cr)                                                            
                     record = [activity,sn_quantity,exp_date]
                     record += [serial_number,notes,woo_auto_key]
                     record += [wo_task,pn,condition_code]
@@ -8819,8 +9312,9 @@ def teardown_rows(quapi_id,sysur_auto_key,user_id,row,\
                     record += [description,si_number,pnm_auto_key]
                     record += [loc_code,mfg_lot_num,consignment_code]
                     record += [stm_auto_key,customer,eng_model,ata_code]
-                    record += [ex_esn,qty_oh,'']
+                    record += [ex_esn,qty_oh,'',wwt_descrip]
                     error = synch_new_wob(session_id,record,del_existings=False)
+                    
                 #error = synch_new_wob(session_id,activity,quantity,serial_no,notes,woo_auto_key,wo_task,pn,cond_level,ctrl_id,ctrl_number,stock_line,description,si_number,pnm_auto_key)       
                 #if a task was entered by user with an 's' appended
                 #Adam - 5/3/22 - disabled the creation of the new sub-woo and the delete on the reservation of the new bom.
@@ -8864,12 +9358,15 @@ def teardown_rows(quapi_id,sysur_auto_key,user_id,row,\
                         si_num = si_number + incrementer
                     #split it from the last dash and then take the integer part of that
                     if si_num:
+
                         query ="""INSERT INTO WO_OPERATION (STM_AUTO_KEY,WOB_AUTO_KEY,WOO_AUTO_KEY,OP_TYPE,WO_TYPE,DOC_NUMBER,ADMIN_TYPE,
                             SI_NUMBER,CMP_AUTO_KEY,WOO_PARENT,PNM_AUTO_KEY,PNM_MODIFY,SYSUR_AUTO_KEY,SYSCM_AUTO_KEY,
                             ENTRY_DATE,dpt_auto_key,kit_qty,opm_auto_key,due_date,attention,ecd_method,wwt_auto_key,
                             svc_auto_key,new_wip_acct,bgs_default,cur_auto_key,gla_labor,gla_misc,lot_core_settings) 
-                            VALUES('%s','%s',G_WOO_AUTO_KEY.NEXTVAL,'W','Internal','%s','Standard WO','%s','%s','%s','%s','%s','%s','%s',TO_DATE('%s', 'mm/dd/yyyy'),'%s','%s','%s',TO_TIMESTAMP('%s','yyyy-mm-dd hh24:mi:ss'),'%s','%s','%s','%s','%s','%s','%s','%s','%s','%s')"""%\
-                            (stm_auto_key,new_wob_key,si_num,si_num,cmp_auto_key,'',pnm_auto_key,pnm_auto_key,sysur_auto_key,\
+                            VALUES('%s','%s',G_WOO_AUTO_KEY.NEXTVAL,'W','Internal','%s','Standard WO','%s','%s','%s',
+                            '%s','%s','%s','%s',TO_DATE('%s', 'mm/dd/yyyy'),'%s','%s','%s',TO_TIMESTAMP('%s','yyyy-mm-dd hh24:mi:ss'),
+                            '%s','%s','%s','%s','%s','%s','%s','%s','%s','%s')"""%\
+                            (stm_auto_key,new_wob_key,si_num[:19],si_num,cmp_auto_key,'',pnm_auto_key,pnm_auto_key,sysur_auto_key,\
                             syscm_auto_key,datestamp,dpt_auto_key,quantity,opm_auto_key,due_date,attention,ecd_method,\
                             wwt_auto_key,svc_auto_key,new_wip_acct,bgs_default,cur_auto_key,gla_labor,gla_misc,lot_core_settings)
                         error = insertion_dir(query,cr)              
@@ -8913,6 +9410,7 @@ def teardown_rows(quapi_id,sysur_auto_key,user_id,row,\
                                 LEFT JOIN WO_REPAIR_VERSION WRV ON WRV.WRV_AUTO_KEY = OPM.WRV_AUTO_KEY                               
                                 WHERE P.PNM_AUTO_KEY = %s                           
                             """%(pnm_auto_key)
+                            
                             operations = selection_dir(query,cr)
                             opm = operations and operations[0]
                             opm_auto_key = opm and opm[0] or ''
@@ -8923,12 +9421,20 @@ def teardown_rows(quapi_id,sysur_auto_key,user_id,row,\
                             op_desc = opm and opm[5] or ''
                             opm_default_repair = opm and opm[6] or ''
                             wwt_auto_key = opm and opm[7] or ''
+                            
                             if default_repair and wwt_auto_key:
-                                query="""UPDATE WO_OPERATION 
+                                query="""UPDATE WO_OPERATION
                                 SET WWT_AUTO_KEY='%s'
                                 WHERE WOO_AUTO_KEY=%s
                                 """%(wwt_auto_key,woo_auto_key)
                                 error = updation_dir(query,cr)
+                                
+                            if opm_auto_key:
+                                query="""INSERT INTO WO_REPAIRS (OPM_AUTO_KEY,WOO_AUTO_KEY,SYSUR_AUTO_KEY,ENTRY_DATE) 
+                                          VALUES(%s,%s,%s,%s)
+                                """%(opm_auto_key,woo_auto_key,sysur_auto_key,timestamp)
+                                error = insertion_dir(query,cr)
+                            
                             if not default_repair:
                                 #msg += 'Select task operation.'
                                 from polls.models import Operation
@@ -9127,14 +9633,17 @@ def synch_new_wob(session_id,record,del_existings=True):
             time_loc = record[20],#eng_model
             cart = record[21],
             slug = len(record) > 22 and record[22] or '',
-            qty_oh = len(record) > 22 and record[23] or 0,
+            qty_oh = len(record) > 22 and record[23] or record[1],
             status = len(record) > 22 and record[24] or '',
+            wh_code = len(record) > 22 and record[25] or '',
             session_id = session_id,            
-            )    
+            )
         res.save()
+        
     except Exception as exc:
         error += "Error with creating grid for the new WOB: %s"%(exc)       
-    return error       
+    return error
+    
 def template_bad_rows(bad_rows,session_id):
     from polls.models import WOStatus
     req_data,error = [],''
@@ -10363,7 +10872,20 @@ def format_start_date(start_date,new_format=None):
 def create_ros_bulk(quapi,session_id,ro_recs):
     from polls.models import WOStatus
     ro_data,error,msg = [],'',''
+    
     for rec in ro_recs:
+        quoted_date = rec[14] and rec[14][:10] or None
+        #quoted_date = qdate and qdate[6:7] + '/' + qdate[9:10] + '/' + qdate[:2]
+        entry_date = rec[25] and rec[25][:10] or None
+        #entry_date = edate and edate[6:7] + '/' + edate[9:10] + '/' + edate[:2] 
+        next_dlv_date = rec[6] and rec[6][:10] or None
+        #next_dlv_date = ndate and ndate[6:7] + '/' + ndate[9:10] + '/' + ndate[:2]
+        approved_date = rec[13] and rec[13][:10] or None
+        #approved_date = adate and adate[6:7] + '/' + adate[9:10] + '/' + adate[:2]
+        loc_validated_date = rec[30] and rec[30][:10] or None
+        arrival_date = rec[26] and rec[26][:10] or None
+        #due_date = rec[34] and rec[34][:10]
+
         ro_data.append(WOStatus(
             quapi_id=quapi,
             session_id=session_id,
@@ -10374,15 +10896,15 @@ def create_ros_bulk(quapi,session_id,ro_recs):
             part_number = rec[3],
             description = rec[4],
             serial_number = rec[5],
-            next_dlv_date = rec[6] and rec[6][:10] or None,
+            next_dlv_date = next_dlv_date,
             condition_code = rec[7],
             total_cost = rec[21],
             rod_auto_key = rec[9], 
             parts_cost = rec[10],
             labor_cost = rec[11],
             misc_cost = rec[12],
-            approved_date = rec[13] and rec[13][:10] or None,
-            quoted_date = rec[14] and rec[14][:10] or None, 
+            approved_date = approved_date,
+            quoted_date = quoted_date, 
             notes = rec[15], 
             airway_bill = rec[16],
             pnm_modify = rec[17], 
@@ -10391,49 +10913,58 @@ def create_ros_bulk(quapi,session_id,ro_recs):
             si_number = rec[22],
             cust_ref_number = rec[23],
             quantity = rec[24],
-            entry_date = rec[25] and rec[25][:10] or None, 
-            arrival_date = rec[26] and rec[26][:10] or None,#SMH.SHIP_DATE
+            entry_date = entry_date, 
+            arrival_date = arrival_date,#SMH.SHIP_DATE
             rack = rec[27],#SMH.AIRWAY_BILL
             po_number = rec[28],#SMH.SM_NUMBER
             time_status = rec[29],#SMS.STATUS_CODE
-            loc_validated_date = rec[30] or None,#ROD.RO_UDF_001 (QUOTE DATE from ROD)
+            loc_validated_date = loc_validated_date,#ROD.RO_UDF_001 (QUOTE DATE from ROD)
             customer = rec[31],#SOH.CMP_AUTO_KEY
             wo_type = rec[32],#SMD.ROUTE_CODE
             priority = rec[33],#ROD.QTY_RESERVED*SOD.UNIT_PRICE (SO Value)
-            due_date = rec[34] and rec[34][:10] or None,#SOD.DUE_DATE
-            )
-        )
+            due_date = rec[34] and rec[34][:10] or None,
+        ))
+        
     try:
         WOStatus.objects.bulk_create(ro_data) or None
     except Exception as err:
-        logger.error("Error with creation of repair order locally. Message: '%s'",err.args)           
+        logger.error("Error with creation of repair order locally. Message: '%s'",err.args) 
+        
     return error,msg
     
 def get_ro_details(cr,ro_id_list='',\
     ro_number=None,wo_number=None,\
     vendor=None,part_number=None,\
     entry_date=None,rst_auto_key=None,
-    uda_status=None):
+    uda_status=None,cons_code=''):
     add_where = ''
+
     if ro_id_list:
         add_where += "AND ROD.ROD_AUTO_KEY IN %s"%ro_id_list
     if ro_number:
         add_where += "AND REGEXP_LIKE (ROH.RO_NUMBER, '%s', 'i') "%ro_number
+        
     if wo_number:
-        add_where += """AND ROD.WOO_AUTO_KEY IN 
-        (SELECT WOO_AUTO_KEY FROM WO_OPERATION WHERE REGEXP_LIKE 
-        (SI_NUMBER, '%s', 'i'))"""%wo_number
+        add_where += """AND REGEXP_LIKE (WO.SI_NUMBER, '%s', 'i')"""%wo_number
+        
     if rst_auto_key:
         if rst_auto_key == '0':
             add_where += "AND ROH.RST_AUTO_KEY IS NULL"
         else:
             add_where += "AND ROH.RST_AUTO_KEY = '%s'"%rst_auto_key
+             
+    if cons_code:
+        add_where += "AND UPPER(CNC.CONSIGNMENT_CODE) = UPPER('%s')"%cons_code
+        
     if vendor:
         add_where += "AND REGEXP_LIKE (C.COMPANY_NAME, '%s', 'i') "%vendor
+        
     if part_number:
         add_where += "AND REGEXP_LIKE (P.PN, '%s', 'i') "%part_number
+        
     if entry_date:
-        add_where += "AND ROD.ENTRY_DATE >= TO_DATE('%s','mm-dd-yyyy') "%entry_date    
+        add_where += "AND ROD.ENTRY_DATE >= TO_DATE('%s','mm-dd-yyyy') "%entry_date
+        
     #QTY_REPAIR = 1 <>  would be an open item in the RO_DETAIL table. 
     #We only really care if the ro detail is closed.
    
@@ -10465,6 +10996,7 @@ def get_ro_details(cr,ro_id_list='',\
         LEFT JOIN PART_CONDITION_CODES PCC ON PCC.PCC_AUTO_KEY = ROD.PCC_AUTO_KEY
         LEFT JOIN STOCK_RESERVATIONS SR ON SR.ROD_AUTO_KEY = ROD.ROD_AUTO_KEY
         LEFT JOIN STOCK S ON S.STM_AUTO_KEY = SR.STM_AUTO_KEY
+        LEFT JOIN CONSIGNMENT_CODES CNC ON CNC.CNC_AUTO_KEY = S.CNC_AUTO_KEY
         LEFT JOIN PARTS_MASTER PT ON PT.PNM_AUTO_KEY = ROD.PNM_MODIFY
         LEFT JOIN WO_OPERATION WO ON WO.WOO_AUTO_KEY = ROD.WOO_AUTO_KEY
         LEFT JOIN SO_DETAIL SOD ON SOD.SOD_AUTO_KEY = ROD.ROD_AUTO_KEY
@@ -10477,7 +11009,7 @@ def get_ro_details(cr,ro_id_list='',\
         ((ROD.QTY_REPAIR <> ROD.QTY_REPAIRED + ROD.QTY_SCRAPPED) OR ROD.QTY_REPAIR = 0)
         AND S.HISTORICAL_FLAG = 'F'
         AND S.QTY_OH > 0
-        AND SR.QTY_RESERVED > 0
+        AND (SR.QTY_RESERVED > 0 OR SR.STR_AUTO_KEY IS NULL)
         AND ROH.OPEN_FLAG = 'T'
         AND ROH.HISTORICAL_FLAG = 'F'
         AND ROH.NUMBER_OF_ITEMS > 0 
@@ -10503,7 +11035,10 @@ def run_ro_mgmt(session_id,\
             clear_cart = None,\
             dj_user_id = None,\
             wos_auto_key = None,\
-            stock_status = ''):
+            stock_status = '',
+            stock_line = '',
+            cons_code = ''):
+                
     from polls.models import WOStatus as wos_obj,QueryApi
     quapi = QueryApi.objects.filter(id=quapi_id)
     quapi = quapi and quapi[0] or None
@@ -10518,10 +11053,16 @@ def run_ro_mgmt(session_id,\
     #1. send params to stock query method, get_stock_recs()
     #2. take stock lines and bulk create locally using add_wo_record()
     #3. pass back success msg or any error messages   
-    stock_recs = get_ro_stock(stock_status=stock_status,wos_auto_key=wos_auto_key,inexact=True,ctrl_id=ctrl_id,ctrl_number=ctrl_number,location=location,customer=customer,wo_number=wo_number,part_number=part_number,quapi=quapi,cond_code=condition_code,socond_code=socond_code)
+    stock_recs = get_ro_stock(stock_status=stock_status,wos_auto_key=wos_auto_key,\
+        inexact=True,ctrl_id=ctrl_id,ctrl_number=ctrl_number,location=location,\
+        customer=customer,wo_number=wo_number,part_number=part_number,quapi=quapi,\
+        cond_code=condition_code,socond_code=socond_code,stock_line=stock_line,\
+        cons_code=cons_code)
+        
     if stock_recs:
         del_rows = wos_obj.objects.filter(session_id=session_id).delete() or None
-        error,msg = add_ro_stock(session_id,quapi,user_id=user_id,stock_recs=stock_recs)        
+        error,msg = add_ro_stock(session_id,quapi,user_id=user_id,stock_recs=stock_recs)  
+        
     elif not error:
         error = 'No records found.'   
     return error,msg
@@ -10552,13 +11093,15 @@ def add_ro_stock(session_id,quapi,user_id='',stock_recs=[]):
             stock_owner = rec[11],
             stock_line = rec[12], 
             woo_auto_key = rec[13] or 0,
-            vendor_key = rec[23] or rec[14] or 0,
+            vendor_key = rec[25] or rec[14] or 0,
             quantity = rec[15] or 0,
             pnm_auto_key = rec[17] or 0,
-            vendor = rec[22] or '',
+            vendor = rec[24] or '',
             cond_level_gsix = rec[18] or '', 
             rack = rec[19],
-            sub_wo_gate = rec[20] or rec[21],            
+            sub_wo_gate = rec[20] or rec[21],
+            consignment_code = rec[22],
+            qty_reserved = rec[23],            
             )
         )
     try:
@@ -10567,7 +11110,12 @@ def add_ro_stock(session_id,quapi,user_id='',stock_recs=[]):
         logger.error("Error with creation of stock records locally. Message: '%s'",err.args)           
     return error,msg
     
-def get_ro_stock(stock_status='',wos_auto_key=None,inexact=True,ctrl_id=None,ctrl_number=None,location=None,customer=None,wo_number=None,part_number=None,quapi=None,cond_code=None,socond_code=None):
+def get_ro_stock(stock_status='',wos_auto_key=None,\
+    inexact=True,ctrl_id=None,ctrl_number=None,\
+    location=None,customer=None,wo_number=None,\
+    part_number=None,quapi=None,cond_code=None,\
+    socond_code=None,stock_line='',cons_code=''):
+        
     from polls.models import OracleConnection as oc
     orcl_conn = quapi and quapi.orcl_conn_id and oc.objects.filter(id=quapi.orcl_conn_id) or None
     orcl_conn = orcl_conn and orcl_conn[0] or None
@@ -10576,8 +11124,10 @@ def get_ro_stock(stock_status='',wos_auto_key=None,inexact=True,ctrl_id=None,ctr
     if not (cr and con):
         return 'Cannot connect to Oracle',msg
     and_where = ''
+    
     if ctrl_id and ctrl_number:
         and_where = "AND S.CTRL_ID = '%s' AND S.CTRL_NUMBER = '%s' "%(ctrl_id,ctrl_number)
+        
     else:
         if wo_number:
             if not inexact:
@@ -10596,31 +11146,57 @@ def get_ro_stock(stock_status='',wos_auto_key=None,inexact=True,ctrl_id=None,ctr
                    OR REGEXP_LIKE (STH.SO_NUMBER, '%s', 'i'))
                    """%(wo_number,wo_number,wo_number,wo_number,wo_number)
         if cond_code:
-            cond_reg = "REGEXP_LIKE (CONDITION_CODE, '%s', 'i')"%cond_code
-            cond_code_where = "(SELECT PCC_AUTO_KEY FROM PART_CONDITION_CODES WHERE %s)"%cond_reg
-            and_where += "AND (S.PCC_AUTO_KEY IN %s "%cond_code_where
-            and_where += "OR ST.PCC_AUTO_KEY IN %s) "%cond_code_where
+
+            #cond_reg = "REGEXP_LIKE (CONDITION_CODE, '%s', 'i')"%cond_code
+            #cond_reg = "UPPER(CONDITION_CODE) = UPPER('%s')"%cond_code
+            #cond_code_where = "(SELECT PCC_AUTO_KEY FROM PART_CONDITION_CODES WHERE %s)"%cond_reg
+            #and_where += "AND (S.PCC_AUTO_KEY IS NOT NULL AND S.PCC_AUTO_KEY IN %s "%cond_code_where
+            #and_where += "OR ST.PCC_AUTO_KEY IS NOT NULL AND ST.PCC_AUTO_KEY IN %s) "%cond_code_where
+            and_where += """AND (CASE WHEN S.PCC_AUTO_KEY IS NOT NULL 
+               AND UPPER(PCC.CONDITION_CODE)=UPPER('%s') THEN 1 ELSE
+               (CASE WHEN ST.PCC_AUTO_KEY IS NOT NULL AND 
+               UPPER(PTC.CONDITION_CODE)=UPPER('%s') THEN 1 ELSE 0 END) END)=1"""%(cond_code,cond_code)
+            
+        if cons_code:
+
+            #cons_reg = "UPPER(CONSIGNMENT_CODE) = UPPER('%s')"%cons_code
+            #cons_code_where = "(SELECT CNC_AUTO_KEY FROM CONSIGNMENT_CODES WHERE %s)"%cons_reg
+            #and_where += "AND (S.CNC_AUTO_KEY IS NOT NULL AND S.CNC_AUTO_KEY IN %s "%cons_code_where
+            #and_where += "OR ST.CNC_AUTO_KEY IS NOT NULL AND ST.CNC_AUTO_KEY IN %s) "%cons_code_where
+            and_where +="""AND (CASE WHEN S.CNC_AUTO_KEY IS NOT NULL 
+               AND UPPER(CNC.CONSIGNMENT_CODE)=UPPER('%s') THEN 1 ELSE
+               (CASE WHEN ST.CNC_AUTO_KEY IS NOT NULL AND 
+               UPPER(CNCT.CONSIGNMENT_CODE)=UPPER('%s') THEN 1 ELSE 0 END) END)=1"""%(cons_code,cons_code)
+            
+        if stock_line:
+            and_where += """AND (S.STOCK_LINE IS NOT NULL AND S.STOCK_LINE = '%s' 
+            OR ST.STOCK_LINE IS NOT NULL AND ST.STOCK_LINE = '%s')"""%(stock_line,stock_line)
+            
         if socond_code:
             socond_reg = "REGEXP_LIKE (CONDITION_CODE, '%s', 'i')"%socond_code
             socond_code_where = "(SELECT PCC_AUTO_KEY FROM PART_CONDITION_CODES WHERE %s)"%socond_reg
             and_where += "AND (SOD.PCC_AUTO_KEY IN %s "%socond_code_where
             and_where += "OR STD.PCC_AUTO_KEY IN %s) "%socond_code_where
+            
         if customer:
             cust_where = "REGEXP_LIKE (COMPANY_NAME, '%s', 'i') "%customer
             cust_in = "SELECT CMP_AUTO_KEY FROM COMPANIES WHERE %s"%cust_where
             and_where += "AND (WO.CMP_AUTO_KEY IN (%s) OR WV.CMP_AUTO_KEY IN (%s) OR W.CMP_AUTO_KEY IN (%s)) "%(cust_in,cust_in,cust_in)
+            
         if location:
             loc_reg = "REGEXP_LIKE (LOCATION_CODE, '%s', 'i') "%location
             loc_where = "(SELECT LOC_AUTO_KEY FROM LOCATION WHERE %s)"%loc_reg
             and_where += "AND (S.LOC_AUTO_KEY IN %s "%loc_where
             and_where += "OR ST.LOC_AUTO_KEY IN %s) "%loc_where
+            
         if part_number:
             #pn_reg = "REGEXP_LIKE (PN, '%s', 'i') "%part_number
             #pn_where = "(SELECT PNM_AUTO_KEY FROM PARTS_MASTER WHERE %s)"%pn_reg
             #and_where += "AND (S.PNM_AUTO_KEY IN %s "%pn_where
             #and_where += "OR ST.PNM_AUTO_KEY IN %s) "%pn_where
-            and_where += """AND (UPPER(P.PN) LIKE UPPER('%s%s') 
+            and_where += """AND (UPPER(P.PN) LIKE UPPER('%s%s')
             OR UPPER(PT.PN) LIKE UPPER('%s%s')) """%(part_number,'%',part_number,'%')
+            
         if wos_auto_key:
             if wos_auto_key == 'PENDING':
                 and_where += """AND SOH.SOS_AUTO_KEY IS NULL 
@@ -10665,11 +11241,11 @@ def get_ro_stock(stock_status='',wos_auto_key=None,inexact=True,ctrl_id=None,ctr
         CASE WHEN PT.PN IS NOT NULL THEN PT.DESCRIPTION ELSE P.DESCRIPTION END,
          CASE WHEN ST.SERIAL_NUMBER IS NOT NULL THEN ST.SERIAL_NUMBER ELSE S.SERIAL_NUMBER END,
           CASE WHEN PTC.CONDITION_CODE IS NOT NULL THEN PTC.CONDITION_CODE ELSE PCC.CONDITION_CODE END,
-           CASE WHEN SOS.SOS_AUTO_KEY IS NOT NULL THEN SOS.DESCRIPTION ELSE 
-           CASE WHEN STS.SOS_AUTO_KEY IS NOT NULL THEN STS.DESCRIPTION ELSE
-           CASE WHEN WOS.WOS_AUTO_KEY IS NOT NULL THEN WOS.DESCRIPTION ELSE
-           CASE WHEN WS.WOS_AUTO_KEY IS NOT NULL THEN WS.DESCRIPTION ELSE
-           CASE WHEN WVS.WOS_AUTO_KEY IS NOT NULL THEN WVS.DESCRIPTION END END END END END,
+           CASE WHEN SOS.DESCRIPTION IS NOT NULL THEN SOS.DESCRIPTION ELSE 
+           CASE WHEN STS.DESCRIPTION IS NOT NULL THEN STS.DESCRIPTION ELSE
+           CASE WHEN WOS.DESCRIPTION IS NOT NULL THEN WOS.DESCRIPTION ELSE
+           CASE WHEN WS.DESCRIPTION IS NOT NULL THEN WS.DESCRIPTION ELSE
+           WVS.DESCRIPTION END END END END,
            CASE WHEN LT.LOCATION_CODE IS NOT NULL THEN LT.LOCATION_CODE ELSE L.LOCATION_CODE END,
            CASE WHEN WHT.WAREHOUSE_CODE IS NOT NULL THEN WHT.WAREHOUSE_CODE ELSE WH.WAREHOUSE_CODE END,
            CASE WHEN COH.COMPANY_NAME IS NOT NULL THEN COH.COMPANY_NAME ELSE 
@@ -10685,15 +11261,18 @@ def get_ro_stock(stock_status='',wos_auto_key=None,inexact=True,ctrl_id=None,ctr
            (CASE WHEN W.WOO_AUTO_KEY IS NULL THEN WV.WOO_AUTO_KEY ELSE 
            W.WOO_AUTO_KEY END) END,
            CASE WHEN CMTP.CMP_AUTO_KEY IS NOT NULL THEN CMTP.CMP_AUTO_KEY ELSE CMP.CMP_AUTO_KEY END,
-           CASE WHEN ST.STM_AUTO_KEY IS NOT NULL THEN ST.QTY_OH ELSE S.QTY_OH END,
+           CASE WHEN ST.QTY_OH > 0 THEN ST.QTY_OH ELSE S.QTY_OH END,
         CASE WHEN ST.STM_AUTO_KEY IS NOT NULL THEN STR.ROD_AUTO_KEY ELSE SR.ROD_AUTO_KEY END,
 		CASE WHEN PT.PNM_AUTO_KEY IS NOT NULL THEN PT.PNM_AUTO_KEY ELSE P.PNM_AUTO_KEY END,
         CASE WHEN SOD.SOD_AUTO_KEY IS NOT NULL THEN PSD.CONDITION_CODE ELSE PSTD.CONDITION_CODE END,
         CASE WHEN ST.STM_AUTO_KEY IS NOT NULL THEN UDL.UDL_CODE 
         ELSE UDLT.UDL_CODE END,
         UDC.ATTRIBUTE_VALUE,
-        UDCH.ATTRIBUTE_VALUE
+        UDCH.ATTRIBUTE_VALUE,
+        CASE WHEN CNC.CNC_AUTO_KEY IS NOT NULL THEN CNC.CONSIGNMENT_CODE ELSE CNCT.CONSIGNMENT_CODE END,
+        CASE WHEN SR.STR_AUTO_KEY IS NOT NULL THEN SR.QTY_RESERVED ELSE STR.QTY_RESERVED END
         FROM STOCK S
+        LEFT JOIN CONSIGNMENT_CODES CNC ON CNC.CNC_AUTO_KEY = S.CNC_AUTO_KEY
         LEFT JOIN USER_DEFINED_LOOKUPS UDL ON UDL.UDL_AUTO_KEY = S.IC_UDL_004
         LEFT JOIN STOCK ST ON ST.STM_LOT = S.STM_AUTO_KEY
             LEFT JOIN (SELECT RD.PNM_AUTO_KEY,RH.CMP_AUTO_KEY,
@@ -10713,7 +11292,8 @@ def get_ro_stock(stock_status='',wos_auto_key=None,inexact=True,ctrl_id=None,ctr
                     ON LASTCMTP.PNM_AUTO_KEY = ST.PNM_AUTO_KEY
                     AND LASTCMTP.RN = 1                
                 LEFT JOIN COMPANIES CMTP
-                    ON CMTP.CMP_AUTO_KEY = LASTCMTP.CMP_AUTO_KEY      
+                    ON CMTP.CMP_AUTO_KEY = LASTCMTP.CMP_AUTO_KEY
+        LEFT JOIN CONSIGNMENT_CODES CNCT ON CNCT.CNC_AUTO_KEY = ST.CNC_AUTO_KEY                    
 		LEFT JOIN USER_DEFINED_LOOKUPS UDLT ON UDLT.UDL_AUTO_KEY = ST.IC_UDL_004					
         LEFT JOIN WAREHOUSE WH ON WH.WHS_AUTO_KEY = S.WHS_AUTO_KEY
         LEFT JOIN LOCATION L ON L.LOC_AUTO_KEY = S.LOC_AUTO_KEY
@@ -10752,22 +11332,39 @@ def get_ro_stock(stock_status='',wos_auto_key=None,inexact=True,ctrl_id=None,ctr
         LEFT JOIN RO_HEADER RTH ON RTH.ROH_AUTO_KEY = RTD.ROH_AUTO_KEY
         LEFT JOIN UDA_CHECKED UDC ON UDC.AUTO_KEY = RH.ROH_AUTO_KEY
         LEFT JOIN UDA_CHECKED UDCH ON UDCH.AUTO_KEY = RTH.ROH_AUTO_KEY  
-        WHERE S.QTY_OH > 0 %s
+        WHERE 
+        --(CASE WHEN S.STM_AUTO_KEY IS NOT NULL THEN 
+        --(CASE WHEN S.QTY_OH > 0 THEN 1 ELSE 0 END) END) = 1
+        --AND (CASE WHEN ST.STM_AUTO_KEY IS NOT NULL THEN
+        --(CASE WHEN ST.QTY_OH > 0 THEN 1 ELSE 0 END) END) = 1 
+        S.QTY_OH > 0 
+        AND (CASE WHEN ST.STM_AUTO_KEY IS NOT NULL AND ST.QTY_OH > 0 THEN
+        1 ELSE )
+        AND (CASE WHEN RD.ROD_AUTO_KEY IS NOT NULL THEN
+        (CASE WHEN RD.CLOSED_UPDATE = 'F' THEN 1 ELSE 0 END) ELSE 
+        (CASE WHEN RTD.ROD_AUTO_KEY IS NOT NULL THEN
+        (CASE WHEN RTD.CLOSED_UPDATE = 'F' THEN 1 ELSE 0 END) ELSE 1 END) END) = 1         
         AND (CASE WHEN SOD.SOD_AUTO_KEY IS NOT NULL THEN 
-        (CASE WHEN S.PCC_AUTO_KEY <> SOD.PCC_AUTO_KEY THEN 1 ELSE
-        0 END) ELSE (CASE WHEN STD.SOD_AUTO_KEY IS NOT NULL THEN 
+        (CASE WHEN S.PCC_AUTO_KEY <> SOD.PCC_AUTO_KEY THEN 1 ELSE 0 END) ELSE 
+        (CASE WHEN STD.SOD_AUTO_KEY IS NOT NULL THEN 
         (CASE WHEN ST.PCC_AUTO_KEY <> STD.PCC_AUTO_KEY THEN 1 ELSE 
         0 END) ELSE 1 END) END)=1
-        AND (CASE WHEN ST.STR_AUTO_KEY IS NOT NULL THEN 
+        AND (CASE WHEN ST.QTY_RESERVED IS NOT NULL THEN 
         (CASE WHEN ST.QTY_RESERVED > 0 THEN 1 ELSE 0 END) ELSE
-        (CASE WHEN STR.STR_AUTO_KEY IS NOT NULL THEN 
+        (CASE WHEN STR.QTY_RESERVED IS NOT NULL THEN 
         (CASE WHEN STR.QTY_RESERVED > 0 THEN 1 ELSE 0 END) ELSE 1 END) END)=1
         AND (CASE WHEN ST.STR_AUTO_KEY IS NOT NULL THEN 
         (CASE WHEN ST.ROD_AUTO_KEY IS NULL THEN 1 ELSE 0 END) ELSE
         (CASE WHEN STR.STR_AUTO_KEY IS NOT NULL THEN 
-        (CASE WHEN STR.ROD_AUTO_KEY IS NULL THEN 1 ELSE 0 END) ELSE 1 END) END)=1       
+        (CASE WHEN STR.ROD_AUTO_KEY IS NULL THEN 1 ELSE 0 END) ELSE 1 END) END)=1
+        AND (CASE WHEN RD.QTY_RESERVED IS NOT NULL 
+        THEN (CASE WHEN RD.QTY_RESERVED >= RD.QTY_REPAIR - (RD.QTY_REPAIRED + RD.QTY_SCRAPPED) THEN 1 ELSE 0 END)
+        ELSE (CASE WHEN RTD.QTY_RESERVED IS NOT NULL THEN 
+        (CASE WHEN RTD.QTY_RESERVED >= RD.QTY_REPAIR - (RD.QTY_REPAIRED + RD.QTY_SCRAPPED) THEN 1 ELSE 0 END) ELSE 1 END) END) = 1        
+        %s        
     """%(and_where)
     recs = selection_dir(query,cr)
+
     counter = 0
     stm_list = []
     ro_recs = []
@@ -10776,6 +11373,7 @@ def get_ro_stock(stock_status='',wos_auto_key=None,inexact=True,ctrl_id=None,ctr
         pnm_auto_key = stock[17]
         stm_auto_key = stock[10]
         stock += ['','']
+        append_stock = True       
         
         if stm_auto_key in stm_list: 
             counter+=1        
@@ -10794,8 +11392,6 @@ def get_ro_stock(stock_status='',wos_auto_key=None,inexact=True,ctrl_id=None,ctr
                     stock[2] = part[1]
                     stock[3] = part[2]
                     stock[17] = pnm_auto_key
-                
-        stm_list.append(stm_auto_key)
         
         if pnm_auto_key:
             query="""SELECT CMP.COMPANY_NAME,CMP.CMP_AUTO_KEY            
@@ -10811,11 +11407,29 @@ def get_ro_stock(stock_status='',wos_auto_key=None,inexact=True,ctrl_id=None,ctr
                 
             last_vendor = selection_dir(query,cr)
             last_vendor = last_vendor and last_vendor[0]           
-            #last_vendor = last_vendor and last_vendor[0] or ''
-            stock[22] = last_vendor and last_vendor[0] or ''
-            stock[23] = last_vendor and last_vendor[1] or 0
+                                                               
+            stock[24] = last_vendor and last_vendor[0] or ''
+            stock[25] = last_vendor and last_vendor[1] or 0
+                
+        #if cond_code and stock[5] != cond_code:
+            #append_stock = False
             
-        ro_recs.append(stock)
+        if cons_code and stock[22] != cons_code:
+            append_stock = False
+
+        if not stock[23]:
+            append_stock = False
+
+        if location and stock[7] != location:
+            append_stock = False
+
+        if stock_line and str(stock[12]) != stock_line:
+            append_stock = False          
+                
+        if append_stock:
+            ro_recs.append(stock)
+            stm_list.append(stm_auto_key)
+        
         counter+=1
         
     return ro_recs
@@ -10922,7 +11536,24 @@ def form_stock_ro(where):
         WHERE %s"""%(where)
     return query  
 
-def insert_ro_header(cr,sysur_auto_key,vendor_key,right_now,srecs):
+#check that the price_line exists for pnm and cmp
+# on tasks.py - call this method from insert_ro_detail
+# add this to the end of the srec list of stock record data 
+def get_price_note(cr,pnm_auto_key,cmp_auto_key):
+
+    query = """SELECT TO_CHAR(NOTES) FROM PRICES WHERE PNM_AUTO_KEY=%s
+        AND CMP_AUTO_KEY = %s"""%(pnm_auto_key,cmp_auto_key)
+
+    price_line = selection_dir(query,cr)
+    price_line = price_line and price_line[0]
+    price_note = price_line and price_note[0][0] or ''
+    
+    return price_note                                                                 
+
+def insert_ro_header(cr,sysur_auto_key,\
+    sysnl_auto_key,vendor_key,right_now,srecs,\
+    next_num='',yes_proceed=''):
+        
     ship_address1 = ''
     ship_address2 = ''
     ship_address3 = ''
@@ -10935,6 +11566,8 @@ def insert_ro_header(cr,sysur_auto_key,vendor_key,right_now,srecs):
     v_address4 = ''
     v_address5 = ''
     v_name = '' 
+    pop_msg,error = '',''
+    
     """GET THE SYS_COMPANIES SHIPPING ADDRESS"""
     query="""SELECT SYS.ADDRESS1, SYS.ADDRESS2, 
     SYS.ADDRESS3, SYS.CITY, SYS.STATE, SYS.ZIP_CODE,
@@ -10943,6 +11576,7 @@ def insert_ro_header(cr,sysur_auto_key,vendor_key,right_now,srecs):
     """%srecs[12]
     rec = selection_dir(query,cr)        
     ship_add = rec and rec[0]
+
     if ship_add:
         ship_address1 = ship_add[0] or ''
         ship_address2 = ship_add[1] or ''
@@ -10951,14 +11585,17 @@ def insert_ro_header(cr,sysur_auto_key,vendor_key,right_now,srecs):
         ship_address4 += ' ' + ship_add[5]
         ship_address5 = ''
         ship_name = ship_add[6]
+
     """GET THE VENDOR ADDRESS"""
     query="""SELECT C.ADDRESS1, C.ADDRESS2, 
     C.ADDRESS3, C.CITY, C.STATE, C.ZIP_CODE,
-    C.COMPANY_NAME FROM COMPANIES C
-    WHERE C.CMP_AUTO_KEY = '%s'
+    C.COMPANY_NAME, C.ALLOW_RO, TO_CHAR(C.RO_WARNING) 
+    FROM COMPANIES C WHERE C.CMP_AUTO_KEY = '%s'
     """%vendor_key
+    
     rec = selection_dir(query,cr)
-    v_add = rec and rec[0]  
+    v_add = rec and rec[0]
+
     if v_add:
         v_address1 = v_add[0] or ''
         v_address2 = v_add[1] or ''
@@ -10967,27 +11604,37 @@ def insert_ro_header(cr,sysur_auto_key,vendor_key,right_now,srecs):
         v_address4 += ' ' + v_add[5]
         v_address5 = ''
         v_name = v_add[6]
-    
+        v_allow = v_add[7]
+        v_warn = v_add[8]
+        
+        if not yes_proceed:
+            #check that the vendor is allowed for RO's
+            if v_allow == 'Never':
+                #return and raise pop up to display v_warn
+                error = 'Vendor not allowed for repairs. ' + v_warn 
+                return error,0,pop_msg
+                
+            if v_allow == 'Warn': 
+                #return the warning and pop-up a yes/no continue pop
+                #return and raise pop up to display v_warn
+                pop_msg = 'warn_user ' + v_warn 
+                return error,0,pop_msg                             
+            
     error = ''
     rohs_created = 0
-    #query = "SELECT RO_NUMBER FROM RO_HEADER ORDER BY ROH_AUTO_KEY DESC FETCH NEXT 1 ROWS ONLY"            
-    #ro_num_recs = selection(query,cr=cr)
-    #ro_number = ro_num_recs and ro_num_recs[0] and ro_num_recs[0][0] or ''
-    #ro_number = ro_number and int(ro_number.split('-')[0]) or None
-    #ro_number = ro_number and ro_number + 1 or 'None'
-    #q1 = "SELECT RO_NUMBER FROM RO_HEADER ORDER BY ROH_AUTO_KEY DESC FETCH NEXT 1 ROWS ONLY"
-    #ro_number = (TO_NUMBER(%s) + 1)%q1
-    num_query = """select sl.last_number + 1, sl.sysnl_auto_key, sl.number_prefix
-      from            sys_number_log sl
-      left join       sys_number_log_codes lc
-      on              lc.sysnlc_auto_key = sl.sysnlc_auto_key
-      where           (lc.log_type_code = 'RO')"""
-    sysnum = selection_dir(num_query,cr)    
-    sysnum = sysnum and sysnum[0] or ''
-    last_num_mas1 = sysnum and sysnum[0] or ''
-    sysnl_auto_key = sysnum and sysnum[1] or 0
-    number_prefix = sysnum and sysnum[2] or 'RO'
-    if last_num_mas1:
+    
+    if not (next_num and sysnl_auto_key):
+        
+        num_query = """select sl.last_number + 1, sl.number_prefix
+          from            sys_number_log sl
+          left join       sys_number_log_codes lc
+          on              lc.sysnlc_auto_key = sl.sysnlc_auto_key
+          where           (lc.log_type_code = 'RO')"""
+        sysnum = selection_dir(num_query,cr)
+        sysnum = sysnum and sysnum[0] or ''
+        last_num_mas1 = sysnum and sysnum[0] or ''
+        number_prefix = sysnum and sysnum[1] or ''
+    
         #adding new fields into insert 
         query = """INSERT INTO RO_HEADER (RO_NUMBER, CMP_AUTO_KEY,
           SYSUR_AUTO_KEY,ENTRY_DATE, SYSCM_AUTO_KEY, DPT_AUTO_KEY, OPEN_FLAG,
@@ -11004,30 +11651,69 @@ def insert_ro_header(cr,sysur_auto_key,vendor_key,right_now,srecs):
         except cx_Oracle.DatabaseError as exc:
             error, = exc.args
             error = error.message
-            logger.error("Error with inserting new RO: '%s'",error)               
+            logger.error("Error with inserting new RO: '%s'",error)
+            
+    else:
+
+        #adding new fields into insert 
+        query = """INSERT INTO RO_HEADER (RO_NUMBER, CMP_AUTO_KEY,
+          SYSUR_AUTO_KEY,ENTRY_DATE, SYSCM_AUTO_KEY, DPT_AUTO_KEY, OPEN_FLAG,
+          ship_address1, ship_address2, ship_address3, ship_address4,
+          ship_address5, ship_name,
+          vendor_address1, vendor_address2, vendor_address3, 
+          vendor_address4, vendor_address5, vendor_name) 
+          VALUES('%s','%s','%s',TO_DATE('%s','MM-DD-YYYY'),'%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s')
+          """%(next_num,vendor_key,sysur_auto_key,right_now[:10],
+          srecs[12],srecs[10],'T',ship_address1,ship_address2,ship_address3,ship_address4,
+          ship_address5,ship_name,v_address1,v_address2,v_address3,v_address4,v_address5,v_name)
+        try:
+            insertion_dir(query,cr)
+        except cx_Oracle.DatabaseError as exc:
+            error, = exc.args
+            error = error.message
+            logger.error("Error with inserting new RO: '%s'",error)
+            
     if (not error or error == '{"recs": ""}') and sysnl_auto_key:
+        
+        num_query = """select sl.last_number + 1, sl.number_prefix
+          from            sys_number_log sl
+          left join       sys_number_log_codes lc
+          on              lc.sysnlc_auto_key = sl.sysnlc_auto_key
+          where           (lc.log_type_code = 'RO') and sl.sysnl_auto_key = %s"""%sysnl_auto_key
+        sysnum = selection_dir(num_query,cr)    
+        sysnum = sysnum and sysnum[0] or ''
+        last_num_mas1 = sysnum and sysnum[0] or ''
+        number_prefix = sysnum and sysnum[1] or ''
+        
         query ="""UPDATE sys_number_log snl 
           SET snl.last_number = '%s'
           WHERE snl.sysnl_auto_key = '%s'"""%(last_num_mas1,sysnl_auto_key)
         rohs_created = str(number_prefix) + str(last_num_mas1)
-        error = updation_dir(query,cr)       
-    return error,rohs_created
+        error = updation_dir(query,cr)
+        
+    if not error or error == '{"recs": ""}':
+        error = ''
+      
+    return error,rohs_created,pop_msg
     
-def insert_ro_detail(cr,stock_recs,right_now,sysur_auto_key,roh_auto_key=None): 
+def insert_ro_detail(cr,stock_recs,right_now,sysur_auto_key,roh_auto_key=None,ro_type=''): 
     """we do have an issue with RO Management though. When in stock search and creating an ro with a stm, 
         it creates an RO Detail with QTY_RESERVED = 0, this might be causing the receiving issues i'm having. 
         ROD['QTY_RESERVED'] = WOB/WOO/SOD['QTY_RESERVED'] where the STM came from or if STM['QTY_RESERVED'] = 0 
         THEN ROD['QTY_RESERVED'] = STM['QTY_AVAILABLE']
     """
     qty_reserved = 0
+                    
+    price_note = get_price_note(cr,stock_recs[0],stock_recs[2])
     query = stock_recs and """INSERT INTO RO_DETAIL 
     (PNM_AUTO_KEY,PCC_AUTO_KEY,ROH_AUTO_KEY,SYSUR_AUTO_KEY,
     ENTRY_DATE,QTY_REPAIR,QTY_REPAIRED,SERIAL_NUMBER,
     RO_TYPE,WOB_AUTO_KEY,SOD_AUTO_KEY,WOO_AUTO_KEY,QTY_RESERVED,
     REPAIR_NOTES) 
-    VALUES('%s','%s','%s','%s',TO_DATE('%s','MM-DD-YYYY'),%s,0,'%s','Overhaul','%s','%s','%s','%s','%s')
-    """%(stock_recs[0] or '',stock_recs[1] or '',roh_auto_key or stock_recs[2],sysur_auto_key or '',right_now[:10],stock_recs[3],stock_recs[4],stock_recs[25],stock_recs[26],stock_recs[27],qty_reserved,stock_recs[28])
+    VALUES('%s','%s','%s','%s',TO_DATE('%s','MM-DD-YYYY'),%s,0,'%s','%s','%s','%s','%s','%s','%s')
+    """%(stock_recs[0] or '',stock_recs[1] or '',roh_auto_key or stock_recs[2],sysur_auto_key or '',right_now[:10],stock_recs[3],stock_recs[4],ro_type,stock_recs[25],stock_recs[26],stock_recs[27],qty_reserved,price_note or stock_recs[28])
     rods_created = 0
+
     error = insertion_dir(query,cr) 
     if error == '{"recs": ""}' or error == '':
         error = ''
@@ -11105,9 +11791,21 @@ def get_new_roh(cr,vendor_key,right_now,sysur_auto_key=''):
     roh_auto_key = roh_auto_key and roh_auto_key[0] or None
     return roh_auto_key
     
+def split_string(s):
+    numeric_part = ""
+    non_numeric_part = ""
+    for char in s:
+        if char.isdigit():
+            numeric_part += char
+        else:
+            non_numeric_part += char
+    return numeric_part, non_numeric_part
+    
 @shared_task
-def add_new_ro(quapi_id,session_id,sysur_auto_key,ro_number=None,stm_keys=[],vendor=None,last_vendor=False,woo_keys=[]):
-    error,msg,rods_created = '','',0
+def add_new_ro(quapi_id,session_id,sysur_auto_key,ro_number=None,stm_keys=[],\
+    vendor=None,last_vendor=False,woo_keys=[],separate_ros = '',next_num = '',\
+    repair_type = '',sysnl_auto_key='',stock_status='',notes='',yes_proceed=''):
+    error,msg,rods_created,rohs_created,sysnl = '','',0,'',[]
     from polls.models import WOStatus as wos_obj,QueryApi,MLApps as maps,QuantumUser as qu
     quapi = QueryApi.objects.filter(id=quapi_id)
     quapi = quapi and quapi[0] or None
@@ -11122,11 +11820,76 @@ def add_new_ro(quapi_id,session_id,sysur_auto_key,ro_number=None,stm_keys=[],ven
     if orcl_conn:
         cr,con = orcl_connect(orcl_conn)
     if not (cr and con):
-        return 'Cannot connect to Oracle.'      
+        return 'Cannot connect to Oracle.','',''
+    pop_msg = ''
+    
+    if not next_num and not ro_number:
+        query = """SELECT SN.SYSNL_AUTO_KEY,SN.DESCRIPTION,
+              CASE WHEN SN.NUMBER_PREFIX IS NOT NULL THEN 
+              SN.NUMBER_PREFIX || TO_CHAR(SN.LAST_NUMBER + 1)
+              ELSE TO_CHAR(SN.LAST_NUMBER + 1) END,
+              SN.LAST_NUMBER          
+              FROM SYS_NUMBER_LOG SN
+              LEFT JOIN SYS_NUMBER_LOG_CODES SNC 
+              ON SNC.SYSNLC_AUTO_KEY = SN.SYSNLC_AUTO_KEY
+              INNER JOIN SYS_COMPANIES SYSCM ON SYSCM.SYSCM_AUTO_KEY = SN.SYSCM_AUTO_KEY
+              WHERE SNC.LOG_TYPE_CODE = 'RO' AND SYSCM.COMPANY_ID = 1"""
+        
+        sysnl = selection_dir(query,cr)
+        sysnl_auto_key = sysnl and sysnl[0][0]
+        
+        if len(sysnl) == 1:
+            next_num = sysnl and sysnl[0][2]
+                
+        import re
+        next_num = next_num and re.sub("[^0-9]", "", next_num) or ''
+
+    if len(sysnl) > 1 and not ro_number and not yes_proceed:
+        #create the sysnl locally
+        from polls.models import NumberLog
+
+        nl_data = []
+        sequence = 0
+        
+        for nl in sysnl:
+            nl_data.append(NumberLog(
+                sysnl_auto_key = nl[0],
+                description = nl[1],
+                name = nl[1],
+                next_number = nl[2],
+                session_id = session_id,
+                sequence = sequence,
+                ))
+            sequence += 1
+        try:
+            NumberLog.objects.all().delete()
+            NumberLog.objects.bulk_create(nl_data)
+        except Exception as exc:
+            error = exc.args
+            
+        return '','show_sysnl',''
+
+    if not next_num and len(sysnl) == 1 and not ro_number:
+        query = """
+            SELECT CASE WHEN NUMBER_PREFIX IS NOT NULL THEN NUMBER_PREFIX || TO_CHAR(ABS(LAST_NUMBER)+1) ELSE
+                        TO_CHAR(ABS(LAST_NUMBER) + 1) END
+                          FROM SYS_NUMBER_LOG SN
+                          LEFT JOIN SYS_NUMBER_LOG_CODES SNC ON SNC.SYSNLC_AUTO_KEY = SN.SYSNLC_AUTO_KEY
+                          WHERE     
+                          SNC.LOG_TYPE_CODE = 'RO'
+            """
+        last_num = selection_dir(query,cr)
+        last_num = last_num and last_num[0] and last_num[0][0] or None
+    
+    else:
+        last_num = next_num
+    
     if stm_keys:
+        
         stm_key_list = construct_akl(stm_keys)
         right_now = datetime.now()
-        right_now = right_now.strftime('%m-%d-%Y') 
+        right_now = right_now.strftime('%m-%d-%Y')
+        
         if not vendor and last_vendor:
             #1. get last vendor from stock lines
             #2. add RO_HEADER row
@@ -11144,25 +11907,36 @@ def add_new_ro(quapi_id,session_id,sysur_auto_key,ro_number=None,stm_keys=[],ven
                 srec = get_stock_ros(cr,stm_auto_key=stm_key)
                 srec = srec and srec[0] or []
                 vendor_key = get_ro_vendor(srec,session_id,wos_obj)
-                #stock_recs[6] is the last vendor
-                #create the RO_DETAIL line.
-                #get the user from the form and lookup sysur_auto_key
+                srec.append([stock_status,notes])
+                #if the vendor is the same, then create a new RO for each last vendor
+                #if separate_ros is checked, then create a new RO even if the same vendor
                 if not vendor_key:
-                    return 'No vendor found.',''
-                elif vendor_key not in vendor_rohs:
-                    error,rohs_created = insert_ro_header(cr,sysur_auto_key,vendor_key,right_now,srec)
-                    if roh_msg != 'RO#(s) created: ':
-                        roh_msg += ', ' + str(rohs_created)
-                    else:
-                        roh_msg += str(rohs_created)
+                    return 'No vendor found.','',''
+                    
+                elif (vendor_key not in vendor_rohs and not separate_ros) or separate_ros:
+                    error,rohs_created,pop_msg = insert_ro_header(cr,sysur_auto_key,\
+                        sysnl_auto_key,vendor_key,right_now,srec,next_num=next_num,\
+                        yes_proceed=yes_proceed)
+                    
+                    if pop_msg and not yes_proceed:
+                        return error,pop_msg,''
+                        
+                    roh_msg += str(rohs_created) + ', ' 
+                    num_part,char_part = split_string(next_num)
+                    next_num = char_part + str(int(num_part) + 1)
+                        
                     roh_auto_key = get_new_roh(cr,vendor_key,right_now,sysur_auto_key=sysur_auto_key)   
                     vendor_rohs[vendor_key] = [roh_auto_key]
-                elif vendor_key in vendor_rohs:
+                    
+                else:
                     roh_auto_key = get_new_roh(cr,vendor_key,right_now,sysur_auto_key=sysur_auto_key) 
                     vendor_rohs[vendor_key].append(roh_auto_key) 
-                rods_created += insert_ro_detail(cr,srec,right_now,sysur_auto_key,roh_auto_key=roh_auto_key)                      
+                    
+                rods_created += insert_ro_detail(cr,srec,right_now,sysur_auto_key,\
+                roh_auto_key=roh_auto_key,ro_type=repair_type)                      
                 count += 1                       
             msg = str(roh_msg) + ' along with one detail line each.'
+            
         elif ro_number:
             #1. look up RO from RO# entered.
             ro_header = get_ro_header(cr,ro_number=ro_number)
@@ -11170,7 +11944,7 @@ def add_new_ro(quapi_id,session_id,sysur_auto_key,ro_number=None,stm_keys=[],ven
             #into existing (user-entered RO from step #1) 
             #Loop through the stock lines and add an RO_DETAIL for each of the stock lines.
             #for stm_auto_key in stm_keys:
-            #error,rohs_created = insert_ro_header(cr,vendor_key,right_now,stock_recs)
+            #error,rohs_created,pop_msg = insert_ro_header(cr,vendor_key,right_now,stock_recs)
             if ro_header:
                 ro_number = ro_header[0] and ro_header[0][0] or None
                 roh_auto_key = ro_header[0] and ro_header[0][1] or None   
@@ -11179,13 +11953,14 @@ def add_new_ro(quapi_id,session_id,sysur_auto_key,ro_number=None,stm_keys=[],ven
                     for stm_key in stm_keys:
                         srec = get_stock_ros(cr,stm_auto_key=stm_key)
                         srec = srec and srec[0] or []
+                        srec.append([stock_status,notes])
                         #vendor_key = srec and get_ro_vendor(srec,session_id,wos_obj) or None
                         #if not vendor_key:
                         #    return 'No vendor found.',''
                         #get vendor from stock record
-                        rods_created += insert_ro_detail(cr,srec,right_now,sysur_auto_key,roh_auto_key=roh_auto_key)
+                        rods_created += insert_ro_detail(cr,srec,right_now,sysur_auto_key,roh_auto_key=roh_auto_key,ro_type=repair_type)
                         count += 1
-                    msg = str(rods_created) + ' detail line(s) created and added to RO# '+ str(ro_number) + '.'
+                    msg = str(rods_created) + ' detail line(s) created and added to '+ str(ro_number) + '.'
             else:
                 error = 'RO not found.'
                               
@@ -11204,8 +11979,9 @@ def add_new_ro(quapi_id,session_id,sysur_auto_key,ro_number=None,stm_keys=[],ven
             #vendor_address4, vendor_address5, vendor_name
             #srecs[12],srecs[10],srecs[13],srecs[14],srecs[15],srecs[16],srecs[17],srecs[18],srecs[19],srecs[20],srecs[21],srecs[22],srecs[23],srecs[24]
             vendor_key = vendor
+            
             if not vendor_key:
-                return 'No vendor found.',''
+                return 'No vendor found.','',''
             else:
                 query = """
                 SELECT NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
@@ -11214,29 +11990,69 @@ def add_new_ro(quapi_id,session_id,sysur_auto_key,ro_number=None,stm_keys=[],ven
                 FROM COMPANIES WHERE CMP_AUTO_KEY = %s
                 """%vendor_key
                 vendor_info = selection_dir(query,cr)
-                vrec = vendor_info and vendor_info[0] or [] 
+                vrec = vendor_info and vendor_info[0] or []
+            
             if vendor_key:
-                error,rohs_created = insert_ro_header(cr,sysur_auto_key,vendor_key,right_now,vrec) or ''
-                roh_auto_key = get_new_roh(cr,vendor_key,right_now,sysur_auto_key=sysur_auto_key)
-                rods_created = 0
-                if error == '{"recs": ""}':
-                    error = ''                
+                roh_auto_key = 0
+                
+                if not separate_ros:
+                    error,rohs_created,pop_msg = insert_ro_header(cr,sysur_auto_key,sysnl_auto_key,\
+                    vendor_key,right_now,vrec,next_num=next_num,yes_proceed=yes_proceed) or ''
+                    roh_auto_key = get_new_roh(cr,vendor_key,right_now,sysur_auto_key=sysur_auto_key)
+                    
+                    if pop_msg and not yes_proceed:
+                        return error,pop_msg,''
+                        
+                rods_created = 1              
+                count = 0
+
+                for stm_key in stm_keys:
+                    
+                    srec = get_stock_ros(cr,stm_auto_key=stm_key)
+                    srec = srec and srec[0] or []   
+                    srec.append([stock_status,notes])                    
+                    #get vendor from stock record
+                    
+                    if separate_ros:
+                        error,rohs,pop_msg = insert_ro_header(cr,sysur_auto_key,sysnl_auto_key,\
+                        vendor_key,right_now,vrec,next_num=next_num,yes_proceed=yes_proceed) or ''
+                        roh_auto_key = get_new_roh(cr,vendor_key,right_now,sysur_auto_key=sysur_auto_key)
+                                            
+                        if pop_msg and not yes_proceed:
+                            return error,pop_msg,''
+                        
+                        if count != len(stm_keys) and rohs and not error:
+                            rohs_created += str(rohs) + ', '
+
+                        elif count != len(stm_keys) and rohs and not error:
+                            rohs_created += str(rohs)                             
+                        
+                        if error == '{"recs": ""}':
+                            error = ''
+
+                        num_part,char_part = split_string(next_num)
+                        next_num = char_part + str(int(num_part) + 1)
+                        
+                        if error:
+                            break
+                             
+                    if not error and roh_auto_key: 
+                        rods_created += insert_ro_detail(cr,srec,right_now,sysur_auto_key,roh_auto_key=roh_auto_key,ro_type=repair_type)
+                        if separate_ros:
+                            rods_created = 1  
+                    count += 1    
+                    
                 if not error and roh_auto_key:
-                    count = 0
-                    for stm_key in stm_keys:                     
-                        srec = get_stock_ros(cr,stm_auto_key=stm_key)
-                        srec = srec and srec[0] or []                          
-                        #get vendor from stock record
-                        rods_created += insert_ro_detail(cr,srec,right_now,sysur_auto_key,roh_auto_key=roh_auto_key)
-                        count += 1
-                    msg = 'RO#(s): ' + str(rohs_created) + ', created with ' + str(rods_created) + ' detail line(s).'                  
+                    msg = 'RO#(s): ' + str(rohs_created) + ' created with ' + str(rods_created) + ' detail line(s) each.'  
+                
             else:
                 error = "'%s' is not a vendor id in the database."%vendor            
         else:
             #get vendor in a pop-up
-            return '','show_modal' 
+            return '','show_modal',''
+            
     #register audit trail record
-    if msg and msg != 'show_modal' and (not error or error == '{"recs": ""}'):
+    if (msg and msg != 'show_modal' or not msg) and (not error or error == '{"recs": ""}'):
         orcl_commit(con=con)      
         error = ''        
         stock_lines_del = wos_obj.objects.filter(session_id=session_id,stm_auto_key__in = stm_keys)
@@ -11256,8 +12072,8 @@ def add_new_ro(quapi_id,session_id,sysur_auto_key,ro_number=None,stm_keys=[],ven
         now = right_now.strftime('%Y-%m-%d %H:%M:%S')  
         error += register_audit_trail(user_rec,field_changed,new_val,now,app_id,quapi,status=aud_status)
     else:
-        error = 'Incorrect Quantum User ID.'        
-    return error,msg
+        error = 'Incorrect Quantum User ID.'       
+    return error,msg,next_num
  
 def get_ro_vendor(srec,session_id,wos_obj):
     moves = wos_obj.objects.filter(session_id=session_id,stm_auto_key=srec[8])
@@ -11332,6 +12148,7 @@ def create_bulk_companies(recs,quapi_id,dj_user_id,is_acc_co=False,is_customer=F
     from polls.models import Companies as comp
     comp_data = []
     error = ''
+
     for rec in recs:
         comp_data.append(comp(
                 cmp_auto_key = rec[1],#0
@@ -11341,6 +12158,8 @@ def create_bulk_companies(recs,quapi_id,dj_user_id,is_acc_co=False,is_customer=F
                 is_vendor = is_vendor,
                 is_customer = is_customer,
                 is_acc_co = is_acc_co,
+                allow_ro = rec[2] or '',
+                ro_warning = rec[3] or '',
         ))                   
     try:
         companies = comp_data and comp.objects.bulk_create(comp_data) or []    
@@ -11358,6 +12177,7 @@ def get_sys_companies_n_sync(quapi_key,dj_user_id):
     quapi = qa.objects.filter(id=quapi_key)   
     quapi_id = quapi and quapi[0] or None
     recs = quapi_id and selection(query,quapi=quapi_id) or []
+
     if recs:   
         companies = Companies.objects.filter(quapi_id=quapi_id,dj_user_id=dj_user_id,is_acc_co=True)
         del_vendors = companies and companies.delete() or None
@@ -11377,10 +12197,11 @@ def get_companies_n_sync(quapi_key,dj_user_id,is_vendor=False,is_customer=False,
     if is_customer:
         where_cust = "CUSTOMER_FLAG = 'T' AND "   
     from polls.models import QueryApi as qa, Companies
-    query = "SELECT COMPANY_NAME,CMP_AUTO_KEY FROM COMPANIES WHERE %s %s HISTORICAL = 'F'"%(where_vend,where_cust)
+    query = "SELECT COMPANY_NAME,CMP_AUTO_KEY,ALLOW_RO,TO_CHAR(RO_WARNING) FROM COMPANIES WHERE %s %s HISTORICAL = 'F'"%(where_vend,where_cust)
     quapi = qa.objects.filter(id=quapi_key)   
     quapi_id = quapi and quapi[0] or None
     recs = quapi_id and selection(query,quapi=quapi_id) or []
+
     if recs:   
         companies = Companies.objects.filter(quapi_id=quapi_id,dj_user_id=dj_user_id)
         del_vendors = companies and companies.delete() or None
@@ -11399,7 +12220,8 @@ def get_ro_header(cr,ro_number=None):
 def run_ro_edit(session_id,quapi_id,\
     ro_number=None,wo_number=None,\
     vendor=None,part_number=None,\
-    entry_date=None,rst_auto_key=None,uda_status=None):
+    entry_date=None,rst_auto_key=None,\
+    uda_status=None,cons_code=''):
     error,msg = '',''
     from polls.models import WOStatus as wos_obj,QueryApi,MLApps,QuantumUser as qu
     quapi = QueryApi.objects.filter(id=quapi_id)
@@ -11415,7 +12237,7 @@ def run_ro_edit(session_id,quapi_id,\
         wo_number=wo_number,vendor=vendor,\
         part_number=part_number,\
         entry_date=entry_date,rst_auto_key=rst_auto_key,\
-        uda_status=uda_status)
+        uda_status=uda_status,cons_code=cons_code)
     if ro_recs:
         del_ros = wos_obj.objects.filter(session_id=session_id).delete() or None
         error,msg = create_ros_bulk(quapi,session_id,ro_recs)
@@ -11584,7 +12406,8 @@ def ro_update_costs_dates(
     receiver_instr='',
     est_quote_date=None,
     ship_date=None,
-    ro_categ='',filters=[]):
+    ro_categ='',filters=[],
+    repair_type=''):
     roh_update_set,ro_lists,error,msg,update_set,ro_ids,update_msg = '',[],'','','',[],''
     ro_recs = []    
     from polls.models import QueryApi,WOStatus,MLApps as maps,QuantumUser as qu   
@@ -11698,6 +12521,9 @@ def ro_update_costs_dates(
         if ro_categ:
             update_set += update_set and ',' or ''
             update_set += """RCT_AUTO_KEY = %s"""%ro_categ
+        if repair_type:
+            update_set += update_set and ',' or ''
+            update_set += """RO_TYPE = '%s'"""%repair_type
 
         if labor_cost or parts_cost or misc_cost:
             for rod in ro_id_list:
@@ -11711,6 +12537,7 @@ def ro_update_costs_dates(
                 qlh = rec[0] or 0
                 qph = rec[1] or 0
                 qmh = rec[2] or 0
+                
                 if rec:
                     if labor_cost and qlh <= 0:
                         set_clause += set_clause and ',' or ''
@@ -12261,6 +13088,7 @@ def make_updates(
         
         if user_rec:
             error = register_audit_trail(user_rec,field_changed,values_str,now,app_id,quapi)  
+                      
         if not error: 
             msg = ' Successful update.'
     return str(error) + str(input_error) + str(ins_error),str(msg + ' ' + field_changed)
@@ -13025,7 +13853,7 @@ def construct_text(values, id_pos = 11):
         woo_lists.append(woo_id_list)
     return woo_lists
  
-def construct_akl(woo_ids, id_pos = 11):
+def construct_akl(woo_ids,id_pos = 11):
     
     woo_id_list = woo_ids and '(' + str(woo_ids[0]) or ''
     woo_lists = []
@@ -13181,6 +14009,7 @@ def bom_schedule(woo_ids,quapi_id,user_id,session_id,run_count):
              VW.PARENT_WO IN (SELECT SI_NUMBER FROM WO_OPERATION WHERE WOO_AUTO_KEY IN %s))"""
              #OR W.WOO_AUTO_KEY IN %s)"""%(list,list)
         #records += selection_dir(query,cr)
+                           
     for vals in records:   
         woo_auto_key = vals[12] or vals[1]
         due_date = vals[3] and vals[3][:10] or None 
@@ -13227,7 +14056,7 @@ def bom_schedule(woo_ids,quapi_id,user_id,session_id,run_count):
                     set_vals = "NEED_DATE = TO_DATE('%s', 'yyyy-mm-dd') - %s"%(due_date,vals[0])         
                     query = "UPDATE WO_BOM SET %s %s"%(set_vals,where)
                     error = updation_dir(query,cr) 
-
+                    
     if error and error != '{"recs": ""}':
         return error,msg
     error = ''
@@ -13309,11 +14138,13 @@ def create_tasks_bulk(task_recs):
     #task_master_desc,ult_parent_woo,session_id
     """
     """    
+
     from polls.models import WOTask as task_obj
     for task in task_recs:
         objects.append(task_obj(  
             wot_auto_key = task[0],#WT.WOT_AUTO_KEY
             wot_sequence = task[1] or 0,#WT.SEQUENCE
+            esn = task[1],
             wot_description = task[2] or task[9],# WT.SQUAWK_DESC
             wot_status = str(task[3]),#status
             wot_labor_hours = isinstance(task[5], float) and task[5] or 0,
@@ -13950,26 +14781,33 @@ def benchmark_test(benchmark,query,quapi):
     query = "UPDATE STOCK SET LOC_AUTO_KEY=1 WHERE STM_AUTO_KEY=2605"
     benchmark(updation(query,quapi=quapi))
     return msg
-    
+     
 #========================================================PI UPDATES CODE================================================================================
 def lookup_stm_auto_key(ctrl_id,ctrl_number,stm=None,user_id='',quapi=None):
-    #where_clause = "WHERE HISTORICAL_FLAG='F' AND QTY_OH>0"
-    ##stm,qty_oh,syscm,pcc,cnc,loc_auto_key,whs_auto_key,stc,dpt,str,qty_reserved
+                                                                                
     if not stm:
-        query = """SELECT STM_AUTO_KEY,QTY_OH,SYSCM_AUTO_KEY,
-            PCC_AUTO_KEY,CNC_AUTO_KEY,LOC_AUTO_KEY,WHS_AUTO_KEY,
-            STC_AUTO_KEY,DPT_AUTO_KEY,PNM_AUTO_KEY,CTRL_NUMBER,CTRL_ID
-            FROM STOCK WHERE CTRL_ID = %s AND CTRL_NUMBER = %s
+        query = """SELECT S.STM_AUTO_KEY,S.QTY_OH,S.SYSCM_AUTO_KEY,
+            S.PCC_AUTO_KEY,S.CNC_AUTO_KEY,S.LOC_AUTO_KEY,S.WHS_AUTO_KEY,
+            S.STC_AUTO_KEY,S.DPT_AUTO_KEY,S.PNM_AUTO_KEY,S.CTRL_NUMBER,
+            S.CTRL_ID,U.UOM_CODE,P.PN,S.STOCK_LINE
+            FROM STOCK S
+            JOIN PARTS_MASTER P ON P.PNM_AUTO_KEY = S.PNM_AUTO_KEY
+            JOIN UOM_CODES U ON U.UOM_AUTO_KEY = P.UOM_AUTO_KEY
+            WHERE S.CTRL_ID = '%s' AND S.CTRL_NUMBER = '%s'
             """%(ctrl_id,ctrl_number)
     else:
-        query = """SELECT STM_AUTO_KEY,QTY_OH,SYSCM_AUTO_KEY,
-            PCC_AUTO_KEY,CNC_AUTO_KEY,LOC_AUTO_KEY,WHS_AUTO_KEY,
-            STC_AUTO_KEY,DPT_AUTO_KEY,PNM_AUTO_KEY,CTRL_NUMBER,CTRL_ID
-            FROM STOCK WHERE STM_AUTO_KEY = '%s'
+        query = """SELECT S.STM_AUTO_KEY,S.QTY_OH,S.SYSCM_AUTO_KEY,
+            S.PCC_AUTO_KEY,S.CNC_AUTO_KEY,S.LOC_AUTO_KEY,S.WHS_AUTO_KEY,
+            S.STC_AUTO_KEY,S.DPT_AUTO_KEY,S.PNM_AUTO_KEY,S.CTRL_NUMBER,
+            S.CTRL_ID,U.UOM_CODE,P.PN,S.STOCK_LINE
+            FROM STOCK S
+            JOIN PARTS_MASTER P ON P.PNM_AUTO_KEY = S.PNM_AUTO_KEY
+            JOIN UOM_CODES U ON U.UOM_AUTO_KEY= P.UOM_AUTO_KEY
+            WHERE S.STM_AUTO_KEY = '%s'
             """%(stm)
         
     res = selection(query, user_id=user_id, quapi=quapi)
-    return res                       
+    return res                    
     
 def lookup_batch(batch_no,stm_auto_key=None,user_id='',quapi=None):
     locations = []
@@ -14021,8 +14859,8 @@ def qty_to_float(text):
             return str(error),new_float
     return error,new_float
     
-def loc_stock_transfer(cr,srec):
-    error = ''
+def loc_stock_transfer(cr,srec,loc_key=''):
+
     """ stm,qty_oh,syscm,pcc,cnc,loc_auto_key,whs_auto_key,stc,dpt,str,qty_reserved
         params.append(rec[14])#0.stm_auto_key
         params.append(qty_input!=None and qty_input or rec[29])#1.qty_oh
@@ -14047,15 +14885,12 @@ def loc_stock_transfer(cr,srec):
     syscm = srec[2]
     pcc = srec[3]
     cnc = srec[4]
-    loc = srec[5]
+    loc = loc_key or srec[5]
     whs = srec[6]
     stc = srec[7]
     dpt = srec[8]
-    #stra = srec[9]
-    #qty_reserved = srec[10]
-    squery = """DECLARE CT qc_utl_pkg.cursor_type; BEGIN CT := 
-    QC_STOCK_PKG.SPI_STOCK_TRANSFER('%s', %s, '%s', '%s', '%s', '%s', '%s', '%s', '%s'); close CT; END;
-    """%(stm,qty_oh,syscm,pcc,cnc,loc,whs,stc,dpt)
+    squery = """DECLARE CT qc_utl_pkg.cursor_type; BEGIN CT := QC_STOCK_PKG.SPI_STOCK_TRANSFER('%s', %s, '%s', '%s', '%s', '%s', '%s', '%s', '%s'); close CT; END;"""%(stm,qty_oh,syscm,pcc,cnc,loc,whs,stc,dpt)
+
     try:
         updation_dir(squery,cr)
     except cx_Oracle.DatabaseError as exc:
@@ -14063,6 +14898,7 @@ def loc_stock_transfer(cr,srec):
         msg = error.message
         logger.error("Error with stock transfer: '%s'",msg)    
     return error
+
 @shared_task
 def make_pi_updates(session_id,\
     batch_no,ctrl_id,ctrl_number,\
@@ -14111,24 +14947,30 @@ def make_pi_updates(session_id,\
             ctrl_number = ctrl_number + '0'
             stock_rec = lookup_stm_auto_key(ctrl_id=ctrl_id,ctrl_number=ctrl_number,user_id=user_id,quapi=quapi)         
         if not stock_rec:               
-            error = 'Stock line, %s, doesn\'t exist.'%stock_label    
+            error = 'Stock line, %s, doesn\'t exist.'%stock_label  
+            
     stock_rec = stock_rec and stock_rec[0] or None
-    #stm,qty_oh,syscm,pcc,cnc,loc_auto_key,whs_auto_key,stc,dpt,str,qty_reserved
+                                                                     
     stm_auto_key = stock_rec and stock_rec[0] or ''
+    
     if not stm_auto_key:
         error = 'Stock record not found.'
         return error,''
-    qty_oh = stock_rec and stock_rec[1] or 0 
-    syscm_auto_key = stock_rec and stock_rec[2] or ''
-    pcc_auto_key = stock_rec and stock_rec[3] or ''
-    cnc_auto_key = stock_rec and stock_rec[4] or ''
-    loc_auto_key = stock_rec and stock_rec[5] or ''
-    whs_auto_key = stock_rec and stock_rec[6] or ''
-    stc_auto_key = stock_rec and stock_rec[7] or ''
-    dpt_auto_key = stock_rec and stock_rec[8] or ''
-    pnm_auto_key = stock_rec and stock_rec[9] or ''
-    ctrl_number = stock_rec and stock_rec[10] or ''
-    ctrl_id = stock_rec and stock_rec[11] or ''
+    
+    qty_oh = stock_rec[1] or 0 
+    syscm_auto_key = stock_rec[2] or ''
+    pcc_auto_key = stock_rec[3] or ''
+    cnc_auto_key = stock_rec[4] or ''
+    loc_auto_key = stock_rec[5] or ''
+    whs_auto_key = stock_rec[6] or ''
+    stc_auto_key = stock_rec[7] or ''
+    dpt_auto_key = stock_rec[8] or ''
+    pnm_auto_key = stock_rec[9] or ''
+    ctrl_number = stock_rec[10] or ''
+    ctrl_id = stock_rec[11] or ''
+    uom_code = stock_rec[12] or ''   
+    part_number = stock_rec[13] or ''
+    stock_line = stock_rec[14] or ''
     str_auto_key,qty_reserved = '',0   
     #need to check the pnm_auto_key to see if the part is serialized
     
@@ -14138,14 +14980,14 @@ def make_pi_updates(session_id,\
         serialized = selection_dir(query,cr)
         if serialized:
             error = 'Serialized parts cannot have quantity > 1 for label, %s.'%stock_label
-    whs_auto_key = stock_rec and stock_rec[2] or None
-    
+    #whs_auto_key = stock_rec and stock_rec[2] or None
+
     if not location_key and loc_input:
         query="""SELECT LOC_AUTO_KEY FROM LOCATION
             WHERE UPPER(LOCATION_CODE) = UPPER('%s')"""%loc_input
         loc = selection_dir(query,cr)
-        loc_auto_key = loc and loc[0] and loc[0][0] or ''
-        location_key = loc_auto_key
+        location_key = loc and loc[0] and loc[0][0] or ''
+                                     
                                    
     if batch_no and not error:    
         pid,pid_auto_key,pih,pih_auto_key = lookup_batch(batch_no,stm_auto_key,user_id=user_id,quapi=quapi)
@@ -14163,8 +15005,8 @@ def make_pi_updates(session_id,\
             #update the pi_detail table with the stm_auto_key    
             where_clause = 'WHERE PID_AUTO_KEY = %s'%pid_auto_key           
             #now update QTY_FOUND and location in PI_DETAIL
-            if loc_auto_key:
-                set_clause = ", LOC_AUTO_KEY = %s"%loc_auto_key
+            if location_key:
+                set_clause = ", LOC_AUTO_KEY = %s"%location_key
                                         
                                    
                                         
@@ -14175,23 +15017,23 @@ def make_pi_updates(session_id,\
             error = updation_dir(query,cr)
             #find the correct warehoue for the location and set them both on STOCK table.
             if location_key:
-                query = """SELECT WHS_AUTO_KEY FROM WAREHOUSE_LOCATIONS 
-                    WHERE LOC_AUTO_KEY = %s"""%location_key
-                whs = selection_dir(query,cr)
-                whs_auto_key = whs and whs[0] and whs[0][0] or ''
+                #query = """SELECT WHS_AUTO_KEY FROM WAREHOUSE_LOCATIONS 
+                #    WHERE LOC_AUTO_KEY = %s"""%location_key
+                #whs = selection_dir(query,cr)
+                #whs_auto_key = whs and whs[0] and whs[0][0] or ''
                 #stm,qty_oh,syscm,pcc,cnc,loc_auto_key,whs_auto_key,stc,dpt,str,qty_reserved
                 stock_rec = [stm_auto_key,qty_oh,syscm_auto_key]
-                stock_rec += [pcc_auto_key,cnc_auto_key,loc_auto_key]
+                stock_rec += [pcc_auto_key,cnc_auto_key,location_key]
                 stock_rec += [whs_auto_key,stc_auto_key,dpt_auto_key]
                 stock_rec += [str_auto_key,qty_reserved]
-                
-                error = loc_stock_transfer(cr,stock_rec)                           
-                            
+                                                                     
+                #error = loc_stock_transfer(cr,stock_rec,loc_key=location_key)
+                error = qry_stock_transfer(sysur_auto_key,user_id,stock_rec,quapi,cr=cr)                                  
                 query = """UPDATE STOCK
                         SET LOC_VALIDATED = TO_TIMESTAMP('%s', 'YYYY-MM-DD HH24:MI:SS'),
-                        LOC_AUTO_KEY = %s
+                        LOC_AUTO_KEY = %s   
                         WHERE STM_AUTO_KEY = %s
-                        """%(now,loc_auto_key,stm_auto_key) 
+                        """%(now,location_key,stm_auto_key) 
                 error = updation_dir(query,cr)    
                 query = """
                     CREATE OR REPLACE PROCEDURE "PI_STOCK_UPDATE"
@@ -14242,8 +15084,11 @@ def make_pi_updates(session_id,\
             quantity = int(new_qty),
             ctrl_number = ctrl_number,
             ctrl_id = ctrl_id,
+            part_number = part_number,
+            stock_line = stock_line,
             stm_auto_key = stm_auto_key,
             active = 1,
+            uom_code = uom_code,
             user_id = user_id,
             session_id = session_id,
         )
@@ -14254,7 +15099,7 @@ def make_pi_updates(session_id,\
         
         #TODO: need to update stm with new location
         if stm_auto_key: 
-            error = insert_detail_record(loc_auto_key,pih_auto_key,stock_rec,sysur_auto_key,qty_oh,new_qty,ctrl_id,ctrl_number,user_id=user_id,cr=cr)         
+            error = insert_detail_record(location_key,pih_auto_key,stock_rec,sysur_auto_key,qty_oh,new_qty,ctrl_id,ctrl_number,user_id=user_id,cr=cr)         
             if location_key:
                 #find the correct warehoue for the location and set them both on STOCK table.
                 query = """SELECT WHS_AUTO_KEY FROM WAREHOUSE_LOCATIONS 
@@ -14267,12 +15112,13 @@ def make_pi_updates(session_id,\
                 stock_rec += [pcc_auto_key,cnc_auto_key,location_key]
                 stock_rec += [whs_auto_key,stc_auto_key,dpt_auto_key]
                 stock_rec += [str_auto_key,qty_reserved]
-                error = loc_stock_transfer(cr,stock_rec)
+                #error = loc_stock_transfer(cr,stock_rec,loc_key=location_key)
+                error = qry_stock_transfer(sysur_auto_key,user_id,stock_rec,quapi,cr=cr) 
                 query = """UPDATE STOCK
                         SET LOC_VALIDATED = TO_TIMESTAMP('%s', 'YYYY-MM-DD HH24:MI:SS'),
                         LOC_AUTO_KEY = %s
                         WHERE STM_AUTO_KEY = %s
-                        """%(now,loc_auto_key,stm_auto_key) 
+                        """%(now,location_key,stm_auto_key) 
                 error = updation_dir(query,cr)            
             query = """
                 CREATE OR REPLACE PROCEDURE "PI_STOCK_UPDATE"
@@ -14316,6 +15162,9 @@ def make_pi_updates(session_id,\
             stm_auto_key = stm_auto_key,
             active = 1,
             user_id = user_id,
+            uom_code = uom_code,
+            part_number = part_number,
+            stock_line = stock_line,
             session_id = session_id,
         )
         pi_log.save() 
@@ -15295,6 +16144,9 @@ def create_rc(quapi_id,session_id,airway_bill,order_num,order_type,\
         
     msg,order_type2,existing_rc,sysnl,sysnl_log = '','','',[],[]
     location_code = ''
+                                                   
+                                      
+                                               
     from polls.models import QueryApi,OracleConnection as oc,MLApps as maps,QuantumUser as qu
     quapi = QueryApi.objects.filter(id=quapi_id)
     quapi = quapi and quapi[0] or None
@@ -15349,6 +16201,7 @@ def create_rc(quapi_id,session_id,airway_bill,order_num,order_type,\
         """%(sysur_auto_key,cmp_auto_key,soh_auto_key,roh_auto_key,poh_auto_key,airway_bill,next_num,order_num,cust_ref_number,order_type,order_type2,syscm_auto_key or '',cmp_auto_key or '',dpt_auto_key or '',timestamp,today,loc_auto_key)
     error = insertion_dir(query,cr)
            
+                                                      
     query = """SELECT RCH_AUTO_KEY FROM RC_HEADER 
         WHERE
         ARRIVAL_DATE = TO_DATE('%s','yyyy-mm-dd')
@@ -15381,6 +16234,7 @@ def create_rc(quapi_id,session_id,airway_bill,order_num,order_type,\
                 sysnl_auto_key = sysnl and sysnl[0] and sysnl[0][0] or None
                 import re 
                 next_num = re.sub("[^0-9]", "", next_num)
+                                               
                 if sysnl_auto_key and next_num:
                     query ="""UPDATE sys_number_log snl 
                       SET snl.last_number = '%s'
@@ -15425,7 +16279,7 @@ def update_sysnl(quapi_id,session_id,sysnl_auto_key,next_num):
     if not (cr and con):
         return 'Cannot connect to Oracle',msg
     import re    
-    next_num = re.sub("[^0-9]", "", next_num)
+    next_num = next_num and re.sub("[^0-9]", "", next_num)
         
     query ="""UPDATE sys_number_log 
         SET last_number = '%s'
@@ -15643,6 +16497,7 @@ def get_soropos(quapi_id,label,session_id,next_num=0):
         cr,con = orcl_connect(orcl_conn)
     if not (cr and con):
         return 'Cannot connect to Oracle',msg
+                                                                  
     soropos = query_soropos(cr,session_id,label,next_num=next_num)
     rch_auto_key = soropos and soropos[0] and soropos[0][0] or None
     soh_auto_key = soropos and soropos[0] and soropos[0][11] or None
@@ -15781,16 +16636,16 @@ def query_soropos(cr,session_id,label,next_num=0):
               FROM SYS_NUMBER_LOG SN
               LEFT JOIN SYS_NUMBER_LOG_CODES SNC 
               ON SNC.SYSNLC_AUTO_KEY = SN.SYSNLC_AUTO_KEY
-              WHERE SNC.LOG_TYPE_CODE = 'RC'"""
-              
+              INNER JOIN SYS_COMPANIES SYSCM ON SYSCM.SYSCM_AUTO_KEY = SN.SYSCM_AUTO_KEY
+              WHERE SNC.LOG_TYPE_CODE = 'RC' AND SYSCM.COMPANY_ID = 1"""
         
         sysnl = selection_dir(query,cr)
         sysnl_auto_key = sysnl and sysnl[0][0]
         
         if len(sysnl) == 1:
             next_num = sysnl and sysnl[0][2]
-    #import re 
-    #next_num = re.sub("[^0-9]", "", next_num)
+    import re
+    next_num = re.sub("[^0-9]", "", next_num)
 
     if len(sysnl) > 1:
         #create the sysnl locally
@@ -16164,7 +17019,7 @@ def create_records(stock_recs, wos_obj, is_racking=1):
         ))
     msg = wos_obj.objects.bulk_create(objects)
     return msg
-    
+
 def update_stock_rack_beta(sysur_auto_key,user_id,stm_keys,\
     stock_recs=[],dpt_auto_key=None,cond_code=None,\
     consignment=None,syscm_auto_key=None,\
@@ -16240,6 +17095,7 @@ def update_stock_rack_beta(sysur_auto_key,user_id,stm_keys,\
                 error += "Invalid warehouse for this location."
             if stock_recs and not error:             
                 if set_clause and where_clause:               
+                                                                  
                     query = "UPDATE STOCK " + set_clause + where_clause
                     error += updation_dir(query,cr)  
                     query = """UPDATE STOCK SET 
@@ -16336,7 +17192,7 @@ def update_stock_rack_beta(sysur_auto_key,user_id,stm_keys,\
     whs_auto_key=None,warehouse_code=None,\
     loc_auto_key=None,location_code=None,cart_code='',\
     existing_loc_key=None,iq_enable=False,\
-    dj_user_id='',quapi=None,cr=None,con=None): 
+    dj_user_id='',quapi=None,cr=None,con=None):
     set_where,set_rack,set_loc,set_wh,valid_wh,valid_whs_key = '','','','',False,None
     where_clause,whrack,whloc,whware,set_clause,msg,error='','','','','','',''
     
@@ -16348,7 +17204,7 @@ def update_stock_rack_beta(sysur_auto_key,user_id,stm_keys,\
             cr,con = orcl_connect(orcl_conn)
         if not (cr and con):
             return msg,'Cannot connect to Oracle.',valid_whs_key,valid_wh
-       
+           
     if stm_keys:
         stm_key = stm_keys and stm_keys[0] or None
         stm_keys = construct_akl(stm_keys)
@@ -16368,11 +17224,11 @@ def update_stock_rack_beta(sysur_auto_key,user_id,stm_keys,\
                         msg = "Cart set to null."
                         where_clause += " AND IC_UDL_005 IS NOT NULL"
                 else:
-                    if iq_enable and 0:
+                    if iq_enable:
                         error = 'Cannot update stationary location & cart.'
                     else:
-               
-                        set_clause = "SET IC_UDL_005 = %s,IC_UDL_005_TXT = '%s'"%(rack_auto_key,cart_code) 
+                         
+                        set_clause = "SET IC_UDL_005 = %s"%rack_auto_key 
                  
                 #if not error:
                     #if the user only enters location, then we just check the existing warehouse
@@ -16383,19 +17239,19 @@ def update_stock_rack_beta(sysur_auto_key,user_id,stm_keys,\
                         #whs_auto_key = valid_whs_key
             elif rack_auto_key:
                 #check to make sure that the stock line's woo is rep'ed on the cart.              
-                set_clause = "SET IC_UDL_005 = %s,IC_UDL_005_TXT = '%s'"%(rack_auto_key,cart_code) 
-            #if not loc_auto_key and warehouse_code:
-                #from polls.models import Warehouse as whs
-                #whs_auto_key = whs.objects.filter(warehouse_code=warehouse_code) 
-                #whs_auto_key = whs_auto_key and whs_auto_key[0] and whs_auto_key[0].whs_auto_key 
-                #wos.objects.filter(stm_auto_key = keys)    
-            query = "SELECT LOC_AUTO_KEY FROM STOCK WHERE STM_AUTO_KEY IN %s"%keys
-            recs = selection(query,quapi=quapi)
-            existing_loc_key = recs and recs[0] and recs[0][0] or None 
-                #if existing_loc_key:                
-                    #msg,error,valid_wh,valid_whs_key,whs_needs_update = #check_if_valid_whs_beta(existing_loc_key=existing_loc_key,whs_auto_key=whs_auto_key,dj_user_id=dj_user_id,quapi=quapi) 
-                #if not valid_wh:
-                    #error += "Invalid warehouse for the existing location." 
+                set_clause = "SET IC_UDL_005 = %s"%rack_auto_key 
+
+                                                   
+                                                         
+                                                                                 
+                                                                                                 
+                                                            
+                                                                                      
+                                                   
+                                                                           
+                                                    
+                                                                                                                                                                                               
+                                
             #if valid_wh and valid_whs_key and whs_auto_key:
                 #msg='Successful update.'
                 #set_clause += set_clause and ",whs_auto_key=%s"%whs_auto_key or "SET whs_auto_key=%s"%whs_auto_key
@@ -16403,15 +17259,16 @@ def update_stock_rack_beta(sysur_auto_key,user_id,stm_keys,\
             #elif not loc_auto_key and warehouse_code:
                 #error += "Invalid warehouse for this location."
             if stock_recs and not error:             
-                if set_clause and where_clause:               
+                if set_clause and where_clause:
+                    msg = 'Successful Update.'                    
                     query = "UPDATE STOCK " + set_clause + where_clause
-                    error += updation_dir(query,cr) 
-                    user_time = "Tranferred by user %s at %s"%(user_id,server_time)                    
-                    query = """"""UPDATE STOCK SET 
-                    LOC_VALIDATED = TO_TIMESTAMP('%s','MM-DD-YYYY HH24:MI:SS'),NOTES='%s'
-                    WHERE STM_AUTO_KEY IN %s
-                    """"""%(server_time,user_time,keys)
-                    error = updation_dir(query,cr)                                         
+                    error += updation_dir(query,cr)                    
+                                                     
+                                                
+                                                                              
+                                                                  
+                                                       
+                                                                                           
                     query = """"""
                         CREATE OR REPLACE PROCEDURE "CSPI_STOCK_UPDATE"
                         (QUSER IN NUMBER, STM IN NUMBER, QCODE IN VARCHAR2)  AS
@@ -16433,8 +17290,8 @@ def update_stock_rack_beta(sysur_auto_key,user_id,stm_keys,\
                         END;   
                     """"""%(sysur_auto_key,stm_key,user_id[:9])
                     
-                #if loc_auto_key or whs_auto_key or consignment or cond_code or dpt_auto_key: 
-                if loc_auto_key and existing_loc_key != loc_auto_key:                
+                if loc_auto_key or whs_auto_key or consignment or cond_code or dpt_auto_key:                 
+                                                                                              
                     for rec in stock_recs:
                         params=[]
                         params.append(rec[14])#stm_auto_key
@@ -16478,7 +17335,7 @@ def update_stock_rack_beta(sysur_auto_key,user_id,stm_keys,\
                     smd_qty_res = smd_qty and smd_qty[0] and smd_qty[0][0]
                     smd_qty_ship = smd_qty and smd_qty[0] and smd_qty[0][1]
                     if smd_qty and smd_qty_res and smd_qty_ship:
-                        if smd_qty_res > 0 and smd_qty_ship > 0:
+                        if smd_qty_res > 0 and str_qty_ship > 0:
                             query=""""""UPDATE STOCK_RESERVATIONS STR
                                SET STR.PKG_QTY_SCANNED = %s, 
                                STR.SYSUR_AUTO_KEY_SCAN = %s, 
@@ -16487,10 +17344,11 @@ def update_stock_rack_beta(sysur_auto_key,user_id,stm_keys,\
                                """"""%(smd_qty_res,sysur_auto_key,server_time,keys) 
                             error = updation_dir(query,cr)
                 orcl_commit(con=con)
-                msg = 'Successful update.'
+                                    
+                                          
                                
-    if error == '{"recs": ""}':
-        error = ''
+                               
+                  
                 
     return msg,error,valid_whs_key,valid_wh"""
 
@@ -16520,30 +17378,51 @@ def get_wtls(quapi_id,sysur_auto_key,session_id='',date_from=None,date_to=None):
             if user_clause or date_clause:
                 date_clause += ' AND'
             date_clause += " TO_DATE('%s','mm/dd/yyyy') >= WTL.ENTRY_DATE"%(date_to)       
+    
+            if user_clause or date_clause:
+                date_clause += ' AND'
+            date_clause += " TO_DATE('%s','mm/dd/yyyy') >= WTL.ENTRY_DATE"%(date_to)       
     query = """
-        SELECT WTL.WOT_AUTO_KEY,WTM.DESCRIPTION,WOT.SEQUENCE,WO.SI_NUMBER,WTL.START_TIME FROM WO_TASK_LABOR WTL
-        LEFT JOIN WO_TASK WOT ON WOT.WOT_AUTO_KEY = WTL.WOT_AUTO_KEY
-        LEFT JOIN WO_TASK_MASTER WTM ON WTM.WTM_AUTO_KEY = WOT.WTM_AUTO_KEY
-        LEFT JOIN WO_OPERATION WO ON WO.WOO_AUTO_KEY = WOT.WOO_AUTO_KEY
+        SELECT WTL.WOT_AUTO_KEY,WTM.DESCRIPTION,WOT.SEQUENCE,
+        WO.SI_NUMBER,WTL.START_TIME,SYS.USER_NAME,WTL.WTL_AUTO_KEY
+        FROM WO_TASK_LABOR WTL
+        JOIN WO_TASK WOT ON WOT.WOT_AUTO_KEY = WTL.WOT_AUTO_KEY
+        JOIN WO_TASK_MASTER WTM ON WTM.WTM_AUTO_KEY = WOT.WTM_AUTO_KEY
+        JOIN WO_OPERATION WO ON WO.WOO_AUTO_KEY = WOT.WOO_AUTO_KEY
+        JOIN SYS_USERS SYS ON SYS.SYSUR_AUTO_KEY = WTL.SYSUR_AUTO_KEY
         WHERE WTL.SYSUR_AUTO_KEY = %s
         AND WTL.STOP_TIME IS NULL ORDER BY WTL.WTL_AUTO_KEY
         %s
     """%(sysur_auto_key,date_clause)
     wo_tasks = selection_dir(query,cr)
+        
     from polls.models import TaskLabor
     wtl_data = []
     
     for wtl in wo_tasks:
+        
+        query = """SELECT LBH.BATCH_ID FROM LABOR_BATCH_HEADER LBH
+        JOIN LABOR_BATCH_DETAIL LBD ON LBD.LBH_AUTO_KEY = LBH.LBH_AUTO_KEY
+        WHERE LBD.WOT_AUTO_KEY = %s
+        """%wtl[0]
+        batch = selection_dir(query,cr)
+        batch_id = batch and batch[0] and batch[0][0] or ''
+        
         wtl_data.append(TaskLabor(
         wot_auto_key = wtl[0],
         task_desc = wtl[1],
         sequence = wtl[2],
+        loc_code = wtl[2],
         wo_number = wtl[3],
         start_time = wtl[4],
+        batch_id = batch_id,
+        user_name = wtl[5],
+        wtl_auto_key = wtl[6],
         sysur_auto_key = sysur_auto_key,
         session_id = session_id,
         )
     )
+    
     try:
         del_wtls = TaskLabor.objects.filter(sysur_auto_key=sysur_auto_key).delete()
         TaskLabor.objects.bulk_create(wtl_data) or None
@@ -16568,11 +17447,11 @@ def get_batches(quapi_id,sysur_auto_key,session_id,per_user=False):
         query = """SELECT BATCH_ID,START_TIME,
             STOP_TIME,DESCRIPTION,SYSUR_AUTO_KEY FROM 
             LABOR_BATCH_HEADER 
-            WHERE ROWNUM <= 10 AND SYSUR_AUTO_KEY = %s
+            WHERE SYSUR_AUTO_KEY = %s
             ORDER BY LBH_AUTO_KEY DESC"""%sysur_auto_key
     else:
         query = """SELECT BATCH_ID,START_TIME,
-            STOP_TIME,DESCRIPTION,SYSUR_AUTO_KEY FROM 
+            STOP_TIME,DESCRIPTION,SYSUR_AUTO_KEY FROM
             LABOR_BATCH_HEADER 
             WHERE ROWNUM <= 10
             ORDER BY LBH_AUTO_KEY DESC"""      
@@ -16580,7 +17459,7 @@ def get_batches(quapi_id,sysur_auto_key,session_id,per_user=False):
     batches = selection_dir(query,cr)
     from polls.models import LaborBatch as lb
     batch_data = []
-    for batch in batches:
+    for batch in batches[:10]:
         batch_data.append(lb(
         batch_id = batch[0],
         description = batch[3],
@@ -16620,97 +17499,6 @@ def create_batch(quapi_id,session_id,sysur_auto_key,batch_no,start_batch=False):
             VALUES(G_LBH_AUTO_KEY.NEXTVAL,%s,G_LBH_AUTO_KEY.NEXTVAL,'%s')
         """%(sysur_auto_key,description)
     error = insertion_dir(query,cr)                    
-    
-                                 
-            
-                                                                                
-
-                                                                    
-                                                      
-                    
-                                                                           
-                                       
-                                                                                   
-                                                       
-                                   
-                                                                  
-                                   
-                                                               
-                                                   
-                                          
-                                                  
-                                                                                   
-                                  
-                                                             
-                                                                      
-                                                                     
-                                                                   
-                                                                    
-                                                                      
-                                                                                      
-              
-                                         
-                                                                   
-                                               
-                                                                                                      
-                                          
-                                      
-                                                                                                 
-                                                   
-                 
-                                        
-                        
-                                                                         
-                                          
-                       
-                                           
-                       
-                                         
-                   
-                   
-                                           
-                                                                                         
-                                                                                                                                                               
-                              
-         
-                   
-                                           
-                                                               
-                                                                         
-                                        
-                                   
-                   
-                                                
-                    
-                                                              
-                                                             
-                 
-                   
-
-                        
-                         
-                                               
-                                                                                                                                                                                      
-                          
-                                                                  
-                                                         
-                                     
-             
-                                           
-                     
-                                                          
-                         
-                           
-                                                  
-                                                                 
-                                                        
-                                             
-                                               
-                                     
-                                                                                    
-                              
-
-                      
 
 #parse the batch number
 def parse_batch_no(batch_no):
@@ -16750,14 +17538,16 @@ def gen_batch_id(cr,recall_batch_id):
     else:
         new_batch_id = recall_batch_id + '-1'    
     return new_batch_id
-       
+      
 @shared_task
 def batch_labor(quapi_id,session_id,sysur_auto_key,\
     wot_auto_key,batch_no = '',active_batch='',\
     start_batch=False,start_tasks=False,create_batch=False,\
-    description='',wot_ids=[],user_name=''):
+    description='',wot_ids=[],user_name='',add_tasks_only=False,\
+    today=None,wots_to_remove=[]):
     error,msg,new_val,field_changed,lbh_auto_key,woo_wots='','','','','',{}
-    cart_code,batch_lines = '',''
+    cart_code,batch_lines,task_error,batch_msg = '','','',''
+    wot_keys = []
     from polls.models import OracleConnection as oc, QueryApi as qa, MLApps as maps, QuantumUser as qu
     quapi = qa.objects.filter(id=quapi_id)
     quapi = quapi and quapi[0] or None
@@ -16767,18 +17557,25 @@ def batch_labor(quapi_id,session_id,sysur_auto_key,\
         cr,con = orcl_connect(orcl_conn)
     if not (cr and con):
         return 'Cannot connect to Oracle.',batch_no,description,''
-    query = "SELECT SYSTIMESTAMP FROM DUAL"
-    today = selection_dir(query,cr)
-    today = today and today[0] and today[0][0] and today[0][0][:18]
+        
+    from datetime import timedelta
+
+    m_format = '%m/%d/%Y %H:%M:%S'
     date_format = '%Y-%m-%d %H:%M:%S'
-    #replace the next single line of code with following 2 lines
-    #need to add the timedelta = 2 hours for MTU in batching
-    #from datetime import timedelta
-    #today = datetime.strptime(today,date_format) + timedelta(hours=2)
-    today = datetime.strptime(today,date_format)
-    right_now = today.strftime("%m/%d/%Y %H:%M:%S")
+
+    if not today: 
+        today = datetime.now()
+    else:
+        today = datetime.strptime(today,m_format)
+
+    #setting to Central Time
+    #today = today - timedelta(hours=1)
+    right_now = today.strftime(m_format)  
+    time_now = today.strftime(date_format)
+    audit_date = today.strftime(date_format)
+
     if wot_auto_key and not wot_auto_key[-1].isdigit() and not start_batch and not create_batch:
-        #if not wot_auto_key[-1].isdigit():
+
         wot_auto_key = wot_auto_key[:-1]
         query="""SELECT WT.WOT_AUTO_KEY, WOS.STATUS_TYPE,
             WT.SEQUENCE,WTM.DESCRIPTION        
@@ -16787,11 +17584,15 @@ def batch_labor(quapi_id,session_id,sysur_auto_key,\
             LEFT JOIN WO_TASK_MASTER WTM ON WT.WTM_AUTO_KEY = WTM.WTM_AUTO_KEY        
             WHERE WT.WOT_AUTO_KEY = %s"""%wot_auto_key
         rec = selection_dir(query,cr)
+        
         if not rec:
             error = "Task %s not found."%wot_auto_key
+        
+        wot_auto_key = rec and rec[0] and rec[0][0]
         wo_status_type = rec and rec[0] and rec[0][1]
         wot_seq = rec and rec[0] and rec[0][2]
         wot_desc = rec and rec[0] and rec[0][3]
+        
         if wo_status_type == 'Closed':
             error = "Task %s - %s is closed"%(wot_seq,wot_desc)
         if error:
@@ -16802,43 +17603,106 @@ def batch_labor(quapi_id,session_id,sysur_auto_key,\
     #   User enters/selects - 278_CART 01
     #   User enters CART 01
     #   User enters 278
+    
     batch_id = active_batch and active_batch[:9] or description and description[:9]
     if not create_batch and not active_batch:
         active_batch = batch_no
     if not batch_no and batch_id or create_batch:
-        batch_id = gen_batch_id(cr,batch_id)          
-    #input_code = active_batch.partition('_')
-    #cart_code = input_code and input_code[0] or ''
-    #lbh_auto_key = input_code and len(input_code) > 2 and input_code[2] or ''
+        batch_id = gen_batch_id(cr,batch_id)
 
-    #if '_' in lbh_auto_key:
-    #    lbh_auto_key = lbh_auto_key.partition('_')
-    #    lbh_auto_key = lbh_auto_key and lbh_auto_key[2]
-        
-    # and not (create_batch or start_batch)
-    if active_batch and not wot_ids:
-        lbh_sub = """SELECT LBH_AUTO_KEY FROM LABOR_BATCH_HEADER
+    if active_batch:
+        batch_no = active_batch
+        lbh_sub = """SELECT LBH_AUTO_KEY,START_TIME,STOP_TIME
+        FROM LABOR_BATCH_HEADER
         WHERE UPPER(BATCH_ID)=UPPER('%s')"""%active_batch
+        lbh = selection_dir(lbh_sub,cr)
+        lbh_auto_key = lbh and lbh[0] and lbh[0][0] or ''
+        start_time = lbh and lbh[0] and lbh[0][1] or ''
+        stop_time = lbh and lbh[0] and lbh[0][2] or ''
         
-        query="""SELECT WOT_AUTO_KEY FROM LABOR_BATCH_DETAIL
-        WHERE LBH_AUTO_KEY = (%s)
-        """%lbh_sub
-        wot_ids = selection_dir(query,cr)
-        #wot_ids= [wot for sublist in wot_ids for wot in sublist]
+        if lbh_auto_key and stop_time and 0:
+            upd_query = """UPDATE LABOR_BATCH_HEADER 
+            SET STOP_TIME = NULL WHERE LBH_AUTO_KEY = %s           
+            """%lbh_auto_key
+            error = updation_dir(upd_query,cr)
+
+        if lbh_auto_key and not wot_ids and not start_batch:
+            query="""SELECT WO.SI_NUMBER,WT.SEQUENCE,WTM.DESCRIPTION,
+            0,'','','','','',
+            WT.WOT_AUTO_KEY
+            FROM LABOR_BATCH_DETAIL LBD
+            JOIN WO_TASK WT ON WT.WOT_AUTO_KEY = LBD.WOT_AUTO_KEY
+            JOIN WO_STATUS WOS ON WOS.WOS_AUTO_KEY = WT.WOS_AUTO_KEY
+            JOIN WO_TASK_MASTER WTM ON WTM.WTM_AUTO_KEY = WT.WTM_AUTO_KEY
+            LEFT JOIN WO_OPERATION WO ON WO.WOO_AUTO_KEY = WT.WOO_AUTO_KEY
+            WHERE LBD.LBH_AUTO_KEY = '%s' AND (WOS.STATUS_TYPE NOT 
+            IN ('Closed','Cancel') OR WOS.STATUS_TYPE IS NULL)
+            """%lbh_auto_key
+            wot_ids = selection_dir(query,cr)
+            
+            if not wot_ids:
+                return 'No open tasks in batch',batch_no or active_batch,description,msg
+
+            for wot in wot_ids:
+                wot[-2] = batch_no
+                wot[6] = audit_date
+                error = create_labor_line(user_name,session_id,wot,no_wtls=True)
+        
+        elif wot_ids:
+           
+            if add_tasks_only and lbh_auto_key:
+                #find the lbd
+                #add the tasks with insert code
+                for wot in wot_ids:    
+                    
+                    query = """SELECT LBD_AUTO_KEY FROM LABOR_BATCH_DETAIL
+                           WHERE LBH_AUTO_KEY = %s AND WOT_AUTO_KEY = %s
+                           """%(lbh_auto_key,wot)
+                    dupe = selection_dir(query,cr)
+                    
+                    if dupe:
+                        continue
+                        #error = 'Task %s already in batch'%wot 
+                        #return error + task_error,batch_no or active_batch,description,msg
+                        
+                    query = """SELECT STATUS_TYPE FROM WO_STATUS
+                    WHERE WOS_AUTO_KEY = (SELECT WOS_AUTO_KEY FROM WO_TASK WHERE WOT_AUTO_KEY = %s)        
+                    """%wot_auto_key 
+                    wot_rec = selection_dir(query,cr)
+                    status_type = wot_rec and wot_rec[0] and wot_rec[0][0] or '' 
+               
+                    if status_type not in ['Closed']:
+                        
+                        query = """
+                            INSERT INTO LABOR_BATCH_DETAIL
+                                (LBD_AUTO_KEY,LBH_AUTO_KEY,WOT_AUTO_KEY) 
+                            VALUES(G_LBD_AUTO_KEY.NEXTVAL,%s,%s)
+                            """%(lbh_auto_key,wot)
+                        error = insertion_dir(query,cr)
+                        
+                    else:
+                        error = 'Task is closed.'
+                        
+                orcl_commit(con=con)
+                return error,batch_no or active_batch,description,msg
     
     if not batch_no or create_batch:
         #if active_batch is numeric but no lbh_auto_key | or not lbh_auto_key.isnumeric() 
         if not create_batch and not lbh_auto_key and active_batch and not active_batch.isnumeric():
-            find_batch = """SELECT LBH_AUTO_KEY FROM LABOR_BATCH_HEADER LBH 
+            
+            find_batch = """SELECT LBH_AUTO_KEY FROM LABOR_BATCH_HEADER LBH
                 WHERE UPPER(BATCH_ID) LIKE UPPER('%s%s') 
                 AND STOP_TIME IS NULL"""%('%',active_batch)
             lbh_cart = selection_dir(find_batch,cr)
-            lbh_auto_key = lbh_cart and lbh_cart[0] and lbh_cart[0][0] or '' 
+            lbh_auto_key = lbh_cart and lbh_cart[0] and lbh_cart[0][0] or ''
+            
         if create_batch or not lbh_auto_key:
+            
             # or not lbh_auto_key.isnumeric()            
             batch_no = str(active_batch[:4])
             if not description:
                 description = active_batch
+                
             if start_batch:
                 query = """
                     INSERT INTO LABOR_BATCH_HEADER 
@@ -16851,9 +17715,16 @@ def batch_labor(quapi_id,session_id,sysur_auto_key,\
                     (LBH_AUTO_KEY,SYSUR_AUTO_KEY,BATCH_ID,DESCRIPTION) 
                     VALUES(G_LBH_AUTO_KEY.NEXTVAL,%s,'%s','%s')
                 """%(sysur_auto_key,batch_id,description)
+
             error = insertion_dir(query,cr)
             if error:
-                return error,batch_id,description,''               
+                return error,batch_id,description,''
+                            
+            batch_id_q = "SELECT BATCH_ID,LBH_AUTO_KEY FROM LABOR_BATCH_HEADER WHERE ROWNUM<=1 ORDER BY LBH_AUTO_KEY DESC"
+            batch_id = selection_dir(batch_id_q,cr)  
+            batch_no = batch_id and batch_id[0] and batch_id[0][0] or None  
+            lbh_auto_key = batch_id and batch_id[0] and batch_id[0][1] or None
+            batch_msg = "Batch: \'%s\' created."%(batch_no)                               
           
         elif not batch_no and active_batch and cart_code:
             description = cart_code
@@ -16865,39 +17736,84 @@ def batch_labor(quapi_id,session_id,sysur_auto_key,\
                     '%s',TO_TIMESTAMP('%s','mm/dd/yyyy hh24:mi:ss'),TO_TIMESTAMP('%s','mm/dd/yyyy hh24:mi:ss'))
                 """%(sysur_auto_key,batch_id,description,right_now,right_now)      
             error = insertion_dir(query,cr)
-        if description:
-            
+
+        if description and lbh_auto_key:
+
+            if not wot_ids:
+                query = """SELECT WOT_AUTO_KEY FROM LABOR_BATCH_DETAIL
+                WHERE LBH_AUTO_KEY = %s"""%lbh_auto_key
+
+                wot_ids = selection_dir(query,cr)
+                            
             batch_id_q = "SELECT BATCH_ID,LBH_AUTO_KEY FROM LABOR_BATCH_HEADER WHERE ROWNUM<=1 ORDER BY LBH_AUTO_KEY DESC"
             batch_id = selection_dir(batch_id_q,cr)  
             batch_no = batch_id and batch_id[0] and batch_id[0][0] or None  
-            lbh_auto_key = batch_id and batch_id[0] and batch_id[0][1] or None   
-            msg = "Batch ID: \'%s\' created."%(batch_no)
-            
+            lbh_auto_key = batch_id and batch_id[0] and batch_id[0][1] or None
+            batch_msg = "Batch: \'%s\' created."%(batch_no)
+                
             if start_batch and wot_ids:
+                
+                wot_keys = []
                 for wot in wot_ids:
-                    query = """
-                        INSERT INTO LABOR_BATCH_DETAIL
-                            (LBD_AUTO_KEY,LBH_AUTO_KEY,WOT_AUTO_KEY) 
-                        VALUES(G_LBD_AUTO_KEY.NEXTVAL,%s,%s)
-                        """%(lbh_auto_key,wot)
-                    error = insertion_dir(query,cr)                    
-                    query = "SELECT MAX(LBD_AUTO_KEY) FROM LABOR_BATCH_DETAIL"                 
-                    lbd = selection_dir(query,cr)
-                    lbd_auto_key = lbd and lbd[0] or lbd[0][0] or ''
+                    
+                    wot_auto_key = wot
+                    if isinstance(wot,list):
+                        wot_auto_key = wot[0]
+                    
+                    if wot_auto_key not in wot_keys:
+                        wot_keys.append(wot_auto_key)
+                        
+                    else:
+                        continue
+                        
+                    query = """SELECT LBD_AUTO_KEY FROM LABOR_BATCH_DETAIL
+                           WHERE LBH_AUTO_KEY = %s AND WOT_AUTO_KEY = %s
+                           """%(lbh_auto_key,wot_auto_key)
+                    dupe = selection_dir(query,cr)
+                    
+                    if dupe and len(dupe) > 1:
+                        continue
+                        #error = 'Task %s already in batch'%wot_auto_key 
+                        #return error + task_error,batch_no or active_batch,description,msg 
+                     
+                    query = """SELECT STATUS_TYPE FROM WO_STATUS
+                    WHERE WOS_AUTO_KEY = (SELECT WOS_AUTO_KEY FROM WO_TASK WHERE WOT_AUTO_KEY = %s)        
+                    """%wot_auto_key 
+                    wot_rec = selection_dir(query,cr)
+                    status_type = wot_rec and wot_rec[0] and wot_rec[0][0] or '' 
+               
+                    if status_type not in ['Closed']: 
+                                               
+                        query = """
+                            INSERT INTO LABOR_BATCH_DETAIL
+                                (LBD_AUTO_KEY,LBH_AUTO_KEY,WOT_AUTO_KEY) 
+                            VALUES(G_LBD_AUTO_KEY.NEXTVAL,%s,%s)
+                            """%(lbh_auto_key,wot_auto_key)
+                        error = insertion_dir(query,cr)                    
+                        query = "SELECT MAX(LBD_AUTO_KEY) FROM LABOR_BATCH_DETAIL"                 
+                        lbd = selection_dir(query,cr)
+                        lbd_auto_key = lbd and lbd[0] and lbd[0][0] or ''
+                        
+                    else:
+                        error = 'Task is closed.'
+  
                     error,task_msg = add_wo_labor(quapi_id,session_id,\
                     sysur_auto_key,lbd_auto_key=lbd_auto_key,\
-                    wot_auto_key=wot+'s',start_batch=True,\
-                    today='',user_name=user_name)
+                    wot_auto_key=str(wot_auto_key)+'s',start_batch=True,\
+                    today='',user_name=user_name,batch_id=batch_no)
                 if wot_ids:
                     orcl_commit(con=con)
+                    if not error:
+                        batch_msg = 'Started: %s'%(right_now)
                     return error,batch_no or active_batch,description,msg
-    elif not create_batch and batch_no and not lbh_auto_key:   
+                    
+    elif not create_batch and batch_no and not lbh_auto_key: 
         batch_header = ''
         #if active_batch and not active_batch.isnumeric() or (batch_no and not batch_no.isnumeric()):
         if not batch_no.isnumeric():
             query = """
                 SELECT LBH_AUTO_KEY FROM LABOR_BATCH_HEADER WHERE UPPER(BATCH_ID) LIKE UPPER('%s%s') 
-                AND STOP_TIME IS NULL"""%('%',batch_no)
+                AND STOP_TIME IS NULL"""%(batch_no,'%')
             batch_header = selection_dir(query,cr)
         else:
             query = """
@@ -16906,7 +17822,8 @@ def batch_labor(quapi_id,session_id,sysur_auto_key,\
             batch_header = selection_dir(query,cr)
         lbh_auto_key = batch_header and batch_header[0] and batch_header[0][0] or None
         if not lbh_auto_key:
-            error = 'No batch found.'           
+            error = 'No batch found.'
+
     if not start_batch and not create_batch and active_batch and (not wot_auto_key or start_tasks):
         if active_batch and description:
             batch_lines = """SELECT DISTINCT LBD.WOT_AUTO_KEY,LBD.WOT_AUTO_KEY,LBD.LBD_AUTO_KEY
@@ -16918,100 +17835,134 @@ def batch_labor(quapi_id,session_id,sysur_auto_key,\
             FROM LABOR_BATCH_DETAIL LBD
             JOIN WO_TASK WOT ON WOT.WOT_AUTO_KEY = LBD.WOT_AUTO_KEY
             WHERE LBD.LBH_AUTO_KEY = %s"""%lbh_auto_key
-        elif not start_tasks and not batch_no:
-            if not cart_code: cart_code = active_batch
-            batch_lines = """SELECT WOTW.WOT_AUTO_KEY,WOT.WOT_AUTO_KEY,WO.WOO_AUTO_KEY 
-            from stock_reservations sr
-            left join stock s on s.stm_auto_key = sr.stm_auto_key
-            left join wo_operation wo on wo.woo_auto_key = sr.woo_auto_key
-            left join wo_task wotw on wotw.woo_auto_key = wo.woo_auto_key
-            left join wo_bom wob on wob.woo_auto_key = wo.woo_auto_key 
-            left join wo_task wot on wot.wot_auto_key = wob.wot_auto_key
-            left join wo_status wos on wos.wos_auto_key = wot.wos_auto_key
-            left join user_defined_lookups udl on udl.udl_auto_key = s.ic_udl_005         
-            WHERE 
-            UPPER(udl.udl_code) = UPPER('%s')
-            and (wos.status_type = 'Open' or wos.wos_auto_key is null) 
-            order by wot.sequence"""%(cart_code)
+        #elif not start_tasks and not batch_no:
+            #if not cart_code: cart_code = active_batch
+            #batch_lines = """SELECT WOTW.WOT_AUTO_KEY,WOT.WOT_AUTO_KEY,WO.WOO_AUTO_KEY 
+            #from stock_reservations sr
+            #left join stock s on s.stm_auto_key = sr.stm_auto_key
+            #left join wo_operation wo on wo.woo_auto_key = sr.woo_auto_key
+            #left join wo_task wotw on wotw.woo_auto_key = wo.woo_auto_key
+            #left join wo_bom wob on wob.woo_auto_key = wo.woo_auto_key 
+            #left join wo_task wot on wot.wot_auto_key = wob.wot_auto_key
+            #left join wo_status wos on wos.wos_auto_key = wot.wos_auto_key
+            #left join user_defined_lookups udl on udl.udl_auto_key = s.ic_udl_005         
+            #WHERE 
+            #UPPER(udl.udl_code) = UPPER('%s')
+            #and (wos.status_type = 'Open' or wos.wos_auto_key is null) 
+            #order by wot.sequence""""""%(cart_code)
         if batch_lines:
             wot_keys = selection_dir(batch_lines,cr)
         if not wot_keys:
-            error = 'No open tasks in batch: \'%s\'.'%active_batch
+            error = 'No open tasks in batch'
             return error,batch_no or active_batch,description,msg
         woo_wots = {}
         add_wot = False
+        
+        wot_list = []
         for wot in wot_keys:
             if len(wot) > 1 and wot[1] not in woo_wots:                
                 woo_wots[wot[1]] = wot[0] or wot[1]
                 add_wot = True
+
+            if wot[0] not in wot_list and wot[1] not in wot_list:
+                wot_list.append(wot[0] or wot[1])
+                
+            else:
+                continue
+                        
             if start_tasks and (add_wot or active_batch.isnumeric()):
                 error,msg = add_wo_labor(quapi_id,session_id,\
                 sysur_auto_key,wot_auto_key=str(wot[0] or wot[1])+'s',\
                 start_batch=True,today='',user_name=user_name,
-                lbd_auto_key=wot[2])               
-            elif lbh_auto_key:
-                query = """SELECT LBD_AUTO_KEY FROM LABOR_BATCH_DETAIL
-                WHERE LBH_AUTO_KEY = %s AND WOT_AUTO_KEY = %s
-                """%(lbh_auto_key,wot[0])
-                dupe = selection_dir(query,cr)
-                if dupe:
-                    error = 'Task %s already in batch'%wot[0]
-                if not error:
-                    query = """
-                        INSERT INTO LABOR_BATCH_DETAIL
-                            (LBD_AUTO_KEY,LBH_AUTO_KEY,WOT_AUTO_KEY) 
-                        VALUES(G_LBD_AUTO_KEY.NEXTVAL,%s,%s)
-                        """%(lbh_auto_key,wot[0])
-                    error = insertion_dir(query,cr)
+                lbd_auto_key=wot[2],batch_id=batch_no) 
+                
+            #elif lbh_auto_key:
+                #query = """SELECT LBD_AUTO_KEY FROM LABOR_BATCH_DETAIL
+                #WHERE LBH_AUTO_KEY = %s AND WOT_AUTO_KEY = %s
+                #"""%(lbh_auto_key,wot[0])
+                #dupe = selection_dir(query,cr)
+                #if dupe:
+                #    hidden_error = 'Task %s already in batch'%wot[0]
+                #if not error:
+                #query = """
+                #    INSERT INTO LABOR_BATCH_DETAIL
+                #        (LBD_AUTO_KEY,LBH_AUTO_KEY,WOT_AUTO_KEY) 
+                #    VALUES(G_LBD_AUTO_KEY.NEXTVAL,%s,%s)
+                #    """%(lbh_auto_key,wot[0])
+                #error = insertion_dir(query,cr)
         #if not active_batch.isnumeric():
             #error,msg = add_wo_labor(quapi_id,session_id,sysur_auto_key,wot_auto_key=active_batch+'s',start_batch=start_batch)
         if not error and not description:
             msg = "Batch \'%s\' recalled on %s."%(description or active_batch,right_now)         
-    if lbh_auto_key and wot_auto_key and not start_tasks and not start_batch and not create_batch:
-        if not wot_auto_key.isdigit():            
-            wot_auto_key = wot_auto_key[:-1]
-            #We are going to update each task labor entry for the woos on this cart.
-            query = """select wot.wot_auto_key
-               from stock_reservations sr
-               join stock s on s.stm_auto_key = sr.stm_auto_key
-               join wo_operation wo on wo.woo_auto_key = sr.woo_auto_key
-               join wo_task wot on wot.woo_auto_key = wo.woo_auto_key
-               join wo_task_master wtm on wtm.wtm_auto_key = wot.wtm_auto_key
-               join user_defined_lookups udl on udl.udl_auto_key = s.ic_udl_005 
-               join sys_users sys on sys.sysur_auto_key = wot.sysur_auto_key
-               join wo_skills wok on wok.wok_auto_key = sys.wok_auto_key
-               where UPPER(udl.udl_code) = UPPER('%s')"""%(wot_auto_key)
-            cart_recs = selection_dir(query,cr)
-            for wot in cart_recs:
-                query = """SELECT LBD_AUTO_KEY FROM LABOR_BATCH_DETAIL
-                WHERE LBH_AUTO_KEY = %s AND WOT_AUTO_KEY = %s
-                """%(lbh_auto_key,wot_auto_key)
 
-                #dupe = selection_dir(query,cr)
-                #if dupe:
-                #    error = 'Task %s already in batch'%wot_auto_key
-                if not error:
-                    query = """INSERT INTO LABOR_BATCH_DETAIL
-                        (LBD_AUTO_KEY,LBH_AUTO_KEY,WOT_AUTO_KEY) 
-                    VALUES(G_LBD_AUTO_KEY.NEXTVAL,%s,%s)
-                    """%(lbh_auto_key,wot[0])
-                    error = insertion_dir(query,cr)
-        elif not start_batch:
+    if lbh_auto_key and wot_ids and not start_tasks and not start_batch and create_batch:
+        
+        if 0 and create_batch:
+            batch_id_q = "SELECT BATCH_ID,LBH_AUTO_KEY FROM LABOR_BATCH_HEADER WHERE ROWNUM<=1 ORDER BY LBH_AUTO_KEY DESC"
+            batch_id = selection_dir(batch_id_q,cr)  
+            batch_no = batch_id and batch_id[0] and batch_id[0][0] or None  
+            lbh_auto_key = batch_id and batch_id[0] and batch_id[0][1] or None
+        
+                
+        for wot in wot_ids:
+            
+            wot_auto_key = wot
+            if isinstance(wot,list) and len(wot) > 9:
+                wot_auto_key = wot[9]  
+                
             query = """SELECT LBD_AUTO_KEY FROM LABOR_BATCH_DETAIL
-            WHERE LBH_AUTO_KEY = %s AND WOT_AUTO_KEY = %s
-            """%(lbh_auto_key,wot_auto_key)
-            #dupe = selection_dir(query,cr)
-            #if dupe:
-            #    error = 'Task %s already in batch'%wot_auto_key
-            if not error:                 
-                query = """INSERT INTO LABOR_BATCH_DETAIL
-                    (LBD_AUTO_KEY,LBH_AUTO_KEY,WOT_AUTO_KEY) 
-                VALUES(G_LBD_AUTO_KEY.NEXTVAL,%s,%s)
-                """%(lbh_auto_key,wot_auto_key)
-                error = insertion_dir(query,cr)
+                   WHERE LBH_AUTO_KEY = %s AND WOT_AUTO_KEY = %s
+                   """%(lbh_auto_key,wot_auto_key)
+
+            dupe = selection_dir(query,cr)
+            
+            if dupe:
+                continue
+                #error = 'Task %s already in batch'%wot_auto_key 
+                #return error + task_error,batch_no or active_batch,description,msg 
+                
+            query = """SELECT STATUS_TYPE FROM WO_STATUS
+            WHERE WOS_AUTO_KEY = (SELECT WOS_AUTO_KEY FROM WO_TASK WHERE WOT_AUTO_KEY = %s)        
+            """%wot_auto_key 
+            wot_rec = selection_dir(query,cr)
+            status_type = wot_rec and wot_rec[0] and wot_rec[0][0] or '' 
+       
+            if status_type not in ['Closed']:
+                
+                if str(wot_auto_key) not in wots_to_remove:                       
+                    query = """INSERT INTO LABOR_BATCH_DETAIL
+                            (LBD_AUTO_KEY,LBH_AUTO_KEY,WOT_AUTO_KEY) 
+                            VALUES(G_LBD_AUTO_KEY.NEXTVAL,%s,%s)
+                            """%(lbh_auto_key,wot_auto_key)                                      
+                                                       
+                    error = insertion_dir(query,cr)
+                    
+            else:
+                error = 'Task is closed.'
+                
+            #create the new labor line 
+            query="""SELECT WO.SI_NUMBER,WT.SEQUENCE,WTM.DESCRIPTION,
+                0,'','','','','',
+                WT.WOT_AUTO_KEY
+                FROM LABOR_BATCH_DETAIL LBD
+                JOIN WO_TASK WT ON WT.WOT_AUTO_KEY = LBD.WOT_AUTO_KEY
+                JOIN WO_TASK_MASTER WTM ON WTM.WTM_AUTO_KEY = WT.WTM_AUTO_KEY
+                LEFT JOIN WO_OPERATION WO ON WO.WOO_AUTO_KEY = WT.WOO_AUTO_KEY
+                WHERE WT.WOT_AUTO_KEY = '%s'
+                """%wot_auto_key
+            wot_recs = selection_dir(query,cr)
+            wot_rec = wot_recs and wot_recs[0]
+           
+            if wot_rec:
+                wot_rec[6] = audit_date
+                wot_rec[-2] = batch_no
+                error = create_labor_line(user_name,session_id,wot_rec,no_wtls=True) 
+        
         if not error:
             msg = "Task %s added to batch."%wot_auto_key
+            
     elif lbh_auto_key and start_tasks:
+        
         #find all WTL's in the batch and set the start time for all
         if start_batch:
             query = """
@@ -17020,43 +17971,100 @@ def batch_labor(quapi_id,session_id,sysur_auto_key,\
                 WHERE LBH_AUTO_KEY = %s AND SYSUR_AUTO_KEY = %s AND START_TIME IS NULL
             """%(right_now,right_now,lbh_auto_key,sysur_auto_key)
             error = updation_dir(query,cr)
+            
             if not woo_wots:
                 query = """SELECT LBD.WOT_AUTO_KEY, LBD.LBD_AUTO_KEY FROM LABOR_BATCH_DETAIL LBD
                            WHERE LBD.LBH_AUTO_KEY = %s
                 """%lbh_auto_key
                 open_wots = selection_dir(query,cr)
+                wot_keys = []
+                
                 for wot in open_wots:
                     wot_auto_key = str(wot[0]) + 's'
                     lbd_auto_key = wot[1]
+                    
+                    if wot[0] not in wot_keys:
+                        wot_keys.append(wot[0])
+                        
+                    else:
+                        continue
+                    
                     error,wtl_msg = add_wo_labor(quapi_id,
                         session_id,sysur_auto_key,
                         lbd_auto_key=lbd_auto_key,
                         wot_auto_key=wot_auto_key,
                         today='',user_name=user_name,
-                        start_batch=True)
+                        start_batch=True,batch_id=batch_no)
+                    task_error += error
+                    
         elif cart_code and not description:
             error,msg = add_wo_labor(quapi_id,session_id,
             sysur_auto_key,wot_auto_key=batch_no+'c',
             start_batch=True,today='',user_name=user_name)         
-        msg = "Batch \'%s\' started on %s."%(batch_no or description,right_now)
+        batch_msg = "Started: %s."%(right_now)
         if error == '{"recs": ""}': 
             error = ""
+            
+    #just adding a new task
+    elif lbh_auto_key and wot_auto_key and not start_tasks:
+        
+        query = """SELECT LBD_AUTO_KEY FROM LABOR_BATCH_DETAIL
+               WHERE LBH_AUTO_KEY = %s AND WOT_AUTO_KEY = %s
+               """%(lbh_auto_key,wot_auto_key)
+        dupe = selection_dir(query,cr)
+        
+        if dupe:
+            #continue
+            error = 'Task %s already in batch'%wot_auto_key 
+            return error + task_error,batch_no or active_batch,description,msg 
+            
+        #simply add the detail records to the lbd table
+        query = """INSERT INTO LABOR_BATCH_DETAIL
+                (LBD_AUTO_KEY,LBH_AUTO_KEY,WOT_AUTO_KEY)
+            VALUES(G_LBD_AUTO_KEY.NEXTVAL,%s,%s)
+            """%(lbh_auto_key,wot_auto_key)
+        error = insertion_dir(query,cr) 
+        
+        #create the new labor line 
+        query="""SELECT WO.SI_NUMBER,WT.SEQUENCE,WTM.DESCRIPTION,
+            0,'','','','','',
+            WT.WOT_AUTO_KEY
+            FROM LABOR_BATCH_DETAIL LBD
+            JOIN WO_TASK WT ON WT.WOT_AUTO_KEY = LBD.WOT_AUTO_KEY
+            JOIN WO_TASK_MASTER WTM ON WTM.WTM_AUTO_KEY = WT.WTM_AUTO_KEY
+            LEFT JOIN WO_OPERATION WO ON WO.WOO_AUTO_KEY = WT.WOO_AUTO_KEY
+            WHERE WT.WOT_AUTO_KEY = '%s'
+            """%wot_auto_key
+        wot_ids = selection_dir(query,cr)
+
+        for wot in wot_ids:
+            wot[6] = audit_date
+            if batch_id and isinstance(batch_id,list):
+                batch_id = batch_no
+            
+            wot[-2] = batch_no or active_batch or batch_id or ''
+            error = create_labor_line(user_name,session_id,wot,no_wtls=True)      
+        
     orcl_commit(con=con)
-    if error == '{"recs": ""}' or not error:       
+    if error == '{"recs": ""}' or not error:
         error = ''
-    #if not error and wot_auto_key and not active_batch and start_batch:
-        #wot_auto_key = wot_auto_key + 's'
-        #error,msg = add_wo_labor(quapi_id,session_id,sysur_auto_key,wot_auto_key=wot_auto_key,user_name=user_name)
-        #if error == '{"recs": ""}': 
-        #    error = ""
-    #register audit trail record  
-    #batch_no = not batch_no.isnumeric() and str(lbh_auto_key) + batch_no or batch_no   
-    if create_batch:    
+        
+    batch_num = batch_no or active_batch or 'No batch'   
+    msg = not batch_msg and msg or batch_msg + msg
+    
+    if create_batch:
+        
+        if batch_id and isinstance(batch_id,list):
+            batch_id = batch_no
+            
+        msg = 'Batch %s created.'%batch_id  
+        batch_num = batch_id
         aud_status = 'success'
         #now = today.strftime(date_format)
-        app_id = maps.objects.filter(code='labor-tracking')   
+        app_id = maps.objects.filter(code='labor-tracking')
         user_rec = qu.objects.filter(user_auto_key=sysur_auto_key)
         user_rec = user_rec and user_rec[0] or None
+        
         if user_rec:
             if error:             
                 aud_status = 'failure'
@@ -17064,38 +18072,54 @@ def batch_labor(quapi_id,session_id,sysur_auto_key,\
                 field_changed = 'Nothing changed.'
                 batch_no = ''
             else:
-                new_val = batch_no and 'Added new labor batch with batch_id: %s for task: %s'%(batch_no,wot_auto_key) or ''
+                new_val = batch_num and 'Added new labor batch with batch_id: %s for task: %s'%(batch_no,wot_auto_key) or ''
                 field_changed = new_val
-            register_audit_trail(user_rec,field_changed,new_val,right_now,app_id,quapi,status=aud_status)
+            
+            register_audit_trail(user_rec,field_changed,new_val,audit_date,app_id,quapi,status=aud_status)
+        
         else:
-            error = 'Incorrect Quantum User ID.'        
-    return error,batch_no or active_batch,description,msg
+            error = 'Incorrect Quantum User ID.' 
+            
+    return error + task_error,batch_num,description,msg
 
 @shared_task
-def stop_labor(quapi_id,session_id,sysur_auto_key,batch_no,wot_auto_key,yes_complete,user_name=''):
+def stop_labor(quapi_id,session_id,sysur_auto_key,\
+    batch_no,wot_auto_key,yes_complete,user_name='',\
+    cr=None,con=None,today=None):
+        
     tc_error,tc_msg,error,msg,new_val,field_changed,description='','','','','','',''
     from polls.models import OracleConnection as oc, QueryApi as qa, MLApps as maps, QuantumUser as qu
-    quapi = qa.objects.filter(id=quapi_id)
-    quapi = quapi and quapi[0] or None
-    orcl_conn = quapi and quapi.orcl_conn_id and oc.objects.filter(id=quapi.orcl_conn_id) or None
-    orcl_conn = orcl_conn and orcl_conn[0] or None 
-    if orcl_conn:
-        cr,con = orcl_connect(orcl_conn)
     if not (cr and con):
-        return 'Cannot connect to Oracle.',''              
-    #today = datetime.now()   
-    #right_now = today.strftime("%m/%d/%Y %H:%M:%S")
-    query = "SELECT SYSTIMESTAMP FROM DUAL"
-    today = selection_dir(query,cr)
-    today = today and today[0] and today[0][0] and today[0][0][:18]
-    audit_date = today
+        quapi = qa.objects.filter(id=quapi_id)
+        quapi = quapi and quapi[0] or None
+        orcl_conn = quapi and quapi.orcl_conn_id and oc.objects.filter(id=quapi.orcl_conn_id) or None
+        orcl_conn = orcl_conn and orcl_conn[0] or None 
+        if orcl_conn:
+            cr,con = orcl_connect(orcl_conn)
+        if not (cr and con):
+            return 'Cannot connect to Oracle.',''
+                                     
+    #query = "SELECT SYSTIMESTAMP FROM DUAL"
+    #today = selection_dir(query,cr)
+    #today = today and today[0] and today[0][0] and today[0][0][:18]
+    m_format = '%m/%d/%Y %H:%M:%S'
     date_format = '%Y-%m-%d %H:%M:%S'
+    
+    if not today: 
+        today = datetime.now()               
+    else:
+        today = datetime.strptime(today,m_format)
+    #setting to Central Time
+    #today = today - timedelta(hours=1)
+    right_now = today.strftime(m_format)  
+    time_now = today.strftime(date_format)
+    audit_date = today.strftime(date_format)
     #replace the next single line of code with following 2 lines
-    #need to add the timedelta = 2 hours for MTU in batching
+    #need to subtract the timedelta = 2 hours for Kratos CTS in batching
     #from datetime import timedelta
-    #today = datetime.strptime(today,date_format) + timedelta(hours=2)
-    today = datetime.strptime(today,date_format)
-    right_now = today.strftime("%m/%d/%Y %H:%M:%S")
+    #today = datetime.strptime(today,date_format) - timedelta(hours=1)
+    #today = datetime.strptime(today,date_format)
+    
     query = """
         UPDATE LABOR_BATCH_HEADER SET STOP_TIME = TO_TIMESTAMP('%s','mm/dd/yyyy hh24:mi:ss'),
         SVR_STOP_TIME = TO_TIMESTAMP('%s','mm/dd/yyyy hh24:mi:ss')
@@ -17109,10 +18133,12 @@ def stop_labor(quapi_id,session_id,sysur_auto_key,batch_no,wot_auto_key,yes_comp
         batch_header = selection_dir(query,cr)
         lbh_auto_key = batch_header and batch_header[0] and batch_header[0][0] or None
         description = batch_header and batch_header[0] and batch_header[0][1]
-        batch_lines = """SELECT DISTINCT LBD.WOT_AUTO_KEY,LBH.START_TIME 
+        batch_lines = """SELECT LBD.WOT_AUTO_KEY,WTL.START_TIME 
             FROM LABOR_BATCH_DETAIL LBD
             LEFT JOIN LABOR_BATCH_HEADER LBH ON LBH.LBH_AUTO_KEY = LBD.LBH_AUTO_KEY
-            WHERE LBH.LBH_AUTO_KEY = %s AND LBH.SYSUR_AUTO_KEY = %s"""%(lbh_auto_key,sysur_auto_key)
+            LEFT JOIN WO_TASK_LABOR WTL ON WTL.WOT_AUTO_KEY = LBD.WOT_AUTO_KEY
+            WHERE LBH.LBH_AUTO_KEY = %s AND LBH.SYSUR_AUTO_KEY = %s AND WTL.STOP_TIME IS NULL
+            ORDER BY LBD.LBD_AUTO_KEY DESC"""%(lbh_auto_key,sysur_auto_key)
         wot_keys = selection_dir(batch_lines,cr)
         hours = 0
         task_count = len(wot_keys)
@@ -17123,11 +18149,13 @@ def stop_labor(quapi_id,session_id,sysur_auto_key,batch_no,wot_auto_key,yes_comp
                 error += 'Start time not entered.'
             start_time = start_time and datetime.strptime(start_time,date_format) or None
             delta = start_time and today - start_time or False
-            hours += delta and delta.days*24 + delta.seconds/3600 or 0              
+            hours = delta and delta.days*24 + delta.seconds/3600 or 0
+         
         total_hours = task_count and hours/task_count or hours        
-                                        
+
+        
         for wot in wot_keys:
-            error,msg = add_wo_labor(quapi_id,session_id,sysur_auto_key,wot_auto_key=str(wot[0])+'c',yes_complete=yes_complete,total_hours=total_hours,today='',user_name=user_name)
+            error,msg = add_wo_labor(quapi_id,session_id,sysur_auto_key,wot_auto_key=str(wot[0])+'c',yes_complete=yes_complete,total_hours=total_hours,today='',user_name=user_name,batch_id=batch_no)
             tc_error += error
             tc_msg += msg              
             
@@ -17139,11 +18167,11 @@ def stop_labor(quapi_id,session_id,sysur_auto_key,batch_no,wot_auto_key,yes_comp
     aud_status = 'success'
     #right_now = datetime.now()
     #time_now = right_now.strftime(date_format)
-    app_id = maps.objects.filter(code='labor-management')   
+    app_id = maps.objects.filter(code='labor-tracking')   
     user_rec = qu.objects.filter(user_auto_key=sysur_auto_key)
     user_rec = user_rec and user_rec[0] or None
     field_changed += ' changed.'
-    new_val += ' val.'                                   
+    new_val += ' val.'                                  
     if user_rec:
         if error:             
             aud_status = 'failure'
@@ -17151,37 +18179,366 @@ def stop_labor(quapi_id,session_id,sysur_auto_key,batch_no,wot_auto_key,yes_comp
             field_changed = 'Nothing changed.'
         else:
             new_val = batch_no and 'Set stop time for labor batch with batch_id: %s'%(batch_no) or ''
-            msg = " Batch %s stopped on %s."%(batch_no,right_now)  
+            msg = " Batch %s stopped: %s."%(batch_no,right_now)  
         register_audit_trail(user_rec,field_changed,new_val,audit_date,app_id,quapi,status=aud_status)
     else:
         error = 'Incorrect Quantum User ID.'
-    return error + tc_error,msg + tc_msg
+    return error + tc_error,msg
     
 @shared_task
-def create_labor_line(user_name,session_id,wo_number,sequence,task_desc,hours,start_time,stop_time,right_now):
+def create_labor_line(user_name,session_id,labor_data,no_wtls=False):
+    
+    wo_number = labor_data[0] or ''
+    sequence = labor_data[1] or 0
+    task_desc = labor_data[2] or ''
+    hours = labor_data[3] or 0
+    date_format = "%Y-%m-%d %H:%M:%S"
+    start_time = labor_data[4] or ''
+    #start_time = start_time and datetime.strptime(start_time,date_format)
+    
+    stop_time = labor_data[5] or ''
+    #stop_time = stop_time and datetime.strptime(stop_time,date_format)
+    right_now = labor_data[6] or ''
+    wtl_auto_key = labor_data[7] or 0
+    batch_id = labor_data[8] or ''
+    wot_auto_key = labor_data[9]
+    
+    if not session_id:
+        session_id='ay8nNoi80920KHOI:jgals82'
     
     from polls.models import TaskLabor
-    task_labor_del = TaskLabor.objects.filter(sequence = sequence,task_desc = task_desc).delete()
+    task_labor_del = TaskLabor.objects.filter(session_id=session_id,wot_auto_key=wot_auto_key).delete()
+    
     task_labor = TaskLabor.objects.create(
-        session_id = session_id,
+        session_id = session_id,    
         wo_number = wo_number,
         sequence = sequence,
+        loc_code = sequence,
         task_desc = task_desc, 
+        batch_id = batch_id,
         hours = hours,
         user_name = user_name,
         entry_date = right_now and right_now[:10] or None,
         start_time = start_time or None,
         stop_time = stop_time or None,
+        wtl_auto_key = wtl_auto_key,
+        wot_auto_key = wot_auto_key,
     )
     error = task_labor.save()
     error = error and str(error) or ''
     return error
+    
+def get_labor_batch(cr,wot_auto_key,batch_id):
+
+    query = """SELECT LBH.LBH_AUTO_KEY,LBD.LBD_AUTO_KEY
+    FROM LABOR_BATCH_DETAIL LBD
+    JOIN LABOR_BATCH_HEADER LBH ON LBH.LBH_AUTO_KEY = LBD.LBH_AUTO_KEY
+    WHERE LBD.WOT_AUTO_KEY = %s AND UPPER(LBH.BATCH_ID) = UPPER('%s')"""%(wot_auto_key,batch_id)
+    lbh = selection_dir(query,cr)
+        
+    return lbh
+    
+@shared_task   
+def batch_task_add(quapi_id,session_id,sysur_auto_key,batch_id,\
+    wot_list,user_name=''):
+    new_batch_no,lbh,lbd_auto_key,lbh_auto_key = '',[],'',''   
+    error,msg,labor_stopped,task_error = '','',False,''
+    cr,con = None,None   
+    wtls = []    
+    from polls.models import OracleConnection as oc, QueryApi as qa
+    quapi = qa.objects.filter(id=quapi_id)
+    quapi = quapi and quapi[0] or None
+    orcl_conn = quapi and quapi.orcl_conn_id and oc.objects.filter(id=quapi.orcl_conn_id) or None
+    orcl_conn = orcl_conn and orcl_conn[0] or None 
+    if orcl_conn:
+        cr,con = orcl_connect(orcl_conn)
+    if not (cr and con):
+        return 'Cannot connect to Oracle.','',False,new_batch_no
+
+    year_first_format = '%Y-%m-%d %H:%M:%S'
+    date_format = "%m/%d/%Y %H:%M:%S"
+    today = datetime.now()
+    right_now = today.strftime(year_first_format)
+
+    query = """SELECT LBH_AUTO_KEY FROM LABOR_BATCH_HEADER
+    WHERE UPPER(BATCH_ID) = UPPER('%s') ORDER BY LBH_AUTO_KEY DESC"""%batch_id
+    
+    lbh = selection_dir(query,cr)
+    lbh_auto_key = lbh and lbh[0] and lbh[0][0] or None
+    
+    if not lbh:
+        return 'Batch %s not found.'%batch_id,''
+
+    #loop through the wots and add them as lbd
+    for wot_auto_key in wot_list:
+        
+        query = """SELECT LBD.LBD_AUTO_KEY FROM LABOR_BATCH_DETAIL LBD
+        WHERE LBD.LBH_AUTO_KEY = %s AND LBD.WOT_AUTO_KEY = %s
+        """%(lbh_auto_key,wot_auto_key)
+        lbd = selection_dir(query,cr)
+        
+        if not lbd:
+            
+            query = """SELECT STATUS_TYPE FROM WO_STATUS
+            WHERE WOS_AUTO_KEY = (SELECT WOS_AUTO_KEY FROM WO_TASK WHERE WOT_AUTO_KEY = %s)        
+            """%wot_auto_key 
+            wot_rec = selection_dir(query,cr)
+            status_type = wot_rec and wot_rec[0] and wot_rec[0][0] or '' 
+       
+            if status_type not in ['Closed']:
+                
+                #simply add the detail records to the lbd table
+                query = """INSERT INTO LABOR_BATCH_DETAIL
+                        (LBD_AUTO_KEY,LBH_AUTO_KEY,WOT_AUTO_KEY)
+                    VALUES(G_LBD_AUTO_KEY.NEXTVAL,%s,%s)
+                    """%(lbh_auto_key,wot_auto_key)
+                error = insertion_dir(query,cr)  
+
+            else:
+                error = 'Task is closed.'                
+        
+    wot_sql = construct_akl(wot_list)
+    
+    for wots in wot_sql:
+        
+        #create the new labor line 
+        query="""SELECT WO.SI_NUMBER,WT.SEQUENCE,WTM.DESCRIPTION,
+            0,'','','','','',
+            WT.WOT_AUTO_KEY
+            FROM LABOR_BATCH_DETAIL LBD
+            JOIN WO_TASK WT ON WT.WOT_AUTO_KEY = LBD.WOT_AUTO_KEY
+            JOIN WO_TASK_MASTER WTM ON WTM.WTM_AUTO_KEY = WT.WTM_AUTO_KEY
+            LEFT JOIN WO_OPERATION WO ON WO.WOO_AUTO_KEY = WT.WOO_AUTO_KEY
+            WHERE WT.WOT_AUTO_KEY IN %s
+            """%wots
+            
+        wot_ids = selection_dir(query,cr)
+      
+        if not error and wot_ids:          
+            msg = 'Succcessfully added %s new tasks to the batch'%len(wot_list)
+            for wot in wot_ids:
+                wot[6] = right_now        
+                wot[-2] = batch_id
+                error = create_labor_line(user_name,session_id,wot,no_wtls=True)
+        
+    orcl_commit(con=con)
+        
+    return error,msg
                  
+@shared_task   
+def batch_task_remove(quapi_id,session_id,sysur_auto_key,batch_id,\
+    wot_auto_key,wot_list,no_wtls=False,stop_batch=False,user_name=''):
+    new_batch_no,lbh,lbd_auto_key,lbh_auto_key = '',[],'',''   
+    error,msg,labor_stopped,task_error = '','',False,''
+    cr,con = None,None   
+    wtls = []    
+    from polls.models import OracleConnection as oc, QueryApi as qa
+    quapi = qa.objects.filter(id=quapi_id)
+    quapi = quapi and quapi[0] or None
+    orcl_conn = quapi and quapi.orcl_conn_id and oc.objects.filter(id=quapi.orcl_conn_id) or None
+    orcl_conn = orcl_conn and orcl_conn[0] or None 
+    if orcl_conn:
+        cr,con = orcl_connect(orcl_conn)
+    if not (cr and con):
+        return 'Cannot connect to Oracle.','',False,new_batch_no
+
+    year_first_format = '%Y-%m-%d %H:%M:%S'
+    date_format = "%m/%d/%Y %H:%M:%S"
+    today = datetime.now()
+    right_now = today.strftime(date_format)
+    wots_to_remove = construct_akl(wot_list)
+
+    if no_wtls:
+        
+        for wot_auto_key in wot_list:
+            
+            lbh = get_labor_batch(cr,wot_auto_key,batch_id)
+                
+            if not lbh:
+                return 'Task %s is not in the batch.'%wot_auto_key,msg,False,''
+                
+            lbh_auto_key = lbh and lbh[0] and lbh[0][0] or None
+            lbd_auto_key = lbh and lbh[0] and lbh[0][1] or None            
+
+            if lbd_auto_key:
+                
+                query = """UPDATE WO_TASK_LABOR SET LBD_AUTO_KEY = NULL
+                WHERE LBD_AUTO_KEY = %s
+                """%lbd_auto_key
+                error = updation_dir(query,cr)
+                    
+            else:
+                return 'No batch line found for task: %s'%wot_auto_key,msg,False,new_batch_no
+            
+            if lbh_auto_key:
+
+                query = """DELETE FROM LABOR_BATCH_DETAIL 
+                WHERE LBD_AUTO_KEY = %s  
+                """%lbd_auto_key
+                error = updation_dir(query,cr)
+                    
+            else:
+                return 'No batch found for task: %s'%wot_auto_key,msg,False,new_batch_no
+ 
+           
+    else:
+        
+        #stop the entire batch of tasks and the batch itself
+        stop_error,msg = stop_labor(quapi_id,session_id,sysur_auto_key,batch_id,None,'F',today=right_now)
+        
+        if stop_batch:
+            labor_stopped = stop_error + ' ' + error and False or True  
+
+        else:          
+            for wot_auto_key in wot_list:            
+                lbh = get_labor_batch(cr,wot_auto_key,batch_id)
+                lbh_auto_key = lbh and lbh[0] and lbh[0][0] or None
+                lbd_auto_key = lbh and lbh[0] and lbh[0][1] or None
+                
+                if not lbh:
+                    return 'Task %s is not in the batch.'%wot_auto_key,msg,False,''
+                    
+                #query ="""UPDATE WO_TASK_LABOR SET LBD_AUTO_KEY = NULL
+                #WHERE LBD_AUTO_KEY = %s
+                #"""%lbd_auto_key
+                #error = updation_dir(query,cr)
+
+                #delete the task from the batch (from the lbd table)
+                #query = """DELETE FROM LABOR_BATCH_DETAIL WHERE LBD_AUTO_KEY = %s"""%(lbd_auto_key)
+                #error = updation_dir(query,cr)   
+                 
+            #recreate the batch with the remaining tasks in them
+            error,new_batch_no,description,msg = batch_labor(quapi_id,
+                session_id,sysur_auto_key,\
+                '',batch_no=batch_id,active_batch=batch_id,\
+                start_batch=False,start_tasks=False,\
+                create_batch=True,today=right_now,user_name=user_name,\
+                wots_to_remove=wot_list)
+            
+            #now let's start the newly created re-batch
+            #query = """SELECT LBH.LBH_AUTO_KEY
+            #    FROM LABOR_BATCH_HEADER LBH
+            #    WHERE UPPER(LBH.BATCH_ID) = UPPER('%s')
+            #    """%new_batch_no
+
+            #lbh = selection_dir(query,cr)
+            #lbh_auto_key = lbh and lbh[0] and lbh[0][0] or None
+
+            #if lbh_auto_key:
+                #getting batch, find the new lbd_auto_keys
+                #loop through all ldb's and get them started as WTLs
+                #find all WTL's in the batch and set the start time for all
+
+                #query = """
+                #    UPDATE LABOR_BATCH_HEADER SET START_TIME = TO_TIMESTAMP('%s','mm/dd/yyyy hh24:mi:ss'),
+                #    SVR_START_TIME = TO_TIMESTAMP('%s','mm/dd/yyyy hh24:mi:ss')
+                #    WHERE LBH_AUTO_KEY = %s AND SYSUR_AUTO_KEY = %s AND START_TIME IS NULL
+                #"""%(right_now,right_now,lbh_auto_key,sysur_auto_key)
+                #error = updation_dir(query,cr)
+                
+                #for wots in wots_to_remove:
+                    #query = """SELECT LBD.WOT_AUTO_KEY, LBD.LBD_AUTO_KEY FROM LABOR_BATCH_DETAIL LBD
+                    #           WHERE LBD.LBH_AUTO_KEY = %s AND LBD.WOT_AUTO_KEY NOT IN %s"""%(lbh_auto_key,wots)
+                    #open_wots = selection_dir(query,cr)
+                    
+                    #delete the task from the batch (from the lbd table)
+                    #query = """DELETE FROM LABOR_BATCH_DETAIL 
+                    #WHERE LBH_AUTO_KEY = %s AND WOT_AUTO_KEY IN %s"""%(lbh_auto_key,wots)
+                    #error = updation_dir(query,cr)  
+                    
+                    
+                    
+                #wot_keys = []
+                
+                #for wot in open_wots:
+                #    wot_auto_key = str(wot[0]) + 's'
+                #    lbd_auto_key = wot[1]
+                    
+                #    if wot[0] not in wot_keys:
+                #        wot_keys.append(wot[0])
+                        
+                #    else:
+                #        continue
+                    
+                #    error,wtl_msg = add_wo_labor(quapi_id,
+                #        session_id,sysur_auto_key,
+                #        lbd_auto_key=lbd_auto_key,
+                #        wot_auto_key=wot_auto_key,
+                #        today=right_now,
+                #        start_batch=True,batch_id=new_batch_no)
+                #    task_error += error
+                    
+            #if not error:
+            #error,batch_no,description,msg = batch_labor(quapi_id,
+            #    session_id,sysur_auto_key,\
+            #    '',batch_no=new_batch_no,active_batch=new_batch_no,\
+            #    start_batch=True,start_tasks=False,\
+            #    create_batch=False,today=right_now)
+            
+    #loop through all open WO_LABOR entries for this particular task and user at hand
+    #and get start_time and update stop time for t    
+    for wtl in wtls:
+        
+        wtl_auto_key = wtl[0] or None
+        wot_auto_key = wtl[6] or 0
+        wos_status_type = wtl[7] or ''
+        stop_time = wtl[8]
+        if stop_time:
+            return 'Stop time already set for task: %s'%wot_auto_key,msg,False,new_batch_no
+        wo_seq = wtl[3] or ''
+        task_desc = wtl[4] or ''
+        
+        if wos_status_type == 'Closed':
+            return 'Task:\'%s\' ,sequence \'%s\' is already closed.'%(task_desc,wo_seq),msg,False,new_batch_no
+        
+        start_time = wtl[1] or None 
+        if not start_time:
+            error = 'Task not started.'
+            
+        start_time = start_time and datetime.strptime(start_time,year_first_format) or None
+
+        delta = start_time and today - start_time or False
+        hours = delta and delta.days*24 + delta.seconds/3600 or 0         
+        hours = hours and round(abs(hours),3) or 0
+        
+        query = """UPDATE WO_TASK_LABOR SET 
+            STOP_TIME = TO_TIMESTAMP('%s','mm/dd/yyyy hh24:mi:ss'),
+            HOURS = %s,
+            HOURS_BILLABLE = %s                        
+            WHERE WTL_AUTO_KEY = %s"""%(right_now,hours,hours,wtl_auto_key)
+        error = updation_dir(query,cr)        
+    
+        query = """DELETE FROM LABOR_BATCH_DETAIL 
+        WHERE LBD_AUTO_KEY = %s
+        """%(lbd_auto_key)
+        error = updation_dir(query,cr)
+   
+    #check to see if there are any open tasks (stop_time = Null) in the batch
+    #query="""
+    #    SELECT WTL.WTL_AUTO_KEY FROM WO_TASK_LABOR WTL
+    #    JOIN LABOR_BATCH_DETAIL LBD ON LBD.WOT_AUTO_KEY = WTL.WOT_AUTO_KEY 
+    #    JOIN LABOR_BATCH_HEADER LBH ON LBH.LBH_AUTO_KEY = LBD.LBH_AUTO_KEY
+    #    WHERE LBH.LBH_AUTO_KEY = '%s'
+    #    AND WTL.STOP_TIME IS NULL
+    #    """%lbh_auto_key
+    #wtls = selection_dir(query,cr)
+    
+    orcl_commit(con=con)   
+    
+    if error == '{"recs": ""}':
+        error = ''
+                
+    #remove the records locally
+    from polls.models import TaskLabor
+    task_labor_del = TaskLabor.objects.filter(session_id=session_id,wot_auto_key__in=wot_list).delete()
+    
+    return error+task_error,msg,labor_stopped,new_batch_no
              
 @shared_task 
 def add_wo_labor(quapi_id,session_id,sysur_auto_key,\
     wot_auto_key='',yes_complete='F',total_hours=0,\
-    start_batch=False,today='',user_name='',lbd_auto_key=0):
+    start_batch=False,today='',user_name='',lbd_auto_key=0,
+    batch_id = ''):
     error,msg,where,field_changed,recs,wola_recs,task_master_desc,wot_sequence = '','','','',[],[],'',0
     #query and join on wo_task, wo_skills to get the records for that particular wo_number and cart combo
     from polls.models import OracleConnection as oc, QueryApi as qa, MLApps as maps, QuantumUser as qu
@@ -17193,6 +18550,7 @@ def add_wo_labor(quapi_id,session_id,sysur_auto_key,\
         cr,con = orcl_connect(orcl_conn)
     if not (cr and con):
         return 'Cannot connect to Oracle.',''
+
     #query = "select sysur_auto_key from sys_users where user_id = '%s'"%user_id
     #user = selection_dir(query,cr)
     #sysur_auto_key = user and user[0] and user[0][0] or None
@@ -17211,7 +18569,8 @@ def add_wo_labor(quapi_id,session_id,sysur_auto_key,\
         today = datetime.now()               
     else:
         today = datetime.strptime(today,m_format)
-    today = today - timedelta(hours=1)
+    #setting to Central Time
+    #today = today - timedelta(hours=1)
     right_now = today.strftime(m_format)  
     time_now = today.strftime(date_format)
          
@@ -17227,9 +18586,11 @@ def add_wo_labor(quapi_id,session_id,sysur_auto_key,\
         wos_auto_key = wos and wos[0] and wos[0][0]  
                 
         if wot_auto_key[-1] in ['c','C']:
-            wot_auto_key = wot_auto_key[:-1]
+            wot_auto_key = wot_auto_key[:-1]  
+            
             if wot_auto_key.isdigit():
                 field_changed = 'Updated task labor entry for task %s. '%wot_auto_key
+                
                 #then we will be finding the the WO_LABOR entry by task and stamps the stoptime
                 query = """SELECT WTL.WTL_AUTO_KEY,WTL.START_TIME,WO.SI_NUMBER,
                     WOT.SEQUENCE,WTM.DESCRIPTION,WOT.WOS_AUTO_KEY,WOT.WOT_AUTO_KEY FROM WO_TASK_LABOR WTL
@@ -17243,15 +18604,25 @@ def add_wo_labor(quapi_id,session_id,sysur_auto_key,\
                     #error = "No open task labor entry."  
                 #loop through all open WO_LABOR entries for task and user at hand
                 #and get start_time and update stop time for t
-                wos_task_key = wos_auto_key               
-                for rec in recs:   
+                wos_task_key = wos_auto_key
+                record = recs and recs[0] or None
+                wo_number = record and record[2] or ''
+                sequence = record and record[3] or 1                  
+                wo_seq = wot_auto_key
+                
+                if wo_number and sequence:
+                    wo_seq = 'WO#: ' + str(wo_number) + ' | Seq: ' + str(sequence)                   
+
+                for rec in recs:
+
                     wtl_auto_key = rec and rec[0] or None
                     wos_task_key = rec and rec[5] or None
-                    indiv_wot_key = rec and rec[6] or None
+                    wot_auto_key = rec and rec[6] or None
+                    
                     if not wtl_auto_key:
-                        error += 'Task \'%s\' not found.'%indiv_wot_key
+                        error += 'Task \'%s\' not found.'%wo_seq
                     if wos_task_key == wos_auto_key:
-                        return 'Task \'%s\' is already closed.'%indiv_wot_key,msg
+                        return 'Task \'%s\' is already closed.'%wo_seq,msg
                     start_time = rec and rec[1] or None 
                     if not start_time:
                         error = 'Start time not entered.'
@@ -17260,12 +18631,16 @@ def add_wo_labor(quapi_id,session_id,sysur_auto_key,\
                         delta = start_time and today - start_time or False
                         hours = delta and delta.days*24 + delta.seconds/3600 or 0  
                     else:
-                        hours = total_hours                        
+                        hours = total_hours
+                    
+                    hours = hours and round(abs(hours),3) or 0
+                    
                     query = """UPDATE WO_TASK_LABOR SET 
                         STOP_TIME = TO_TIMESTAMP('%s','mm/dd/yyyy hh24:mi:ss'),
                         HOURS = %s,
                         HOURS_BILLABLE = %s                        
                         WHERE WTL_AUTO_KEY = %s"""%(right_now,hours,hours,wtl_auto_key)
+
                     error = updation_dir(query,cr)
 
                     if not error or error == '{"recs": ""}':
@@ -17273,9 +18648,11 @@ def add_wo_labor(quapi_id,session_id,sysur_auto_key,\
                         msg += ' - Seq: ' + str(rec[3]) 
                         msg += '-' + str(rec[4]) 
                         msg += '. '
-                        error = create_labor_line(user_name,session_id,rec[2],rec[3],rec[4],hours,rec and rec[1] or None,time_now,time_now)   
+                        labor_data = [rec[2],rec[3],rec[4],hours,rec and rec[1] or None,time_now,time_now,wtl_auto_key,batch_id,wot_auto_key]
+                        error = create_labor_line(user_name,session_id,labor_data)   
 
                 if yes_complete == 'T':
+
                     """
                     a.	Need to check for some things against a WOT 
                         before allowing it to be closed when the 
@@ -17286,7 +18663,7 @@ def add_wo_labor(quapi_id,session_id,sysur_auto_key,\
                         iii.	Are there any wob with qty_needed <> qty_issued
 
                     """
-                    wos_auto_key = wos_task_key                    
+                    wos_auto_key = wos_task_key                   
                     query = """SELECT WTT.WTT_AUTO_KEY
                         FROM WO_TASK WT
                         LEFT JOIN WO_TASK_TOOLS WTT ON WTT.WOT_AUTO_KEY = WT.WOT_AUTO_KEY
@@ -17297,7 +18674,7 @@ def add_wo_labor(quapi_id,session_id,sysur_auto_key,\
                     wtt = wtt and wtt[0]
                     wtt_auto_key = wtt and wtt[0] or ''
                     if wtt_auto_key:
-                        error += 'Tools currently checked out to task: %s.'%wot_auto_key
+                        error += 'Tools currently checked out to task: %s.'%wo_seq
                         
                     query = """SELECT WTL.WTL_AUTO_KEY,WT.WOS_AUTO_KEY
                         FROM WO_TASK WT
@@ -17308,8 +18685,9 @@ def add_wo_labor(quapi_id,session_id,sysur_auto_key,\
                     wot = selection_dir(query,cr)
                     wot = wot and wot[0]
                     wtl_auto_key = wot and wot[0] or ''
+                    
                     if wtl_auto_key:
-                        error += 'There is another open labor for this task: %s.'%wot_auto_key
+                        error += 'There is another open labor for this task: %s.'%wo_seq
 
                     query = """SELECT WOB.WOB_AUTO_KEY,WOB.QTY_RESERVED
                         FROM WO_TASK WT
@@ -17320,13 +18698,15 @@ def add_wo_labor(quapi_id,session_id,sysur_auto_key,\
                     wot = selection_dir(query,cr)
                     wot = wot and wot[0]
                     wob_auto_key = wot and wot[0] or ''                   
+                    
                     if wob_auto_key:
-                        error += 'There is an open BOM for this task: %s.'%wot_auto_key                     
+                        error += 'There is an open BOM for this task: %s.'%wo_seq                    
                     #Check if WOB[‘QTY_RESERVED’] > 0  
                     qty_reserved = wot and wot[1] or 0                                      
+                    
                     if qty_reserved > 0:
-                        error += 'The qty reserved must not be greater than 0: %s.'%wot_auto_key
-                      
+                        error += 'The qty reserved must not be greater than 0: %s.'%wo_seq
+                                  
                                 
                     if not (wob_auto_key or wtt_auto_key or qty_reserved or wtl_auto_key):                    
                         sub_woc = "(SELECT WOS_COMPLETE FROM WO_CONTROL)"   
@@ -17337,7 +18717,8 @@ def add_wo_labor(quapi_id,session_id,sysur_auto_key,\
                             """%(sysur_auto_key,wot_auto_key,sub_woc,right_now,right_now[:10],wos_task_key)
                         error += insertion_dir(query,cr)
                         if not error:
-                            msg += "  Task(s) closed."
+                            msg += " Task closed: %s."%wo_seq
+                            
                         #update the task status to that of 'closed.'
                         query = """UPDATE WO_TASK SET WOS_AUTO_KEY = (SELECT WOS_COMPLETE FROM WO_CONTROL)
                             WHERE WOT_AUTO_KEY = %s"""%wot_auto_key
@@ -17354,13 +18735,13 @@ def add_wo_labor(quapi_id,session_id,sysur_auto_key,\
                         wot = wot and wot[0]
                         wot_auto = wot and wot[2]
                         if not wot_auto:
-                            return 'No task found for: %s.'%wot_auto_key,''
+                            return 'No task found for: %s | %s.'%(wo_seq,wot_auto_key),''
                             
                         signoff1 = wot and wot[0]
                         signoff2 = wot and wot[1] 
 
                         if signoff1 and signoff2:
-                            error += 'Task already signed off: %s.'%wot_auto_key
+                            error += 'Task already signed off: %s.'%wo_seq
                         query = """SELECT CAN_SIGN_OFF1,
                             CAN_SIGN_OFF2
                             FROM SYS_USERS
@@ -17373,7 +18754,7 @@ def add_wo_labor(quapi_id,session_id,sysur_auto_key,\
                         can_signoff2 = wot and wot[1]
 
                         if can_signoff1 == 'F' and can_signoff2 == 'F':
-                            error += 'User not certified for task sign off.  Task ID: %s.'%wot_auto_key
+                            error += 'User not certified for task sign off.  Task ID: %s.'%wo_seq
                        
                         if can_signoff1 == 'T':
                             if not signoff1:
@@ -17393,14 +18774,20 @@ def add_wo_labor(quapi_id,session_id,sysur_auto_key,\
                                 if upd_error != '{"recs": ""}':
                                     error += upd_error    
                                     
+            else:
+                error =  'Invalid entry: %s.'%wot_auto_key
+                return error,msg  
+                
         elif wot_auto_key[-1] in ['s','S']:
+
             hours = 0
             sysur_entry = sysur_auto_key
             wot_auto_key = wot_auto_key[:-1]
+            
             if wot_auto_key.isdigit():
                 field_changed = 'Inserted new task labor entry for task %s. '%wot_auto_key
-                query = """SELECT WK.BURDEN_RATE, WK.BILLING_RATE, 
-                    SU.WOK_AUTO_KEY, 'dummy', WK.FIXED_OVERHEAD
+                query = """SELECT SU.BURDEN_RATE, WK.BILLING_RATE, 
+                    SU.WOK_AUTO_KEY, 'dummy', WK.FIXED_OVERHEAD, WK.VARIABLE_OVERHEAD
                     FROM WO_SKILLS WK 
                     LEFT JOIN SYS_USERS SU ON SU.WOK_AUTO_KEY = WK.WOK_AUTO_KEY                 
                     WHERE SU.SYSUR_AUTO_KEY = %s"""%sysur_auto_key
@@ -17410,6 +18797,7 @@ def add_wo_labor(quapi_id,session_id,sysur_auto_key,\
                 billing_rate = rec and rec[1] or 0
                 wok_auto_key = rec and rec[2] or None
                 overhead = rec and rec[4] or 0
+                var_overhead = rec and rec[5] or 0
                 if not start_batch:
                     query = """SELECT START_TIME,WOT_AUTO_KEY FROM WO_TASK_LABOR
                         WHERE SYSUR_AUTO_KEY = %s AND
@@ -17436,13 +18824,22 @@ def add_wo_labor(quapi_id,session_id,sysur_auto_key,\
                 stock_recs = selection_dir(query,cr)
                 stock_rec = stock_recs and stock_recs[0] or None
                 wola_recs = rec and stock_rec and [rec + stock_rec] or []
+                wo_number = stock_rec and stock_rec[0] or ''
+                sequence = stock_rec and stock_rec[1] or 1
+
+                wo_seq = wot_auto_key
+                if wo_number:
+                    wo_seq = 'WO#: ' + str(wo_number) + ' | ' + 'Seq: ' + str(sequence)
+                    
                 wot_key = stock_rec and stock_rec[5] or None                      
                 wos_task_key = stock_rec and stock_rec[6] or None
+                
                 if not wot_key:
-                    error =  'Task \'%s\' not found.'%wot_auto_key
+                    error =  'Task \'%s\' not found.'%wo_seq
                     return error,msg
+                
                 if wos_task_key == wos_auto_key:
-                    error =  'Task \'%s\' is already closed.'%wot_auto_key
+                    error =  'Task \'%s\' is already closed.'%wo_seq
                     return error,msg
                 
                 if wok_auto_key:
@@ -17460,20 +18857,36 @@ def add_wo_labor(quapi_id,session_id,sysur_auto_key,\
 
                     if not (billing_rate and pnm_auto_key):
                         return 'Check skills configuration with billing rate and part.',msg
+                   
+                    if lbd_auto_key:                   
+                        query = """INSERT INTO WO_TASK_LABOR 
+                        (LBD_AUTO_KEY,WTL_AUTO_KEY,PNM_AUTO_KEY,WOK_AUTO_KEY,HOURS,BILLING_RATE,BURDEN_RATE,SYSUR_ENTRY,WOT_AUTO_KEY,SYSUR_AUTO_KEY,START_TIME,FIXED_OVERHEAD,VARIABLE_OVERHEAD) 
+                                                                                                                               
+                        VALUES ('%s',G_WTL_AUTO_KEY.NEXTVAL,%s,%s,%s,%s,%s,'%s',%s,%s,TO_TIMESTAMP('%s','mm/dd/yyyy hh24:mi:ss'),'%s','%s')
+                        """%(lbd_auto_key,pnm_auto_key,wok_auto_key,hours,billing_rate,burden_rate,sysur_entry,wot_auto_key,sysur_auto_key,right_now,overhead,var_overhead)
                         
-                    query = """INSERT INTO WO_TASK_LABOR 
-                    (WTL_AUTO_KEY,PNM_AUTO_KEY,WOK_AUTO_KEY,HOURS,BILLING_RATE,BURDEN_RATE,SYSUR_ENTRY,WOT_AUTO_KEY,SYSUR_AUTO_KEY,START_TIME,FIXED_OVERHEAD) 
-                                                                                                                           
-                    VALUES (G_WTL_AUTO_KEY.NEXTVAL,%s,%s,%s,%s,%s,'%s',%s, %s,TO_TIMESTAMP('%s','mm/dd/yyyy hh24:mi:ss'),'%s')
-                    """%(pnm_auto_key,wok_auto_key,hours,billing_rate,burden_rate,sysur_entry,wot_auto_key,sysur_auto_key,right_now,overhead)
-
+                    else:                   
+                        query = """INSERT INTO WO_TASK_LABOR 
+                        (WTL_AUTO_KEY,PNM_AUTO_KEY,WOK_AUTO_KEY,HOURS,BILLING_RATE,BURDEN_RATE,SYSUR_ENTRY,WOT_AUTO_KEY,SYSUR_AUTO_KEY,START_TIME,FIXED_OVERHEAD,VARIABLE_OVERHEAD) 
+                                                                                                                               
+                        VALUES (G_WTL_AUTO_KEY.NEXTVAL,%s,%s,%s,%s,%s,'%s',%s,%s,TO_TIMESTAMP('%s','mm/dd/yyyy hh24:mi:ss'),'%s','%s')
+                        """%(pnm_auto_key,wok_auto_key,hours,billing_rate,burden_rate,sysur_entry,wot_auto_key,sysur_auto_key,right_now,overhead,var_overhead)
+                        
                     error = insertion_dir(query,cr)
+                            
+                    #except Exception as err:
+                    #    logger.error("Error with creating labor entry in Quantum: '%s'",err.args) 
+                    #    return error,msg                        
+
                     if error:
-                        return error,msg
+                        return error,msg                        
                     
                     latest_wtl = "SELECT MAX(WTL_AUTO_KEY) FROM WO_TASK_LABOR"
-                    upd_query = """UPDATE WO_TASK_LABOR SET LBD_AUTO_KEY=%s WHERE WTL_AUTO_KEY=(%s)"""%(lbd_auto_key,latest_wtl)
-                    upd_error = updation_dir(upd_query,cr)
+                    wtl = selection_dir(latest_wtl,cr)
+                    wtl_auto_key = wtl and wtl[0] and wtl[0][0] or ''                    
+                    #upd_query = """UPDATE WO_TASK_LABOR SET LBD_AUTO_KEY=%s WHERE WTL_AUTO_KEY=%s"""%(lbd_auto_key,wtl_auto_key)
+                    #upd_error = updation_dir(upd_query,cr)
+                    
                     if not error:
                         if stock_rec:
                             msg = 'WO #: ' + stock_rec[0]
@@ -17485,7 +18898,9 @@ def add_wo_labor(quapi_id,session_id,sysur_auto_key,\
                             msg += 'Seq: ' + str(wot_sequence) 
                             msg += ' | ' + task_master_desc
                             msg += ' started %s.'%right_now
-                        error += create_labor_line(user_name,session_id,stock_rec[0],stock_rec[1] or wot_sequence,stock_rec[3] or task_master_desc,0,time_now,None,time_now)
+                            
+                        labor_data = [stock_rec[0],stock_rec[1] or wot_sequence,stock_rec[3] or task_master_desc,0,time_now,None,time_now,wtl_auto_key,batch_id,wot_key]
+                        error += create_labor_line(user_name,session_id,labor_data)
                         query = """SELECT SYSUR_AUTO_KEY FROM SYS_USERS WHERE EMPLOYEE_CODE='DBA'"""
                         dba_user = selection_dir(query,cr)
                         dba_user_key = dba_user and dba_user[0] and dba_user[0][0] or None
@@ -17553,12 +18968,15 @@ def add_wo_labor(quapi_id,session_id,sysur_auto_key,\
                                 """%(sysur_auto_key,wot_key)
                         error = updation_dir(query,cr)
                 if recs and error in ['','{"recs": ""}']:
-                    msg = 'Tasks on cart %s started on %s.'%(wot_auto_key,right_now)
+                    msg = 'Tasks on cart %s started: %s.'%(wot_auto_key,right_now)
                 elif error and error != '{"recs": ""}':
                     return error,msg                   
                 elif not recs:
                     error = "No task(s) found."
                     return error,msg
+            else:
+                error =  'Invalid entry: %s.'%wot_auto_key
+                return error,msg
             if wola_recs:
                 #insert the new records locally and get the data from the above select
                 from polls.models import WOStatus as wos_obj
@@ -17616,6 +19034,7 @@ def wo_labor_create(wola_recs,session_id,wos_obj):
             session_id=session_id,
             wo_number = rec[4],
             wot_sequence = rec[5],
+            ex_esn = rec[5],
             skill_desc = rec[6],
             task_master_desc = rec[7],
             rack = rec[8],
@@ -17624,7 +19043,7 @@ def wo_labor_create(wola_recs,session_id,wos_obj):
     try:
         wos_obj.objects.bulk_create(wola_data) or None
     except Exception as err:
-        logger.error("Error with creation of repair order locally. Message: '%s'",err.args) 
+        logger.error("Error with creation of labor entries locally. Message: '%s'",err.args) 
     return error
 
 def qry_stock_transfer(sysur_auto_key,user_id,params,quapi,recs=[],new_whs_code='',new_loc_code='',cr=None,con=None):
@@ -17632,7 +19051,7 @@ def qry_stock_transfer(sysur_auto_key,user_id,params,quapi,recs=[],new_whs_code=
     if not cr:
         from polls.models import OracleConnection as oc
         orcl_conn = quapi and quapi.orcl_conn_id and oc.objects.filter(id=quapi.orcl_conn_id) or None
-        orcl_conn = orcl_conn and orcl_conn[0] or None 
+        orcl_conn = orcl_conn and orcl_conn[0] or None
         if orcl_conn:
             cr,con = orcl_connect(orcl_conn)
         if not (cr and con):
@@ -18128,11 +19547,12 @@ def run_racking_beta(session_id,cond_code=None,syscm_auto_key=None,consignment=N
     quapi = QueryApi.objects.filter(id=quapi_id)
     quapi = quapi and quapi[0] or None
     #get woo_auto_key from query and then pass it to all of these queries instead of SI_NUMBER as the key.
+
     if stock_label and quapi:
         #query= "SELECT RCH_AUTO_KEY FROM RC_HEADER WHERE RC_NUMBER='%s'"%stock_label
         #res = selection(query,quapi=quapi)
         rch_recs = get_rch_data(quapi,rc_number = stock_label)
-        rch_auto_key = rch_recs and rch_recs[0] and rch_recs[0][9] or None
+        rch_auto_key = rch_recs and rch_recs[0] and rch_recs[0][0] and rch_recs[0][9] or None
         if not rch_auto_key:
             query = "SELECT WOO_AUTO_KEY FROM WO_OPERATION WHERE SI_NUMBER='%s'"%stock_label
             res = selection(query,quapi=quapi)
@@ -18331,6 +19751,7 @@ def run_racking_beta(session_id,cond_code=None,syscm_auto_key=None,consignment=N
                 #1 - we already have the lookup to see if it is in the grid.
                 #2. need a quick lookup to see if it is on the cart/location/warehouse.
                 woo_to_val = None
+                
                 if wo_number[0] in ['c','C']:
                     woo_to_val = wos_obj.objects.filter(session_id=session_id,stm_auto_key=wo_number[1:]) 
                 elif not woo_to_val and (ctrl_id and ctrl_id.isdigit() and ctrl_number and ctrl_number.isdigit()):

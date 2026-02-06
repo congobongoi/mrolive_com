@@ -157,7 +157,10 @@
 	});
     </script>
     <body>
-		<div id="barcode" class="barcode" name="barcode">			  
+		<div id="barcode" class="barcode" name="barcode">
+			<a href="https://portal.mrolive.com/portal/non-routine/{{quapi_id}}/{{wo_number}}" class="reload">
+			  <button class="reload">Reload</button>
+			</a>		
 			<div style="font-weight:bold;border:1px solid;">
 			  <span style="font-size:20pt;width:90%;margin-left:auto;margin-right:auto;">Work Scope Task Router</span>
 			  <span style="margin-left:330px;font-size:12pt;">FO-SW-021</span>
@@ -168,11 +171,11 @@
 				  <td>			
 				  <div style="padding-left:10px;width:15%;float:left;background-color:white;">
 					<!--a href="../teardown/{{quapi_id}}" target="_blank"-->
-					  <img src="{% static 'logo.jpg' %}" height="75" alt="MTU">
+					  <img src="{% static 'logo.jpg' %}" height="75" alt="MRO Live">
 					<!--/a><br/-->
 				  </div>
 				  <div style="float:left;margin-left:65px;margin-top:20px;font-weight:bold;">
-				    <span style="font-size:15pt;">MROLive<br/></span>
+				    <span style="font-size:15pt;">MRO Live<br/></span>
 					<span style="font-size:11pt;">FAA Repair Station # R0OR948X</span>
 				  </div>
 				<div style="padding-right:15px;max-width:290px;float:right;font-size:16pt;font-weight:bold;">Work Order#:    {{si_number}}

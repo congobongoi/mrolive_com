@@ -22,6 +22,8 @@
     <script type="text/javascript" src="{% static 'field_focus.js' %}"></script>
 	<script src="{% static 'jquery.bootstrap.modal.forms.min.js' %}"></script>
 	<script type="text/javascript" src="{% static 'jquery_tab_submit.js' %}"></script>
+	<script src="https://demos.telerik.com/kendo-ui/content/shared/js/console.js"></script>
+    <script src="https://demos.telerik.com/kendo-ui/content/shared/js/orders.js"></script>																						
 	<style>
  		textarea {
 		    width: 560px;
@@ -131,6 +133,7 @@
         }
 		.k-grid-toolbar { 
 			background-color:#284a8a !important; 
+			height:100%;
 		}
 		.k-button { 
 			background-color:#284a8a !important; 
@@ -182,6 +185,15 @@
     </style>
   </head>
   <body>
+	<script>
+		function openPdfInNewTab(pdfUrl) {
+		  window.open(pdfUrl, '_new');
+		}
+		
+        {% if app_code and tmpl_code %}
+        openPdfInNewTab('http://18.188.56.36:8029/uploads/{{app_code}}_{{tmpl_code}}.pdf')
+		{% endif %}
+	</script>
     <audio src="{% static 'error-trombone.mp3' %}" id="sad_trombone"></audio>
     <script type="text/javascript">
 	$(document).ready(
@@ -265,25 +277,25 @@
 	<div class="subhead">Operations</div>
 	{% endif %}
 	{% for app in op_apps %}
-      <li><a target="_blank" href="http://portal.mrolive.com/portal/{{ app.ml_apps_id.code }}/{{ quapi_id }}">{{ app.ml_apps_id.name }}</a></li>
+      <li><a target="_blank" href="http://18.188.56.36:8029/portal/{{ app.ml_apps_id.code }}/{{ quapi_id }}">{{ app.ml_apps_id.name }}</a></li>
     {% endfor %}
 	{% if mgmt_apps %}
 	<div class="subhead">Management</div>
 	{% endif %}
 	{% for app in mgmt_apps %}
-      <li><a target="_blank" href="http://portal.mrolive.com/portal/{{ app.ml_apps_id.code }}/{{ quapi_id }}">{{ app.ml_apps_id.name }}</a></li>
+      <li><a target="_blank" href="http://18.188.56.36:8029/portal/{{ app.ml_apps_id.code }}/{{ quapi_id }}">{{ app.ml_apps_id.name }}</a></li>
     {% endfor %}
 	{% if dash_apps %}
 	<div class="subhead">Dashboards</div>
 	{% endif %}
 	{% for app in dash_apps %}
-      <li><a target="_blank" href="http://portal.mrolive.com/portal/{{ app.ml_apps_id.code }}/{{ quapi_id }}">{{ app.ml_apps_id.name }}</a></li>
+      <li><a target="_blank" href="http://18.188.56.36:8029/portal/{{ app.ml_apps_id.code }}/{{ quapi_id }}">{{ app.ml_apps_id.name }}</a></li>
     {% endfor %}
 	{% if setup_apps %}
 	<div class="subhead">Setup</div>
 	{% endif %}
 	{% for app in setup_apps %}
-      <li><a target="_blank" href="http://portal.mrolive.com/portal/{{ app.ml_apps_id.code }}/{{ quapi_id }}">{{ app.ml_apps_id.name }}</a></li>
+      <li><a target="_blank" href="http://18.188.56.36:8029/portal/{{ app.ml_apps_id.code }}/{{ quapi_id }}">{{ app.ml_apps_id.name }}</a></li>
     {% endfor %}
     <li><a href="/login">Logout</a></li><li><a href="/portal/pass-reset/">Reset Password</a></li>
 </ul>
@@ -333,6 +345,9 @@
 				  </span>
 				  <h1>Inspection</h1>
 				  {%  if msg %}<div style="font-weight: bold; color:green; font-size: 12px;">{{ msg }}</div>{%  endif %}
+				  {% if app_code and tmpl_code %}
+					 <a onclick="openPdfInNewTab('http://18.188.56.36:8029/uploads/{{app_code}}_{{tmpl_code}}.pdf')">Open PDF</a>
+				  {% endif %}
 				</div>
                 <div class="grid-x grid-padding-x align-middle">
 				    {% csrf_token %}	
@@ -492,11 +507,8 @@ $(function() {
       <div class="grid-container mro-bottom-section">
 	      <div class="grid-x grid-padding-x">
 			<div class="centered results_grid" id="results_grid" name="results_grid">
-				<div class="counter_wrap">					  
-					<button type="button" id="select_all" class="secondary button shadow" style="margin-left:-45px;padding:9px;">SELECT ALL</button>
-					<input type="button" id="update" name="update" class="primary button shadow" style="padding:9px;" value="UPDATE"/>
-					<input type="text" class="sel_rows" id="sel_rows" name="sel_rows" size="4" value="{{ sel_rows }}" readonly>
-					of     <input type="text" class="total_rows" id="total_rows" name="total_rows" value="{{ total_rows }}" size="5" readonly>
+				<div class="counter_wrap">	
+                    <input type="button" id="update" name="update" class="primary button shadow" style="margin-right:29px;padding:9px;" value="UPDATE"/>				
 				</div>				
 				<script>
 					kendo.ui.Grid.prototype._positionColumnResizeHandle= function() {
@@ -573,7 +585,7 @@ $(function() {
 					var dsg = new kendo.data.DataSource(dataSourceArguments);
 					var options = localStorage["grid-options"];
 					$("#results_grid").kendoGrid({
-					    toolbar: ["excel"],
+					    toolbar: '<input type="button" id="select_all" class="button" style="margin-left:0px;padding:9px;"/>',
 						excel: {
 							fileName: "inspection-export.xlsx",
 							proxyURL: "https://demos.telerik.com/kendo-ui/service/export",
@@ -648,27 +660,47 @@ $(function() {
 							{pageSize: 'All', sizeValue:1000}
 						]
 					});
-                    //var grid = $("#results_grid").data("kendoGrid");
-					//if (options) {
-					    //var pers_options = JSON.parse(options);
-                        //console.log(pers_options.excel.fileName);
-					    //if (pers_options.excel.fileName == 'inspection-export.xlsx') {
-						    //grid.setOptions(pers_options);
-							//grid.setOptions({
-							//    'dataSource':dsg,
-							//});
-					    //}
-                    //}
-					 
-				    //window.onbeforeunload = function() {
-						//localStorage["grid-options"] = kendo.stringify(grid.getOptions());
+					
+					// Enable select on click to allow for mobile selection of different rows
+					$("#results_grid tbody").on("click", "tr", function(e) {
+						var rowElement = this;
+						var row = $(rowElement);
+						var grid = $("#results_grid").getKendoGrid();
 
-						//return;
-					//}
-		        });
-				  </script>
-			</div>	
-		  </div>
+						if (row.hasClass("k-state-selected")) {
+							var selected = grid.select();
+
+							selected = $.grep(selected, function(x) {
+								var itemToRemove = grid.dataItem(row);
+								var currentItem = grid.dataItem(x);
+			                    //$row.removeClass("k-selected");
+								return itemToRemove.id != currentItem.id
+							})
+							
+							var sel_rows = $('#sel_rows').val();
+							$('#sel_rows').val(sel_rows);
+							grid.clearSelection();
+							grid.select(selected);
+							if (selected==false) {
+							    $('#sel_rows').val(0);
+							}
+							
+							// Stop propagation to prevent Kendo's default selection behavior
+							e.stopPropagation();
+
+						}
+						else {
+							grid.select(row)
+							e.stopPropagation();
+						}
+				    });
+				});
+			  </script>	
+			    </div>	
+	    </div>
+	  </div>
+    </div>		
+		  </div>																  
         <div class="grid-x mro-pagination-section">
           <div class="cell large-5 medium-6 small-12 ">
             <a class="mrotop" href="#mrotop" data-smooth-scroll><span>^</span> Back to Top</a>

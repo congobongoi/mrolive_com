@@ -93,11 +93,66 @@
 		#id_loc_whs_file {
 		padding-right: 355px;
 		}
+		.loader,  
+	      .loader:after {
+            border-radius: 50%;
+            width: 10em;
+            height: 10em;
+        }
+        .loader {            
+            margin: 60px auto;
+            font-size: 10px;
+            position: relative;
+            text-indent: -9999em;
+            border-top: 1.1em solid rgba(255, 255, 255, 0.2);
+            border-right: 1.1em solid rgba(255, 255, 255, 0.2);
+            border-bottom: 1.1em solid rgba(255, 255, 255, 0.2);
+            border-left: 1.1em solid #ffffff;
+            -webkit-transform: translateZ(0);
+            -ms-transform: translateZ(0);
+            transform: translateZ(0);
+            -webkit-animation: load8 1.1s infinite linear;
+            animation: load8 1.1s infinite linear;
+        }
+        @-webkit-keyframes load8 {
+            0% {
+                -webkit-transform: rotate(0deg);
+                transform: rotate(0deg);
+            }
+            100% {
+                -webkit-transform: rotate(360deg);
+                transform: rotate(360deg);
+            }
+        }
+        @keyframes load8 {
+            0% {
+                -webkit-transform: rotate(0deg);
+                transform: rotate(0deg);
+            }
+            100% {
+                -webkit-transform: rotate(360deg);
+                transform: rotate(360deg);
+            }
+        }
+        #loadingDiv {
+            position:absolute;;
+            top:0;
+            left:0;
+            width:100%;
+            height:100%;
+            background-color:#000;
+        } 
     </style>
   </head>
   <body>
     <audio src="{% static 'error-trombone.mp3' %}" id="sad_trombone"></audio>
     <script type="text/javascript">
+		function removeLoader(){
+			$( "#loadingDiv" ).fadeOut(500, function() {
+			  // fadeOut complete. Remove the loading div
+			  $( "#loadingDiv" ).remove(); //makes page more lightweight 
+		  });  
+		}
 		$(document).ready(
 			function () {
 				error = $("#error").val();
@@ -105,8 +160,37 @@
 				if (error) {
 				   $("#sad_trombone").get(0).play();
 				}
-			}
-		)
+				
+			$("input").click(function(e){
+			
+			    var $form = $(this);
+				var id_clicked = e.target.id;
+									 
+				var charCode = e.keyCode || e.which;
+                if (id_clicked == 'print_labels') {
+				$('body').append('<div style="" id="loadingDiv"><div class="loader">Loading...</div></div>');
+					$(window).on('load', function(){
+						setTimeout(removeLoader, 0); //wait for page load PLUS two seconds.
+				});			
+				//console.log('to submit');
+				$form.submit(); 
+				}
+		
+				if ($form.data('submitted') === true) {
+					alert("Click or hit enter only once to submit.");
+					// Previously submitted - don't submit again
+					e.preventDefault ? e.preventDefault() : (e.returnValue = false);
+					} 
+
+					else {
+					  // Mark it so that the next submit can be ignored
+					  $form.data('submitted', true);
+					}	
+				
+                	
+			});
+		  }
+		);
     </script>
 <div class="mro-header-wrapper">
 	<section id="mrotop"></section>
@@ -281,13 +365,13 @@ $(function() {
                 <button class="secondary button shadow" id="ok_button" style="float:right; margin-top:-20px;" type="button" data-dismiss="modal">OK</button>
                 <div><br/><br/></div>			
             </div>
-			</form>
+			<!-- </form> -->
           </div>                
        </div>
       </div>
 	  {% endif %}  
     <!-- End modal error popup -->
-	{% if 1 %}
+	{% if total_rows and total_rows != '1' %}
     <div class="mro-bottom-section-wrapper mro-table">
       <div class="grid-container mro-bottom-section">
 	      <div class="grid-x grid-padding-x">
@@ -429,7 +513,7 @@ $(function() {
 
 		<div class="grid-x mro-footer-bottom">
 			<div class="cell medium-5 small-12 mro-footer-bottom-left">
-				<p>Copyright &copy; 2023 MRO Live <span>|</span> <img class="mro-usa" src="{% static 'dist/assets/img/usa.png' %}" alt="Based in USA">Based in USA</p>
+				<p>Copyright &copy; 2025 MRO Live <span>|</span> <img class="mro-usa" src="{% static 'dist/assets/img/usa.png' %}" alt="Based in USA">Based in USA</p>
 			</div>
 		</div>
 	</div>

@@ -168,35 +168,110 @@
 		text-decoration:bold;
 		height:25px;
 		width: 55px;
-		}		
+		}	
+        .loader,
+        .loader:after {
+            border-radius: 50%;
+            width: 10em;
+            height: 10em;
+        }
+        .loader {            
+            margin: 60px auto;
+            font-size: 10px;
+            position: relative;
+            text-indent: -9999em;
+            border-top: 1.1em solid rgba(255, 255, 255, 0.2);
+            border-right: 1.1em solid rgba(255, 255, 255, 0.2);
+            border-bottom: 1.1em solid rgba(255, 255, 255, 0.2);
+            border-left: 1.1em solid #ffffff;
+            -webkit-transform: translateZ(0);
+            -ms-transform: translateZ(0);
+            transform: translateZ(0);
+            -webkit-animation: load8 1.1s infinite linear;
+            animation: load8 1.1s infinite linear;
+        }
+        @-webkit-keyframes load8 {
+            0% {
+                -webkit-transform: rotate(0deg);
+                transform: rotate(0deg);
+            }
+            100% {
+                -webkit-transform: rotate(360deg);
+                transform: rotate(360deg);
+            }
+        }
+        @keyframes load8 {
+            0% {
+                -webkit-transform: rotate(0deg);
+                transform: rotate(0deg);
+            }
+            100% {
+                -webkit-transform: rotate(360deg);
+                transform: rotate(360deg);
+            }
+        }
+        #loadingDiv {
+            position:absolute;;
+            top:0;
+            left:0;
+            width:100%;
+            height:100%;
+            background-color:#000;
+        }
     </style>
   </head>
 <body onload='setFocusToTextBox()'>
     <audio src="{% static 'error-trombone.mp3' %}" id="my_audio"></audio>
     <script type="text/javascript">
-	    $(document).ready(
+		function removeLoader(){
+			$( "#loadingDiv" ).fadeOut(500, function() {
+			  $( "#loadingDiv" ).remove(); //makes page more lightweight 
+		  });  
+		}
+		$(document).ready(
 			function () {					
 			error = $("#error").val();
 			if (error) {
 			   $("#my_audio").get(0).play();
-			}
+            }
 			var baseForm = $('#base_form');
 			$("input").click(function(e){
 				var id_clicked = e.target.id;
 				if (id_clicked == 'launch_transfer') {
+					$('body').append('<div style="" id="loadingDiv"><div class="loader">Loading...</div></div>');
+					$(window).on('load', function(){
+						setTimeout(removeLoader, 0); //wait for page load PLUS two seconds.
+					});
 					e.preventDefault();				
 					$('#is_transfer').val('1');
 					baseForm.submit();
 				}
 				if (id_clicked == 'conf_transfer') {
+					$('body').append('<div style="" id="loadingDiv"><div class="loader">Loading...</div></div>');
+					$(window).on('load', function(){
+						setTimeout(removeLoader, 0); //wait for page load PLUS two seconds.
+					});
 					e.preventDefault();				
 					$('#confirm_transfer').val('1');
 					baseForm.submit();
 				}
 				if (id_clicked == 'print_mfst') {
+					$('body').append('<div style="" id="loadingDiv"><div class="loader">Loading...</div></div>');
+					$(window).on('load', function(){
+						setTimeout(removeLoader, 0); //wait for page load PLUS two seconds.
+					});
 					e.preventDefault();				
 					$('#print_manifest').val('1');
 					baseForm.submit();
+				}
+				if (id_clicked == 'wo_update') {
+					$('body').append('<div style="" id="loadingDiv"><div class="loader">Loading...</div></div>');
+					$(window).on('load', function(){
+						setTimeout(removeLoader, 0); //wait for page load PLUS two seconds.
+					});
+					e.preventDefault();				
+					$('#wo_submit').val('1');
+					baseForm.submit();				
 				}
 			});
 			
@@ -204,11 +279,23 @@
 			$("input").click(function(e){
 				var id_clicked = e.target.id;
 				if (id_clicked == 'val_transfer') {
+					$('body').append('<div style="" id="loadingDiv"><div class="loader">Loading...</div></div>');
+					$(window).on('load', function(){
+						setTimeout(removeLoader, 0); //wait for page load PLUS two seconds.
+					});
 					e.preventDefault();				
 					$('#do_transfer').val('1');
 					transForm.submit();
 				}
-				});					
+			});
+			baseForm.on('keyup keypress', function(e) {
+			    var keyCode = e.keyCode || e.which;
+				var id_clicked = e.target.id;
+				if (keyCode === 13 && id_clicked != 'wo_number') {
+					e.preventDefault();
+					return false;
+				}
+			});			
 		})				
     </script> 
 <div class="mro-header-wrapper">
@@ -482,9 +569,11 @@ $(function() {
 			  <input type="hidden" name="confirm_transfer" id="confirm_transfer" value="0"/>
 			  <input type="hidden" name="print_manifest" id="print_manifest" value="0"/>
 			  <input type="hidden" name="options_col" id="options_col"/>
+			  
 			  {% if active_mode == '2' or active_mode == '3' and not total_rows or active_mode == '3' and total_rows == '0' %}
 			  <input type="hidden" id="wo_number" name="wo_number" value="{{wo_number}}"/>
-		      {% endif %}			  
+		      {% endif %}
+			  
               <!--div class="mro-darksearch" style="width:100%">
                 <div class="grid-x grid-padding-x">					
                     <div class="cell large-6 medium-6 small-12">
@@ -773,18 +862,18 @@ $(function() {
 							  title: 'SL',
 							  width: screen.availWidth*0.02, minScreenWidth: 450
 							},
-							//{
-                              //field: 'ctrl_number',
-							  //title: 'CTRL #',
-							  //width: screen.availWidth*0.03, minScreenWidth: 450
-							//},
-							//{
-                              //field: 'ctrl_id',
-							  //title: 'ID',
-							  //width: screen.availWidth*0.02, minScreenWidth: 450
-							//},
 							{
-                              field: 'rack',
+								field: 'ctrl_number',
+								title: 'CTRL #',
+								width: screen.availWidth*0.03, minScreenWidth: 450
+							},
+							{
+								field: 'ctrl_id',
+								title: 'ID',
+								width: screen.availWidth*0.02, minScreenWidth: 450
+							},
+							{
+                              field: 'cart',
 							  title: 'Cart',
 							  width: screen.availWidth*0.03
 							},

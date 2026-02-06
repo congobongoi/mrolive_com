@@ -273,7 +273,7 @@
 				  <input type="hidden" name="lookup_recs" id="lookup_recs" value="{{ lookup_recs}}"/>
 				  <input type="hidden" name="options_pagesize" id="options_pagesize"/>
 				  <input type="hidden" name="options_col" id="options_col"/>
-				  {% if not user_name or active_mode == '2' %}
+				  {% if not user_name or active_mode != '1' %}
 				  <input type="hidden" name="wo_task" id="wo_task"/>
 				  {% endif %}
               <div class="mro-lightsearch">
@@ -377,6 +377,9 @@ $(function() {
       <div class="grid-container mro-bottom-section">
 	      <div class="grid-x grid-padding-x">
 			<div class="centered results_grid" id="results_grid" name="results_grid">
+				<div class = "save_buttons">
+				  <a href="#" class="secondary button shadow" id="save">Set Grid</a><a href="#" class="secondary button shadow" id="load">Reset Grid</a>
+				</div>
 				<div class="counter_wrap">					  
 				  <input type="text" class="sel_rows" id="sel_rows" name="sel_rows" size="4" value="{{ sel_rows }}" readonly>of     <input type="text" class="total_rows" id="total_rows" name="total_rows" value="{{ total_rows }}" size="5" readonly>
 				</div>				
@@ -543,7 +546,7 @@ $(function() {
 
 		<div class="grid-x mro-footer-bottom">
 			<div class="cell medium-5 small-12 mro-footer-bottom-left">
-				<p>Copyright &copy; 2022 MRO Live <span>|</span> <img class="mro-usa" src="{% static 'dist/assets/img/usa.png' %}" alt="Based in USA">Based in USA</p>
+				<p>Copyright &copy; 2025 MRO Live <span>|</span> <img class="mro-usa" src="{% static 'dist/assets/img/usa.png' %}" alt="Based in USA">Based in USA</p>
 			</div>
 			<!--div class="cell medium-7 small-12 mro-footer-bottom-right">
 				<p><img src="{% static 'dist/assets/img/sectigo.png' %}" /> | Have Questions, Comments, or Concerns? <a href="mailto:Sales@MROLive.com">Get In Touch at Sales@MROLive.com</a></p>

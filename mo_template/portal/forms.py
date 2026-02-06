@@ -9,8 +9,9 @@ class Sales(forms.Form):
     salesperson = forms.CharField(required=False,max_length=20,widget=forms.TextInput(attrs={'placeholder': 'GGREEN...','id':'salesperson'}))
     
 class WODashboardForm(forms.Form):
+    img_file = forms.FileField(label='Image Import')
     file = forms.FileField(label='Upload Job Card')
-    loc_whs_file = forms.FileField(label='Upload File to Import') 
+    loc_whs_file = forms.FileField(label='Upload File to Import')
     email = forms.CharField(required=False,max_length=50,widget=forms.TextInput(attrs={'id':'email'}))
     receiver_instr = forms.CharField(required=False,max_length=200,widget=forms.TextInput(attrs={'id':'receiver_instr'}))
     username = forms.CharField(required=False,max_length=50,widget=forms.TextInput(attrs={'id':'username'}))

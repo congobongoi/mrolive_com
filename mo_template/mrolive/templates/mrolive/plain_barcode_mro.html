@@ -7,7 +7,7 @@
     <meta charset="utf-8" />
     <meta http-equiv="x-ua-compatible" content="ie=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MRO Live - Teardown / Inspection Label - Where Productivity Takes Flight</title>
+    <title>MRO Live - Teardown / Inspection / Lookup Label - Where Productivity Takes Flight</title>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
 	<link rel="shortcut icon" type="image/png" href="{% static 'favicon.ico' %}"/>
     <link rel="stylesheet" href="{% static 'dist/assets/css/app.css' %}">
@@ -82,12 +82,12 @@
     </style>
    </head>
   <body>
+	  
     {% for rec in stock_recs %}
 	<div style="margin-left:100px;">
-	  <a href="http://portal.mrolive.com/portal/{% if inspection %}inspection{% elif lookup %}stock-lookup{% else %}teardown{% endif %}/{{quapi_id}}{% if teardown %}/{{wo_task}}/{{part_number}}/{{notes}}{% elif inspection %}/{{si_number}}{% endif %}" class="reload">
+	  <a href="https://portal.mrolive.com/portal/{% if lot_inspection %}lot-inspection{% elif inspection %}inspection{% elif lookup %}stock-lookup{% elif lotdown %}lot-teardown{% else %}teardown{% endif %}/{{quapi_id}}{% if teardown %}/{{wo_task}}/{{part_number}}/{{condition_code}}/{{notes}}{% elif inspection or lot_inspection %}/{{si_number}}{% endif %}" class="reload">
 	    <button class="reload">Reload</button>
 	  </a>
-      <a href="{% static 'teardown-inspection-report.pdf' %}" download>PDF Barcode</a>
 	</div>
 	<div id="barcode" class="barcode" name="barcode">		  
 	  <div style="margin-left:auto;margin-right:auto;width:680px;height:103px;" class="0{{rec.ctrl_number}}00000{{rec.ctrl_id}}" id="0{{rec.ctrl_number}}00000{{rec.ctrl_id}}"></div>
@@ -101,7 +101,7 @@
 		  <td>
 		    <table style="padding-left:100px;width:99%;" >
 			  <tr>
-				<td align="right" style="font-size:18pt;font-weight:bold;">WO# 
+				<td align="right" style="font-size:18pt;font-weight:bold;">WO#
 				</td>
 				<td style="font-size:20pt;font-weight:bold;">: 
 				</td>
@@ -248,7 +248,7 @@
 				</td>
 			  </tr>
 			  <tr>
-				<td align="right">{% if inspection %} INSPECTED BY 
+				<td align="right">{% if inspection or lot_inspection %} INSPECTED BY 
 				    {% else %} PRINTED BY {% endif %}
 				</td>
 				<td>:  
@@ -257,7 +257,7 @@
 				</td>
 			  </tr>
 			  <tr>
-			    {% if inspection %}
+			    {% if inspection or lot_inspection %}
 				<td colspan="3" style="padding-left:108px;">STAMP:
 				  <div style="width:100px;height:75px;font-size:7pt;border:0.5px solid;"/>
 				</td>

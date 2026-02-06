@@ -604,26 +604,7 @@ jQuery.noConflict();
 			  }
 		    }
         });
-	    baseForm.on('keyup keypress', function(evt) {
-		  var keyCode = evt.keyCode || e.which;
-		  if (keyCode === 13) { 
-			evt.preventDefault();
-			if ($('wo_number').is(':focus')) {
-				$('wo_number').val('')
-				baseForm.submit();				 
-				  
-			if ($form.data('submitted') === true) {
-			  alert("ALREADY SUBMITTING FORM VIA TAB OR ENTER!");
-			  // Previously submitted - don't submit again
-			  evt.preventDefault ? evt.preventDefault() : (evt.returnValue = false);
-			} 
-			else {
-			  // Mark it so that the next submit can be ignored
-			  $form.data('submitted', true);
-			}
-		  }
-		  }
-        });
+		
 		//TAB IN THE 'update' BUTTON TO SUBMIT
 		laborForm.on("keydown", "#labor_submit", function(evt){
 			// GET THE KEY THAT WAS PRESSED
@@ -647,6 +628,7 @@ jQuery.noConflict();
 				}				
 			}
 		});
+
 		//TAB IN THE 'update' BUTTON TO SUBMIT
 		laborForm.on("keydown", "#task_submit", function(evt){
 			// GET THE KEY THAT WAS PRESSED
@@ -669,7 +651,8 @@ jQuery.noConflict();
 				  $form.data('submitted', true);
 				}				
 			}
-		});										
+		});
+		
 		laborForm.on("submit", "#task_submit", function(evt){
 			// submit more than once return false
 			//console.log('submitting wo_update...')
@@ -688,6 +671,7 @@ jQuery.noConflict();
 			  $form.data('submitted', true);
 			}
 		});
+		
 		laborForm.on("submit", "#labor_submit", function(evt){
 			// submit more than once return false
 			//console.log('submitting wo_update...')
@@ -707,6 +691,7 @@ jQuery.noConflict();
 			  $form.data('submitted', true);
 			}
 		});
+		
 		baseForm.on("submit", "#wo_update", function(evt){
 			// submit more than once return false
 			//console.log('submitting wo_update...')

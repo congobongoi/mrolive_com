@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+"""MRO Live version 1.01.01"""
 from django.http import HttpResponse
 from portal import views
 app_name = 'portal'
@@ -8,19 +10,26 @@ from django.views.generic.base import TemplateView
 from django.contrib import admin
 
 urlpatterns = [
+    #path('submit-form', views.submit_form, name='submit_form'),
+    path('report-tmpl/<quapi_id>', views.report_tmpl_import, name='report_tmpl_import'),
     path('user-input/<quapi_id>', views.user_input, name='user_input'),
+                                                                    
     path('event-notifications/<quapi_id>', views.event_notifications, name='event_notifications'),
     path('mail-groups/<quapi_id>', views.mail_groups, name='mail_groups'),
     path('event-manager/<quapi_id>', views.event_manager, name='event_manager'),             
     path('stock-lookup/<quapi_id>', views.stock_lookup, name='stock_lookup'),
+                                                                                                        
     path('task-management/<quapi_id>', views.task_management, name='task_management'),
     path('open-labor/<quapi_id>', views.open_labor, name='open_labor'),
     path('lot-inspection/<quapi_id>/<wo_number>', views.lot_inspection, name='lot_inspection'),
+                                                                                                
+                                                                                   
+    path('lot-inspection/<quapi_id>/', views.lot_inspection, name='lot_inspection'),
     path('lot-inspection/<quapi_id>', views.lot_inspection, name='lot_inspection'),
     path('lot-management/<quapi_id>', views.lot_management, name='lot_management'),
     path('user-import/<quapi_id>', views.user_import, name='user_import'),
     path('wo-mgmt-detail/<quapi_id>/<woo_auto_key>/<session_id>/<wo_number>', views.wo_mgmt_detail, name='wo_mgmt_detail'),
-    path('labor-mgmt-detail/<user_name>/<wo_number>/<conn_key>/<session_id>', views.labor_mgmt_detail, name='labor_mgmt_detail'),                    
+    path('labor-mgmt-detail/<user_name>/<conn_key>/<wo_number>/<session_id>', views.labor_mgmt_detail, name='labor_mgmt_detail'),  
     path('labor-mgmt-detail/<user_name>/<conn_key>/<session_id>', views.labor_mgmt_detail, name='labor_mgmt_detail'),
     path('labor-mgmt-detail/<quapi_id>/<user_id>/<date_from>/<date_to>', views.labor_mgmt_detail, name='labor_mgmt_detail'),
     path('labor-management/<quapi_id>', views.labor_management, name='labor_management'),
@@ -46,6 +55,7 @@ urlpatterns = [
     path('print-settings/<quapi_id>', views.print_settings, name='print_settings'),
     path('users/<quapi_id>', views.user_profiles, name='user_profiles'),
     path('inspection/<quapi_id>/<si_number>', views.inspection, name='inspection'),
+    path('inspection/<quapi_id>/', views.inspection, name='inspection'),
     path('inspection/<quapi_id>', views.inspection, name='inspection'),
     path('part-attributes/<quapi_id>', views.part_attributes, name='part_attributes'),
     path('shop-mgmt-dashboard/<quapi_id>/<loc_text>', views.shop_mgmt_dashboard, name='shop_mgmt_dashboard'),
@@ -69,9 +79,17 @@ urlpatterns = [
     path('tools/<quapi_id>', views.tools, name='tools'),
     path('parts-request/<quapi_id>', views.parts_request, name='parts_request'),
     path('requests-view/<quapi_id>', views.requests_view, name='requests_view'),
+    path('parts-request/<quapi_id>', views.parts_request, name='parts_request'),
+    path('requests-view/<quapi_id>', views.requests_view, name='requests_view'),
     path('teardown/<quapi_id>', views.teardown, name='teardown'),
     path('teardown/<quapi_id>/<si_number>', views.teardown, name='teardown'),   
-    path('teardown/<quapi_id>/<si_number>/<part_number>/<notes>', views.teardown, name='teardown'),  
+    path('teardown/<quapi_id>/<si_number>/', views.teardown, name='teardown'), 
+    path('teardown/<quapi_id>/<si_number>/<part_number>', views.teardown, name='teardown'), 
+    path('teardown/<quapi_id>/<si_number>/<part_number>/', views.teardown, name='teardown'), 
+    path('teardown/<quapi_id>/<si_number>/<part_number>/<condition_code>', views.teardown, name='teardown'), 
+    path('teardown/<quapi_id>/<si_number>/<part_number>/<condition_code>/', views.teardown, name='teardown'),                          
+    path('teardown/<quapi_id>/<si_number>/<part_number>/<condition_code>/<notes>', views.teardown, name='teardown'),
+    path('teardown/<quapi_id>/<si_number>/<part_number>/<condition_code>', views.teardown, name='teardown'),
     path('teardown/<quapi_id>/<si_number>/<part_number>/', views.teardown, name='teardown'),
     path('wo-template-import/<quapi_id>', views.wo_template_import, name='wo_template_import'),
     path('loc-whs-import/<quapi_id>', views.loc_whs_import, name='loc_whs_import'),
@@ -89,12 +107,14 @@ urlpatterns = [
     path('wo-dashboard/<quapi_id>', views.dashboard, name='dashboard'),
     path('wo-management/<quapi_id>', views.management, name='management'),
     path('physical-inventory/<quapi_id>', views.pi_update, name='pi_update'),
-    path('barcode-labels/<quapi_id>', views.barcode_labels, name='barcode_labels'),
+                                                                                   
     path('location-labels/<quapi_id>', views.location_labels, name='location_labels'),
+    path('barcode-labels/<quapi_id>', views.barcode_labels, name='barcode_labels'),
+    path('get-stock-uom/', views.get_stock_uom, name="get_stock_uom"),
     path('get-parts-ajax/', views.get_parts_ajax, name="get_parts_ajax"),
-    path('save-grid-options/', views.get_parts_ajax, name="save_grid_options"),
+    path('save-grid-options/', views.save_grid_options, name="save_grid_options"),                               
     re_path(r'^uinp-json$', views.UinpJsonView.as_view(), name='uinp-json'),
-    re_path(r'^event-json$', views.EventJsonView.as_view(), name='event-json'),                               
+    re_path(r'^event-json$', views.EventJsonView.as_view(), name='event-json'),                                                                        
     re_path(r'^mail-json$', views.MailJsonView.as_view(), name='mail-json'),        
     re_path(r'^sale-json$', views.SaleJsonView.as_view(), name='sale-json'),
     re_path(r'^upro-json$', views.UproJsonView.as_view(), name='upro-json'),

@@ -98,7 +98,56 @@
 		margin-bottom: 5px;
 		z-index:1000!important;
 		color: white;
-		}
+		}	
+        .loader,
+        .loader:after {
+            border-radius: 50%;
+            width: 10em;
+            height: 10em;
+        }
+        .loader {            
+            margin: 60px auto;
+            font-size: 10px;
+            position: relative;
+            text-indent: -9999em;
+            border-top: 1.1em solid rgba(255, 255, 255, 0.2);
+            border-right: 1.1em solid rgba(255, 255, 255, 0.2);
+            border-bottom: 1.1em solid rgba(255, 255, 255, 0.2);
+            border-left: 1.1em solid #ffffff;
+            -webkit-transform: translateZ(0);
+            -ms-transform: translateZ(0);
+            transform: translateZ(0);
+            -webkit-animation: load8 1.1s infinite linear;
+            animation: load8 1.1s infinite linear;
+        }
+        @-webkit-keyframes load8 {
+            0% {
+                -webkit-transform: rotate(0deg);
+                transform: rotate(0deg);
+            }
+            100% {
+                -webkit-transform: rotate(360deg);
+                transform: rotate(360deg);
+            }
+        }
+        @keyframes load8 {
+            0% {
+                -webkit-transform: rotate(0deg);
+                transform: rotate(0deg);
+            }
+            100% {
+                -webkit-transform: rotate(360deg);
+                transform: rotate(360deg);
+            }
+        }
+        #loadingDiv {
+            position:absolute;;
+            top:0;
+            left:0;
+            width:100%;
+            height:100%;
+            background-color:#000;
+        }
     </style>
   </head>
   <body>
@@ -133,16 +182,28 @@
 		$("input").click(function(e){
 			var id_clicked = e.target.id;
 			if (id_clicked == 'lot_search') {
+			   	$('body').append('<div style="" id="loadingDiv"><div class="loader">Loading...</div></div>');
+					$(window).on('load', function(){
+					setTimeout(removeLoader, 0); //wait for page load PLUS two seconds.
+				});
 				e.preventDefault();				
 				$('#is_search').val('1');
 				mgmtForm.submit();	
 			}
 			if (id_clicked == 'update') {
+			   	$('body').append('<div style="" id="loadingDiv"><div class="loader">Loading...</div></div>');
+					$(window).on('load', function(){
+					setTimeout(removeLoader, 0); //wait for page load PLUS two seconds.
+				});
 				e.preventDefault();				
 				$('#is_update').val('1');
 				mgmtForm.submit();	
 			}
 			if (id_clicked == 'bottom_update') {
+			   	$('body').append('<div style="" id="loadingDiv"><div class="loader">Loading...</div></div>');
+					$(window).on('load', function(){
+					setTimeout(removeLoader, 0); //wait for page load PLUS two seconds.
+				});
 				e.preventDefault();				
 				$('#is_update').val('1');
 				mgmtForm.submit();	
@@ -265,7 +326,7 @@
                       <label>Desc:</label>
                         <textarea name="description" id="description" value="{{ description }}"></textarea>										  
                     </div>
-					<div class="cell large-4 medium-6 small-12">
+					<div class="cell large-6 medium-6 small-12">
 					  <label>Status:</label>
 					  <select style="background-color:#284a8a;color:white;" name="stock_status" id="stock_status">
 						<option value="">--No Selection--</option>
@@ -274,14 +335,18 @@
 						{% endfor %}
 					  </select>
 					</div>
-					<div class="cell large-4 medium-6 small-12">
-					  <label>Cons:</label>
-					  <datalist id="cons_list">
-						<option value="">--No Selection--</option>
-						{% for cons in cons_codes %}							
-						<option value="{{ cons.code }}">{{ cons.code }}</option>						
+					<div class="cell large-6 medium-6 small-12">  
+                      <label>Cons</label>
+					  <select style="background-color:#284a8a;color:white;" name="cons_selector" id="cons_selector">
+						<option value=""> -- No Selection -- </option>
+						{% for cons in cons_codes %}	
+							{% if consignment == cons.code %}
+							<option data-value="{{ cons.id }}" value="{{ cons.code }}" selected>{{ cons.code }}</option>
+							{% else %}
+							<option data-value="{{ cons.id }}" value="{{ cons.code }}">{{ cons.code }}</option>	
+							{% endif %}
 						{% endfor %}
-					  </datalist>
+					  </select>
 					</div>
                     <div class="cell large-6 medium-6 small-12">
                       <label>S/N:</label>
@@ -321,6 +386,7 @@ $(function() {
 				  <input type="hidden" name="filter_wo" id="filter_wo" value="{{ wo_number }}"/>
 				  <input type="hidden" name="filter_pn" id="filter_pn" value="{{ part_number }}"/>
 				  <input type="hidden" name="filter_desc"  id="filter_desc" value="{{ description }}"/>
+				   <input type="hidden" name="filter_desc"  id="filter_cons" value="{{ consignment }}"/>
 				  {% for lot in lot_list %}
 				     <input type="hidden" name="lot_sels[]" id="lot_sels[]" value="{{ lot }}" checked="checked"/>
 				  {% endfor %}
@@ -621,6 +687,11 @@ $(function() {
 							{
 							  field: 'cond_level_zero',
 							  title: 'STK COND',
+                              width: screen.availWidth*0.09					  
+							},
+							{
+							  field: 'consignment_code',
+							  title: 'CONS',
                               width: screen.availWidth*0.09					  
 							},
 							{

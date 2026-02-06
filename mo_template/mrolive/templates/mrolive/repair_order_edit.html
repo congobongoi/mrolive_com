@@ -22,6 +22,10 @@
 	<script src="{% static 'jquery.bootstrap.modal.forms.min.js' %}"></script>
 	<script type="text/javascript" src="{% static 'jquery_tab_submit.js' %}"></script>	
     <style>
+	
+	   
+		 
+   
 	    .subhead {
 			color:white;
 			text-decoration:bold;
@@ -127,10 +131,12 @@
 		float:right;
 		z-index:1000!important;
 		}
+
 		.k-grid td {
 		    font-size:11pt;
 			line-height:1.0em;
 		}
+  
 		.k-grid-header th.k-header {
 		    font-size:6pt;
 			line-height:1.0em;
@@ -176,6 +182,7 @@
 			})
 	    })
     </script>
+	
 <div class="mro-header-wrapper">
 	<section id="mrotop"></section>
 	<div class="grid-container mro-header">
@@ -310,6 +317,19 @@
 					  <!--input type="text" id="get_manager" name="get_manager" value="{{ get_manager }}" placeholder="ABLAKEY..." /-->
 					  {{ form.ro_number }}					  
 					</div>
+					<div class="cell large-6 medium-6 small-12">  
+					  <label>Cons</label>
+					  <select name="cons_selector" id="cons_selector" style="background-color:#cacaca;">
+						<option value=""> -- No Selection -- </option>
+						{% for cons in consignments %}	
+							{% if cons_code == cons.code %}
+							<option data-value="{{ cons.id }}" value="{{ cons.code }}" selected>{{ cons.code }}</option>
+							{% else %}
+							<option data-value="{{ cons.id }}" value="{{ cons.code }}">{{ cons.code }}</option>	
+							{% endif %}
+						{% endfor %}
+					  </select>
+					</div>
 					<div class="cell large-6 medium-6 small-12">
                       <label>Status</label>	
 				      <select name="new_status" id="new_status" style="background-color:#cacaca;">
@@ -403,6 +423,10 @@ $(function() {
 			      <div class="cell large-6 medium-6 small-12">
 					  <label>Notes</label>
 					  {{ form.header_notes }}					  
+				  </div>
+				  <div class="cell large-6 medium-6 small-12">
+				    <label>Repair Type</label>
+				    <input type="text" name="repair_type" id="repair_type"/>					  
 				  </div>
 				</div>
               </div>			
@@ -614,7 +638,8 @@ $(function() {
       <div class="grid-container mro-bottom-section">
 	      <div class="grid-x grid-padding-x">	
 			<div class="centered ro_split_results_grid" id="ro_split_results_grid" name="ro_split_results_grid">	
-			<div class="counter_wrap">					  
+			<div class="counter_wrap">	
+              <input type="button" id="select_all" name="select_all" class="secondary button shadow" value="SELECT ALL"/>			
 			  <input type="text" class="sel_rows" id="sel_rows" name="sel_rows" size="4" value="{{ sel_rows }}" readonly>of     <input type="text" class="total_rows" id="total_rows" name="total_rows" value="{{ total_rows }}" size="5" readonly>
 			</div>
 			<script>		
@@ -743,6 +768,25 @@ $(function() {
 							{pageSize: 'All', sizeValue:1000}
 						],
 					});
+					$("#ro_split_results_grid").find("#toolbar").kendoToolBar({
+						items: [
+							{
+								template: `
+								<a class="k-button k-button-icontext k-grid-excel" href="\#"><span class="k-icon k-i-excel"></span>Export to Excel</a>`
+							},
+							{
+								template: `
+									<div class="toolbar-buttons">
+										<!--input type="button" class="secondary button shadow save_buttons" id="save_opts" name="save_opts" value="SAVE"/>
+										<a href="#" class="secondary button shadow" id="save">SET GRID</a-->
+										<input type="button" id="select_all" name="select_all" class="secondary button shadow" value="SELECT ALL"/>
+										<input type="button" id="launch_upd" name="launch_upd" class="primary button shadow" value="UPDATE"/>
+										<input type="text" class="sel_rows" id="sel_rows" name="sel_rows" size="4" value="{{ sel_rows }}" readonly>of     <input type="text" class="total_rows" id="total_rows" name="total_rows" value="{{ total_rows }}" size="5" readonly>
+									</div>`,
+								attributes: {"class":"align-buttons"}
+							},
+						]
+					});	
 				});
 			  </script>
 	        </div>
@@ -786,9 +830,10 @@ $(function() {
 	<div class="mro-bottom-section-wrapper mro-table">
       <div class="grid-container mro-bottom-section">
 	      <div class="grid-x grid-padding-x">
-			{% if all_woos %}
-			  <input type="button" id="update" name="update" class="primary button shadow" style="padding:9px;left:1000px;margin-top:0px;position: relative;/*! margin-right: 1000px; */top: 59px;z-index: 1000;" value="UPDATE"/>
-			  <div style="top:62px;z-index:1000;left:1000px;position: relative;color: white;">
+			{% if total_rows %}
+			<input type="button" id="select_all" name="select_all" class="secondary button shadow" value="SELECT ALL" style="padding:9px;left:900px;margin-top:0px;position: relative;top: 59px;z-index: 1000;""/>
+			  <input type="button" id="update" name="update" class="primary button shadow" style="padding:9px;left:900px;margin-top:0px;position: relative;top: 59px;z-index: 1000;" value="UPDATE"/>
+			  <div style="top:62px;z-index:1000;left:900px;position: relative;color: white;">
 			    <input type="text" class="sel_rows" id="sel_rows" name="sel_rows" size="4" value="{{ sel_rows }}" readonly>of     <input type="text" class="total_rows" id="total_rows" name="total_rows" value="{{ total_rows }}" size="5" readonly>
 			  </div>	
 			<div class="centered" id="grid">	
@@ -860,7 +905,7 @@ $(function() {
 							read: {
 								url: '/portal/json',
 								dataType: "json",
-								data: { 'user_id': '{{ user_id }}','session_id': '{{ session_id }}','is_loc_whs': '1','is_wos': '1' } // the parameter I need to send to the server
+								data: { 'user_id': '{{ user_id }}','session_id': '{{ session_id }}','is_wos': '1','is_loc_whs': '1'} // the parameter I need to send to the server
 							}
 						},
 						schema: {
@@ -871,7 +916,7 @@ $(function() {
 					}						
 					var dsg = new kendo.data.DataSource(dataSourceArguments);
 					var options = localStorage["grid-options"];
-				    //console.log(options.excel);
+					
 					$("#grid").kendoGrid({   					    
 					    toolbar: ["excel"],
 						excel: {
@@ -935,29 +980,35 @@ $(function() {
 							  title: 'CD',
 							  width: "1.5cm",
 							},
-							{
-							  field: 'entry_date',
-							  title: 'Entry',
-							  template: '#= kendo.toString(kendo.parseDate(quoted_date), "MM/dd/yyyy")#',
-                              width: "2cm",						  
-							},
+							//{
+		 
+		  
+		
+	  
+																											 
+			   
+							  //field: 'entry_date',
+							  //title: 'Entry',
+							  //template: '#= kendo.toString(kendo.parseDate(entry_date), "MM/dd/yy")#',
+                              //width: "2cm",						  
+							//},
 							{
 							  field: 'quoted_date',
 							  title: 'Quoted',
-							  template: '#= kendo.toString(kendo.parseDate(quoted_date), "MM/dd/yyyy")#',
+							  template: '#= kendo.toString(kendo.parseDate(quoted_date), "MM/dd/yy")#',
                               width: "2cm",							  
 							},							
 							{
 							  field: 'approved_date',
 							  title: 'Approved',
-							  template: '#= kendo.toString(kendo.parseDate(approved_date), "MM/dd/yyyy")#',
+							  template: '#= kendo.toString(kendo.parseDate(approved_date), "MM/dd/yy")#',
 							  width: "2.1cm",
 							  
 							},
 							{
 							  field: 'next_dlv_date',
 							  title: 'Delivery',
-							  template: '#= kendo.toString(kendo.parseDate(next_dlv_date), "MM/dd/yyyy")#',
+							  template: '#= kendo.toString(kendo.parseDate(next_dlv_date), "MM/dd/yy")#',
                               width: "2.2cm",							  
 							},	
 							{
@@ -968,7 +1019,7 @@ $(function() {
 							{
 							  field: 'arrival_date',
 							  title: 'Ship Date',
-							  template: '#= kendo.toString(kendo.parseDate(arrival_date), "MM/dd/yyyy")#',
+							  template: '#= kendo.toString(kendo.parseDate(arrival_date), "MM/dd/yy")#',
 							  width: "2.1cm",
 							},
 							{
@@ -989,6 +1040,7 @@ $(function() {
 							{
 							  field: 'entry_date',
 							  title: 'RO Quoted',
+							  template: '#= kendo.toString(kendo.parseDate(entry_date), "MM/dd/yy")#',
 							  width: "2.1cm",
 							},
 							{
@@ -1009,7 +1061,7 @@ $(function() {
 							{
 							  field: 'due_date',
 							  title: 'Due Date',
-							  template: '#= kendo.toString(kendo.parseDate(quoted_date), "MM/dd/yyyy")#',
+							  template: '#= kendo.toString(kendo.parseDate(due_date), "MM/dd/yy")#',
                               width: "2.1cm",							  
 							},
 							{
@@ -1036,7 +1088,7 @@ $(function() {
 
 					if (options) {
 					    var pers_options = JSON.parse(options);
-                        console.log(pers_options.excel.fileName);
+                        //console.log(pers_options.excel.fileName);
 					    if (pers_options.excel.fileName == 'ro-edit-export.xlsx') {
 						    grid.setOptions(pers_options);
 							grid.setOptions({
@@ -1051,7 +1103,7 @@ $(function() {
 						return;
 					}
 
-                 $("#grid").find("#toolbar").kendoToolBar({
+					$("#grid").find("#toolbar").kendoToolBar({
 						items: [
 							{
 								template: `
@@ -1060,8 +1112,9 @@ $(function() {
 							{
 								template: `
 									<div class="toolbar-buttons">
+										<input type="button" class="secondary button shadow 
 										<input type="button" id="select_all" name="select_all" class="secondary button shadow" value="SELECT ALL"/>
-										<input type="button" id="update" name="update" class="primary button shadow" value="UPDATE"/>
+										<input type="button" id="launch_upd" name="launch_upd" class="primary button shadow" value="UPDATE"/>
 										<input type="text" class="sel_rows" id="sel_rows" name="sel_rows" size="4" value="{{ sel_rows }}" readonly>of     <input type="text" class="total_rows" id="total_rows" name="total_rows" value="{{ total_rows }}" size="5" readonly>
 									</div>`,
 								attributes: {"class":"align-buttons"}
@@ -1119,7 +1172,7 @@ $(function() {
 			{% endif %}
 		  </div>
         <div class="grid-x mro-pagination-section">
-		    {% if all_woos %}
+		    {% if 1 %}
 			<input type="button" id="bottom_update" name="bottom_update" class="primary button shadow" style="padding:9px;" value="UPDATE"/>
             {% endif %}
           <div class="cell large-5 medium-6 small-12 ">
@@ -1140,7 +1193,7 @@ $(function() {
 
 		<div class="grid-x mro-footer-bottom">
 			<div class="cell medium-5 small-12 mro-footer-bottom-left">
-				<p>Copyright &copy; 2024 MRO Live <span>|</span> <img class="mro-usa" src="{% static 'dist/assets/img/usa.png' %}" alt="Based in USA">Based in USA</p>
+				<p>Copyright &copy; 2025 MRO Live <span>|</span> <img class="mro-usa" src="{% static 'dist/assets/img/usa.png' %}" alt="Based in USA">Based in USA</p>
 			</div>
 		</div>
 	</div>

@@ -158,19 +158,15 @@
     </script>
     <body>
 		<div id="barcode" class="barcode" name="barcode">			  
-			<!--div style="border:1px solid;margin:auto;text-align:center;"><h2>Repair and Routing Traveler</h2></div-->
-			<a href="http://portal.mrolive.com/portal/teardown/{{quapi_id}}/{{wo_task}}/{{part_number}}/{{notes}}" class="reload">
+			<!--a href="http://18.188.56.36:8029/portal/teardown/{{quapi_id}}/{{wo_task}}/{{part_number}}/{{condition_code}}/{{notes}}" class="reload">
 			  <button class="reload">Reload</button>
-			</a>
+			</a-->
 			<div class="header" id="header" style="border:1px solid;">
 			  <table cellpadding="0" cellspacing="0" style="padding:5px;width:100%;border:none;margin:5px;">
 				<tr>	
 				  <td>			
 				  <span style="padding-left:10px;width:45%;float:left;background-color:white;">
-					<!--a href="../teardown/{{quapi_id}}" target="_blank"-->
-					  <img src="{% static 'logo.jpg' %}" height="105" alt="GTS Aviation">
-					<!--/a><br/-->
-					
+					  <img src="{% static 'logo.jpg' %}" height="105" alt="MRO Live - Where Productivity Takes Flight">
 				  </span>
 				<div style="padding-right:15px;max-width:290px;float:right;font-size:15pt;font-weight:bold;">WO#:{{si_number}}</div>			
 				<div style="margin-top:35px;margin-left:685px;width:180px;height:85px;padding:5px;" class="{{si_number}}" id="{{si_number}}" name="{{si_number}}"></div> 
@@ -256,7 +252,7 @@
 						   <!--img style="min-width:500px;max-width:500px; height:1px;" src="{% static 'blank.png' %}"/-->	   
 						   <span style="min-width:300px;max-width:300px;">SEQ: {{task.wot_sequence}}</span>
 						   <br/>
-						   <!--span style="min-width:300px;max-width:300px;">{{task.task_master_desc}}</span-->
+						   <span style="min-width:300px;max-width:300px;">{{task.wot_description}}</span>
 						</td>
 						<td style="width:25%">
 							<!--div style="float:left;padding-left:15px;height:55px;width:150px;" id="{{task.wot_auto_key}}s" name="{{task.wot_auto_key}}s"></div>
@@ -277,7 +273,7 @@
 						<td colspan="3" style="max-height:120px;margin:0px;padding:0px;">
 						  <table style="float:left;width:60%;">
 							<tr>
-							  <td>{{task.wot_description}}</td>
+							  <td>{{placeholder}}&nbsp;</td>
 							</tr>
 						  </table>
 						  <table style="max-height:80px;width:35%;float:right;margin:5px;padding:5px;">

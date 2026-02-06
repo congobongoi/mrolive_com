@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+"""MRO Live version 1.01.01"""
 from __future__ import absolute_import, unicode_literals
 
 # This will make sure the app is always imported when

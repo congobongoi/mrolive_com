@@ -23,8 +23,14 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('', include('django.contrib.auth.urls')), #login/pwd reset/logout
+    path('get-stock-uom/', views.get_stock_uom, name="get_stock_uom"),
+    path('get-parts-ajax/', views.get_parts_ajax, name="get_parts_ajax"),
+    path('save-grid-options/', views.save_grid_options, name="save_grid_options"),
+    path('save-grid-options', views.save_grid_options, name="save_grid_options"),                                      
     path('queries/', include('queries.urls')),
     path('padron', admin.site.urls),
+    path('padron/mrolive', TemplateView.as_view(template_name='registration/home.html'), name='home'),
+    path('padron/apps', views.app_mgmt, name='app_mgmt'),
     path('logout/', views.logout_view, name='logout_view'),
     path('login/route/<logoff>', views.account_route, name='account_route'),
     path('login/route/', views.account_route, name='account_route'),

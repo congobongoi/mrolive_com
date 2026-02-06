@@ -5,8 +5,7 @@
     <meta charset="utf-8" />
     <meta http-equiv="x-ua-compatible" content="ie=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<meta http-equiv="refresh" content="60" />
-    <title>MRO Live Labor Tracking - Where Productivity Takes Flight</title>
+    <title>MRO Live Labor Dashboard - Where Productivity Takes Flight</title>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
 	<link rel="shortcut icon" type="image/png" href="{% static 'favicon.ico' %}"/>
     <link rel="stylesheet" href="{% static 'dist/assets/css/app.css' %}">
@@ -288,7 +287,7 @@
 				</div>
                 <div class="grid-x grid-padding-x align-middle">			
                   <div class="cell large-6 medium-6 small-12">
-                    <label>Emp ID
+                    <label>User Name
 					{{ form.user_id }} 
 					</label>
                   </div>
@@ -332,7 +331,7 @@
 				    </div>
 				  </div>
 				</div>
-				<div class="mro-lightsearch">
+				<!--div class="mro-lightsearch">
 				  <div class="cell large-auto medium-6 small-12">
                       <label>Total Hours:</label>
 					  <input readonly = "1" type="text" name="total_hours" id="total_hours" value="{{ total_hours }}"/>
@@ -340,7 +339,7 @@
 				  <div class="cell large-auto medium-6 small-12">
                       <label>User Name:</label>
 					  <input readonly = "1" type="text" name="user_name" id="user_name" value="{{ user_name }}"/>
-				  </div>
+				  </div-->
 				</div>
               </div>
 			</div>
@@ -426,8 +425,11 @@ $(function() {
 	
       <div class="grid-container mro-bottom-section">
 	      <div class="grid-x grid-padding-x">
-		    <div class="centered results_grid" id="results_grid" name="results_grid">
-			    <!--div class="grid_title">Labor Entries</div-->
+		  <div class="centered results_grid" id="results_grid" name="results_grid">
+			    <!--div class="grid_title">WO Tasks</div-->
+				<div class="counter_wrap">					  
+                    <input type="text" class="total_rows" id="total_rows" name="total_rows" value="{{ total_labor_rows }}" size="5" readonly>
+				</div>	
 			<script>
 			kendo.ui.Grid.prototype._positionColumnResizeHandle= function() {
 			  var that = this,
@@ -532,14 +534,6 @@ $(function() {
 							  width: screen.availWidth*0.08,
 							  editable: false,
 							},
-
-
-							{
-							  field: 'dept_name',
-							  title: 'Dept.',
-							  width: screen.availWidth*0.08,
-							  editable: false,
-							},
 							{
 							  field: 'skill_desc',
 							  title: 'Skill',
@@ -600,7 +594,7 @@ $(function() {
 
 		<div class="grid-x mro-footer-bottom">
 			<div class="cell medium-5 small-12 mro-footer-bottom-left">
-				<p>Copyright &copy; 2023 MRO Live <span>|</span> <img class="mro-usa" src="{% static 'dist/assets/img/usa.png' %}" alt="Based in USA">Based in USA</p>
+				<p>Copyright &copy; 2025 MRO Live <span>|</span> <img class="mro-usa" src="{% static 'dist/assets/img/usa.png' %}" alt="Based in USA">Based in USA</p>
 			</div>
 			<!--div class="cell medium-7 small-12 mro-footer-bottom-right">
 				<p><img src="{% static 'dist/assets/img/sectigo.png' %}" /> | Have Questions, Comments, or Concerns? <a href="mailto:Sales@MROLive.com">Get In Touch at Sales@MROLive.com</a></p>

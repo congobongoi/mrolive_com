@@ -9,6 +9,16 @@ https://docs.djangoproject.com/en/2.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/2.2/ref/settings/
 """
+import os
+########################EMAIL SETTINGS################################
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.office365.com'
+EMAIL_USE_TLS = True
+EMAIL_PORT = 587
+EMAIL_TIMEOUT = 60
+DEFAULT_FROM_EMAIL = 'admin@mrolive.com'
+EMAIL_HOST_USER = 'admin@mrolive.com'
+EMAIL_HOST_PASSWORD = 'Jut29308'
 ######################################################################
 SECURE_HSTS_SECONDS='0'
 SECURE_HSTS_PRELOAD=False
@@ -20,7 +30,6 @@ SESSION_COOKIE_SECURE=False
 CSRF_COOKIE_SECURE=False
 X_FRAME_OPTIONS='DENY'
 CONN_MAX_AGE=15
-import os
 #AUTH_USER_MODEL = 'polls.CustomUser'
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -31,7 +40,7 @@ SECRET_KEY = 'au734ntn*oore;lqknq[a0a;ng3sdfwe4qgab#QR32rg45yBSrd!!@R'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 TOOLBAR = False
-ALLOWED_HOSTS = ['127.0.0.1','18.118.255.149']
+ALLOWED_HOSTS = ['127.0.0.1','18.117.96.213','portal.mrolive.com']
 #BROKER_HEARTBEAT=15
 # Application definition
 REST_FRAMEWORK = {
@@ -39,6 +48,7 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 10
 }
 INSTALLED_APPS = [
+    'django_crontab',
     'polls.apps.PollsConfig',
     'queries.apps.QueriesConfig',
     'mrolive',
@@ -104,20 +114,23 @@ WSGI_APPLICATION = 'mo_template.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'USER': 'adam',
+        'USER': 'root',
         'NAME': 'mrolive',
-        'PASSWORD': '2rPHiL09A%',
+        'PASSWORD': 'password',
         'HOST': 'localhost',
         'PORT': 3356
     }
 }"""
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-        #'read_write_timeout': 60000000,
+        'read_write_timeout': 60000000,
     }
 }
+
+
 # Password validation
 # https://docs.djangoproject.com/en/2.2/ref/settings/#auth-password-validators
 
@@ -150,11 +163,17 @@ USE_L10N = True
 
 USE_TZ = True
 
-MEDIA_ROOT = os.path.join(BASE_DIR,'media')
+#CRONJOBS = [
+#    ('*/5 * * * *', 'portal.views.send_event_notes'),
+    # Add more cron jobs as needed
+#]
 
+#ROOT_DIR = 'C:\Users\Adam\Envs\myproject\mo_template\
+MEDIA_ROOT = os.path.join(BASE_DIR,'media')
+#MEDIA_ROOT = '/media/'
 MEDIA_URL = '/media/'
 STATIC_URL = '/static/'
-
+#STATIC_ROOT ='C:\Users\Adam\Envs\myproject\mo_template\static'
 STATIC_ROOT = '/var/www/mo_template/static'
 STAT = os.path.join(BASE_DIR, 'static')
 STATICFILES_DIRS = [

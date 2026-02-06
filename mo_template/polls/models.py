@@ -6,65 +6,43 @@ from django.contrib.auth.models import User,Group,AbstractUser
 from django.contrib import admin
 # Create your models here.
 
-class Document(models.Model):
-    docfile = models.FileField()
-    #fields to store the images/pdfs retrieved from Quantum's file/image server
-    source_pk = models.IntegerField(default=80) 
-    source_table = models.CharField(blank=True,null=True,default="",max_length=120)
-    server_url = models.CharField(blank=True,null=True,default="",max_length=120)
-    server_port = models.IntegerField(default=80) 
-    url_path = models.CharField(blank=True,null=True,default="",max_length=120)
-    file_name = models.CharField(blank=True,null=True,default="",max_length=120)
-    file_extension = models.CharField(blank=True,null=True,default="",max_length=20)
-    file_key = models.IntegerField(default=1)
-                                                                      
-    create_date = models.DateTimeField(blank=True, null=True,default=datetime.date.today)
-    session_id = models.CharField(blank=True, null=True, max_length=200, default="")
 
-class OracleConnection(models.Model):
- 
+class Rolodex(models.Model):
+    rdx_auto_key = models.IntegerField('RDX_AUTO_KEY',default=1) 
+    title = models.CharField(max_length=200, default="", blank=True, null=True) 
+    description = models.CharField(max_length=200, default="", blank=True, null=True)
     name = models.CharField(max_length=200, default="", blank=True, null=True)
-    conn_str = models.CharField(max_length=200, blank=True, null=True)
-    schema = models.CharField(max_length=200, blank=True, null=True)
-    url = models.CharField(max_length=2000, blank=True, null=True)
-    key = models.CharField(max_length=200, blank=True, null=True)
-    secret = models.CharField(max_length=200, blank=True, null=True)
-    host = models.CharField(max_length=200)
-    port = models.IntegerField(default=1521)
-    sid = models.CharField(max_length=200)
-    db_user = models.CharField(max_length=200)
-    db_pwd = models.CharField(max_length=200)
-    dj_user_id = models.IntegerField('Django auth user id.',default=0)
+    session_id = models.CharField(blank=True, null=True, max_length=200, default="")
     
     def save(self, *args, **kwargs):
         self.full_clean()
         return super().save(*args, **kwargs)
 
     def __str__(self):
-        return self.name
+        return self.description
 
-class UserGroupProfile(models.Model):
-    quantum_cmp_key = models.IntegerField('Quantum Company Key', blank=True, null=True, default="0")
-    group = models.OneToOneField(Group, on_delete=models.CASCADE, blank=True, null=True)
-    conn_string = models.CharField('Phone Home Connection String', blank=True, null=True, max_length=200, default="")
-    private_key = models.TextField('Private Key', blank=True, null=True, max_length=300, default="")
-    public_key = models.TextField('Public Key', blank=True, null=True, max_length=300, default="")
-    priority = models.CharField(blank=True, null=True, max_length=40, default="lowest_priority", choices = (('lowest_priority','Lowest Priority'),('highest_priority','Highest Priority')))
+
+class CompanySite(models.Model):
+    cst_auto_key = models.IntegerField('CST_AUTO_KEY',default=1)  
+    description = models.CharField(max_length=200, default="", blank=True, null=True)
+    ship_name = models.CharField(max_length=200, default="", blank=True, null=True)
+    session_id = models.CharField(blank=True, null=True, max_length=200, default="")
     
     def save(self, *args, **kwargs):
         self.full_clean()
         return super().save(*args, **kwargs)
-        
+
     def __str__(self):
-        return self.group.name
-        
+        return self.description
+
+
 class MLApps(models.Model):
     menu_seq = models.IntegerField('Menu sequence',default=0) 
     types = (('operations','Operations'),('management','Management'),('dashboards','Dashboards'),('setup','Setup'),('exports','Exports'))
     name = models.CharField(max_length=200, default="", blank=True, null=True)
     code = models.CharField(max_length=200, default="", blank=True, null=True)
     uri = models.CharField(max_length=200, default="", blank=True, null=True)
-    audit_ok = models.BooleanField('Audit Trail OK', default=False) 
+    audit_ok = models.BooleanField('Audit Trail OK', default=False)
     app_type = models.CharField(blank=True, null=True, choices = types, max_length=200, default='operations') 
     active = models.BooleanField('Active', default=True)
     print_enabled = models.BooleanField('Print Enabled', default=False)
@@ -74,8 +52,89 @@ class MLApps(models.Model):
         return super().save(*args, **kwargs)
 
     def __str__(self):
-        return self.name     
+        return self.name
         
+        
+class UomCodes(models.Model):
+    uom_auto_key = models.IntegerField('UOM_AUTO_KEY',default=1) 
+    sequence = models.IntegerField('Sequence',default=0) 
+    description = models.CharField(max_length=200, default="", blank=True, null=True)
+    uom_code = models.CharField(max_length=200, default="", blank=True, null=True)
+    
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.description
+        
+        
+class ReportTmpl(models.Model):
+
+    canv_width = models.FloatField('Canvas Width',blank=True, null=True, default=0)
+    canv_height = models.FloatField('Canvas Height',blank=True, null=True, default=0)
+    page_width = models.FloatField('Page Width',blank=True, null=True, default=0)
+    page_height = models.FloatField('Page Height',blank=True, null=True, default=0)
+    name = models.CharField(max_length=200, default="", blank=True, null=True)
+    code = models.CharField(max_length=200, default="", blank=True, null=True)
+    app_id = models.ForeignKey(MLApps, on_delete=models.CASCADE, blank=True, null=True)
+    font_type = models.CharField('Font',max_length=6000, default="", blank=True, null=True)
+    left_margin = models.FloatField('Left Margin (mm)',blank=True, null=True, default=0)
+    text_chunk_size = models.IntegerField('Characters per Line',blank=True, null=True, default=0)
+    textarea_chunk_size = models.IntegerField('Textarea Characters per Line',blank=True, null=True, default=0)
+    
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name
+        
+class ReportTmplDetail(models.Model):
+    
+    data_type = models.CharField(max_length=100, default="", blank=True, null=True)
+    xcoord = models.FloatField('X1 Coord.',blank=True, null=True, default=0)
+    ycoord = models.FloatField('Y1 Coord.',blank=True, null=True, default=0)
+    x2coord = models.FloatField('X2 Coord.',blank=True, null=True, default=0)
+    y2coord = models.FloatField('Y2 Coord.',blank=True, null=True, default=0)
+    height = models.FloatField('Height',blank=True, null=True, default=0)
+    width = models.FloatField('Width',blank=True, null=True, default=0)
+    img_path = models.CharField(max_length=6000, default="", blank=True, null=True)
+    fixed_text = models.CharField(max_length=6000, default="", blank=True, null=True)
+    font_size = models.FloatField('Font Size',blank=True, null=True, default=0)
+    font_type = models.CharField(max_length=6000, default="", blank=True, null=True)
+    rgb_red = models.FloatField('RGB Red',blank=True, null=True, default=0)
+    rgb_green = models.FloatField('RGB Green',blank=True, null=True, default=0) 
+    rgb_blue = models.FloatField('RGB Blue',blank=True, null=True, default=0)
+    font_bold = models.BooleanField('Bold Font',default=False)
+    font_ital = models.BooleanField('Italicised Font',default=False)
+    font_udrl = models.BooleanField('Underline Font',default=False)
+    db_field = models.CharField(max_length=100, default="", blank=True, null=True)
+    db_table = models.CharField(max_length=100, default="", blank=True, null=True)
+    rep_tmpl = models.ForeignKey(ReportTmpl, on_delete=models.CASCADE, blank=True, null=True)
+    
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.data_type + ': (' + str(self.xcoord) + ',' + str(self.ycoord) + ')'
+class UserInput(models.Model):
+    user_name = models.CharField(max_length=200, default="", blank=True, null=True)
+    sysur_auto_key = models.IntegerField('Quantum SYS_USERS Key',default=0) 
+    timestamp = models.DateTimeField(blank=True, null=True,default=datetime.date.today)  
+    user_inputs = models.CharField(max_length=600, default="", blank=True, null=True)
+    ml_apps_id = models.ForeignKey(MLApps, on_delete=models.CASCADE, blank=True, null=True)
+    app_mode = models.CharField(max_length=200, default="", blank=True, null=True)
+    app_name = models.CharField(max_length=200, default="", blank=True, null=True)
+    
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.user_name + ' | ' + str(self.timestamp)
+    
 class UserProfile(models.Model):
     kiosk_check = models.CharField('Kiosk Checked', blank=True, null=True, max_length=200, default="")
     sizes = (('80','Narrow'),('medium','Medium'),('wide','Wide'))
@@ -169,6 +228,74 @@ class UserProfile(models.Model):
     def __str__(self):
         return self.user.username  
 
+class GridSetting(models.Model):
+    create_date = models.DateTimeField(blank=True, null=True,default=datetime.date.today)
+    write_date = models.DateTimeField(blank=True, null=True,default=datetime.date.today)
+    session_id = models.CharField(blank=True, null=True, max_length=200, default="")
+    app_id = models.ForeignKey(MLApps, on_delete=models.CASCADE, blank=True, null=True)
+    user_profile_id = models.ForeignKey(UserProfile, on_delete=models.CASCADE, blank=True, null=True)
+        
+    
+class ColWidth(models.Model):
+    create_date = models.DateTimeField(blank=True, null=True,default=datetime.date.today)
+    write_date = models.DateTimeField(blank=True, null=True,default=datetime.date.today)
+    grid_id = models.ForeignKey(GridSetting, on_delete=models.CASCADE, blank=True, null=True) 
+    field = models.CharField(blank=True, null=True, max_length=200, default="")
+    value = models.CharField(blank=True, null=True, max_length=200, default="")    
+    
+class Document(models.Model):
+    docfile = models.FileField()
+    #fields to store the images/pdfs retrieved from Quantum's file/image server
+    source_pk = models.IntegerField(default=80) 
+    source_table = models.CharField(blank=True,null=True,default="",max_length=120)
+    server_url = models.CharField(blank=True,null=True,default="",max_length=120)
+    server_port = models.IntegerField(default=80) 
+    url_path = models.CharField(blank=True,null=True,default="",max_length=120)
+    file_name = models.CharField(blank=True,null=True,default="",max_length=120)
+    file_extension = models.CharField(blank=True,null=True,default="",max_length=20)
+    file_key = models.IntegerField(default=1)
+    file_hash = models.CharField(blank=True,null=True,default="",max_length=20)
+    create_date = models.DateTimeField(blank=True, null=True,default=datetime.date.today)
+    session_id = models.CharField(blank=True, null=True, max_length=200, default="")
+
+class OracleConnection(models.Model):
+ 
+    name = models.CharField(max_length=200, default="", blank=True, null=True)
+    conn_str = models.CharField(max_length=200, blank=True, null=True)
+    schema = models.CharField(max_length=200, blank=True, null=True)
+    url = models.CharField(max_length=2000, blank=True, null=True)
+    key = models.CharField(max_length=200, blank=True, null=True)
+    secret = models.CharField(max_length=200, blank=True, null=True)
+    host = models.CharField(max_length=200)
+    port = models.IntegerField(default=1521)
+    sid = models.CharField(max_length=200)
+    db_user = models.CharField(max_length=200)
+    db_pwd = models.CharField(max_length=200)
+    dj_user_id = models.IntegerField('Django auth user id.',default=0)
+    
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name
+
+class UserGroupProfile(models.Model):
+    quantum_cmp_key = models.IntegerField('Quantum Company Key', blank=True, null=True, default="0")
+    group = models.OneToOneField(Group, on_delete=models.CASCADE, blank=True, null=True)
+    conn_string = models.CharField('Phone Home Connection String', blank=True, null=True, max_length=200, default="")
+    private_key = models.TextField('Private Key', blank=True, null=True, max_length=300, default="")
+    public_key = models.TextField('Public Key', blank=True, null=True, max_length=300, default="")
+    priority = models.CharField(blank=True, null=True, max_length=40, default="lowest_priority", choices = (('lowest_priority','Lowest Priority'),('highest_priority','Highest Priority')))
+    
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
+        
+    def __str__(self):
+        return self.group.name
+        
+        
 class Operation(models.Model):
     session_id = models.CharField(blank=True, null=True, max_length=200, default="")
     opm_auto_key = models.IntegerField('OPM Key', default="")
@@ -222,6 +349,16 @@ class TaskLabor(models.Model):
     
     def __str__(self):
         return self.task_name
+        
+class NumberLog(models.Model):
+    session_id = models.CharField(blank=True, null=True, max_length=200, default="")
+    name = models.CharField(blank=True, null=True, max_length=200, default="None")
+    description = models.CharField(blank=True, null=True, max_length=200, default="None")     
+    sysnl_auto_key = models.IntegerField(blank=True, null=True, default="0")
+    next_number = models.CharField(blank=True, null=True, max_length=200, default="None") 
+    sequence = models.IntegerField(blank=True, null=True, default="0")                                                                        
+    def __str__(self):
+        return str(self.description)
 
 class TaskSkills(models.Model):
     session_id = models.CharField(blank=True, null=True, max_length=200, default="")
@@ -248,16 +385,23 @@ class GridOptions(models.Model):
     session_id = models.CharField(blank=True, null=True, max_length=200, default="")
     col_width_dict = models.CharField(blank=True, null=True, max_length=2000000000, default="") 
     recs_per_page = models.IntegerField(default=25) 
+    create_date = models.DateTimeField(blank=True, null=True,default=datetime.date.today)
+    write_date = models.DateTimeField(blank=True, null=True,default=datetime.date.today)
+    session_id = models.CharField(blank=True, null=True, max_length=200, default="")
+    app_id = models.ForeignKey(MLApps, on_delete=models.CASCADE, blank=True, null=True)
+    user_profile_id = models.ForeignKey(UserProfile, on_delete=models.CASCADE, blank=True, null=True)
+    
     
 class ColumnSettings(models.Model):
     name = models.CharField(max_length=200, default="", blank=True, null=True)
     field = models.CharField(max_length=200, default="", blank=True, null=True)
-    type = models.CharField(max_length=200, blank=True, null=True)
+    obj_type = models.CharField(max_length=200, blank=True, null=True)
     session_id = models.CharField(blank=True, null=True, max_length=200, default="")
     width = models.FloatField(blank=True, null=True, max_length=200, default="")
     tmpl_text = models.CharField(max_length=200, blank=True, null=True)
     seq_num = models.IntegerField(default=0)  
     groptions_id = models.ForeignKey(GridOptions, on_delete=models.CASCADE, blank=True, null=True)     
+  
   
 class QueryApi(models.Model):
  
@@ -312,6 +456,8 @@ class Companies(models.Model):
     quapi_id = models.ForeignKey(QueryApi, on_delete=models.CASCADE, blank=True, null=True)
     cmp_auto_key = models.IntegerField(default=0)
     name = models.CharField(blank=True, null=True, max_length=200)
+    ro_warning = models.CharField(blank=True, null=True, max_length=2000)
+    allow_ro = models.CharField(blank=True, null=True, max_length=200)
     is_vendor = models.BooleanField('Is Vendor', default=0)
     is_customer = models.BooleanField('Is Customer', default=0)
     is_acc_co = models.BooleanField('Is Account Company', default=0)
@@ -418,6 +564,7 @@ class StatusSelection(models.Model):
 class AppModes(models.Model):
     name = models.CharField(max_length=200, default="", blank=True, null=True)
     code = models.CharField(max_length=200, default="", blank=True, null=True)
+    sequence = models.IntegerField(default=0)
     ml_apps_id = models.ForeignKey(MLApps, on_delete=models.CASCADE, blank=True, null=True)
     active = models.BooleanField('Active', default=True) 
 
@@ -481,11 +628,10 @@ class UserQuapiRel(models.Model):
 class AuditTrail(models.Model):
     create_date = models.DateTimeField(blank=True, null=True,default=datetime.date.today)
     write_date = models.DateTimeField(blank=True, null=True,default=datetime.date.today)
-    field_changed = models.CharField(max_length=2000000, default="")
-    new_val = models.CharField(max_length=2000000, default="")
-    description = models.CharField(max_length=2200000, default="")
+    field_changed = models.CharField(max_length=2000, default="")
+    new_val = models.CharField(max_length=2000, default="")
+    description = models.CharField(max_length=2200, default="")
     quapi_id = models.ForeignKey(QueryApi, on_delete=models.CASCADE, blank=True, null=True)
-                                                                                                                                      
     user_id = models.CharField(blank=True, null=True,max_length=20, default="")
     ml_apps_id = models.ForeignKey(MLApps, on_delete=models.CASCADE, blank=True, null=True)
     status = models.CharField(blank=True, null=True, max_length=20, default="failure", choices = (('success','Success'),('failure','Failure'),('either','Either')))
@@ -639,6 +785,7 @@ class PartConditions(models.Model):
     session_id = models.CharField(blank=True, null=True, max_length=200, default="") 
     pcc_auto_key = models.IntegerField(blank=True, null=True, default=0)
     condition_code = models.CharField(blank=True, null=True, max_length=200)
+    description = models.CharField(blank=True, null=True, max_length=200)
 
     def __str__(self):
         return self.condition_code
@@ -695,7 +842,7 @@ class Consignments(models.Model):
         self.full_clean()
         return super().save(*args, **kwargs) 
 
-class Activities(models.Model):
+"""class Activities(models.Model):
     session_id = models.CharField(blank=True, null=True, max_length=200, default="") 
     activity = models.CharField(blank=True, null=True, max_length=200)
 
@@ -704,9 +851,11 @@ class Activities(models.Model):
         
     def save(self, *args, **kwargs):
         self.full_clean()
-        return super().save(*args, **kwargs)    
+        return super().save(*args, **kwargs)"""   
     
 class WOStatus(models.Model):
+    block_13_8130 = models.CharField(blank=True,null=True,default="",max_length=120)
+    ex_esn = models.CharField(blank=True,null=True,default="",max_length=120)
     uom_code = models.CharField(blank=True,null=True,default="",max_length=120)
     remarks = models.CharField(blank=True,null=True,default="",max_length=320)
     exp_date = models.DateField(blank=True, null=True,default=datetime.date.today)
@@ -785,7 +934,6 @@ class WOStatus(models.Model):
     due_date = models.DateField(blank=True, null=True,default=datetime.date.today)
     entry_date = models.DateField(blank=True, null=True,default=datetime.date.today)
     stock_line = models.CharField(blank=True, null=True, max_length=200, default="")
-                                                                                     
     pnm_auto_key = models.IntegerField(blank=True, null=True, default=0)
     part_number = models.CharField(blank=True, null=True, max_length=200, default="")
     description = models.CharField(blank=True, null=True, max_length=200, default="")
@@ -849,7 +997,10 @@ class PILogs(models.Model):
     stm_auto_key = models.CharField(blank=True, null=True, max_length=200, default="") 
     ctrl_number = models.CharField(blank=True, null=True, max_length=200, default="")
     ctrl_id = models.CharField(blank=True, null=True, max_length=200, default="")
+    stock_line = models.CharField(blank=True, null=True, max_length=200, default="")
+    part_number = models.CharField(blank=True, null=True, max_length=200, default="")
     location_code = models.CharField(blank=True, null=True, max_length=200, default="")
+    uom_code = models.CharField(blank=True, null=True, max_length=200, default="")
     active = models.BooleanField('Active', default=True)
     user_id = models.CharField(blank=True, null=True, max_length=200, default="")
     session_id = models.CharField(blank=True, null=True, max_length=2000, default="")

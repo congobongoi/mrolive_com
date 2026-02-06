@@ -13,16 +13,13 @@
     <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.common-material.min.css" />
     <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.material.min.css" />
     <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2017.2.621/styles/kendo.material.mobile.min.css" />
-	<!--script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
-    <script src="https://kendo.cdn.telerik.com/2025.4.1321/js/kendo.all.min.js"  ></script-->
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/2.4.0/jszip.js"></script>
     <script src="https://kendo.cdn.telerik.com/2020.1.114/js/jszip.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/2.4.0/jszip.js"></script>
     <script src="https://kendo.cdn.telerik.com/2017.2.621/js/jquery.min.js"></script>
     <script src="https://kendo.cdn.telerik.com/2017.2.621/js/kendo.all.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>	
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/1.7.1/clipboard.min.js"></script>
+	<!--script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script-->
 	<script type="text/javascript" src="{% static 'jquery-1.12.4.js' %}"></script>
-	<!--script type="text/javascript" src="{% static 'telerik-license.js' %}"></script-->
     <script type="text/javascript" src="{% static 'field_focus.js' %}"></script>
 	<script src="{% static 'jquery.bootstrap.modal.forms.min.js' %}"></script>
 	<script type="text/javascript" src="{% static 'jquery_tab_submit.js' %}"></script>
@@ -146,6 +143,27 @@
 				padding-right: 32px !important;
 			}
 		}
+        .loader,
+        .loader:after {
+            border-radius: 50%;
+            width: 10em;
+            height: 10em;
+        }
+        .loader {            
+            margin: 60px auto;
+            font-size: 10px;
+            position: relative;
+            text-indent: -9999em;
+            border-top: 1.1em solid rgba(255, 255, 255, 0.2);
+            border-right: 1.1em solid rgba(255, 255, 255, 0.2);
+            border-bottom: 1.1em solid rgba(255, 255, 255, 0.2);
+            border-left: 1.1em solid #ffffff;
+            -webkit-transform: translateZ(0);
+            -ms-transform: translateZ(0);
+            transform: translateZ(0);
+            -webkit-animation: load8 1.1s infinite linear;
+            animation: load8 1.1s infinite linear;
+        }
         @-webkit-keyframes load8 {
             0% {
                 -webkit-transform: rotate(0deg);
@@ -167,63 +185,22 @@
             }
         }
         #loadingDiv {
-            position:fixed;
+            position:absolute;;
             top:0;
             left:0;
             width:100%;
             height:100%;
             background-color:#000;
         }
-		/* Hide the spinner by default */
-		.loading-container {
-		  display: none; 
-		  /* Center the spinner on the screen (optional styling) */
-		  position: fixed;
-		  top: 50%;
-		  left: 50%;
-		  transform: translate(-50%, -50%);
-		  z-index: 1000; /* Ensure it is above other content */
-		}
-
-		/* Style the image to ensure correct sizing and centering within its container */
-		.spinner-graphic {
-		  width: 100px; /* Adjust size as needed */
-		  height: 100px; /* Adjust size as needed */
-		  animation: spin 2s linear infinite; /* Apply the spinning animation */
-		}
-
-		/* Keyframes for the spinning animation */
-		@keyframes spin {
-		  0% { transform: rotate(0deg); }
-		  100% { transform: rotate(360deg); }
-		}
-
-		/* Class added by JavaScript to show the spinner */
-		.is-loading {
-		  display: block;
-		}
     </style>
   </head>
   <body>
     <audio src="{% static 'error-trombone.mp3' %}" id="sad_trombone"></audio>
     <script type="text/javascript">
-	
-			function getSpinner() {
-			// Get the spinner element
-			const loadingSpinner = document.getElementById('loadingSpinner');
-            }
-			// Function to show the spinner
-			function showSpinner() {
-			  loadingSpinner.classList.add('is-loading');
-			}
-
-			// Function to hide the spinner
-			function hideSpinner() {
-			  loadingSpinner.classList.remove('is-loading');
-			}
-			
 		$(document).ready(
-		    function () {
+			function () {
+			//$("#get_due_date").kendoDatePicker();
+			//$("#due_date").kendoDatePicker();
 			error = $("#error").val();
 			//console.log(error);
 			if (error) {
@@ -239,11 +216,10 @@
 			
 			    var $form = $(this);
 				var id_clicked = e.target.id;
-				var charCode = e.keyCode || e.which;
-
+				var charCode = e.keyCode || e.w
+	
 			if (id_clicked=='update_submitted' || id_clicked=='update_cancel') {
-			
-	            showSpinner();
+	
 				$('body').append('<div style="" id="loadingDiv"><div class="loader">Loading...</div></div>');
 					$(window).on('load', function(){
 					setTimeout(removeLoader, 0); //wait for page load PLUS two seconds.
@@ -267,7 +243,7 @@
 			
 	
 			if (id_clicked=='vendor_submit') {
-                showSpinner();
+
 				$('body').append('<div style="" id="loadingDiv"><div class="loader">Loading...</div></div>');
 					$(window).on('load', function(){
 					setTimeout(removeLoader, 0); //wait for page load PLUS two seconds.
@@ -292,7 +268,7 @@
 	
 			if (id_clicked=='search_stock') {
 	
-	            showSpinner();
+	            
 				$('body').append('<div style="" id="loadingDiv"><div class="loader">Loading...</div></div>');
 					$(window).on('load', function(){
 					setTimeout(removeLoader, 0); //wait for page load PLUS two seconds.
@@ -318,10 +294,6 @@
 		    });					
 	    })
     </script>
-	
-<div class="loading-container" id="loadingSpinner">
-  <img src="{% static 'turbine.gif' %}" alt="Loading..." class="spinner-graphic">
-</div>
 <div class="mro-header-wrapper">
 	<section id="mrotop"></section>
 	<div class="grid-container mro-header">
@@ -484,10 +456,6 @@
 						{% endfor %}
 					  </select>
 					</div>
-					<div class="cell large-4 medium-6 small-12">
-                      <label>Vendor</label>
-					  {{ form.vendor }}
-                    </div>
 					<div class="cell large-4 medium-6 small-12">
 					  <label>Part Number</label>
 					  <!--input type="text" id="wo_number" name="wo_number" value="{{ wo_number }}" placeholder="10034-COR-02..." /-->
@@ -662,7 +630,7 @@ $(function() {
 							{% endfor %}
 						  </datalist-->
 						</div>						  
-						<!--div class="cell large-6 medium-6 small-12">
+						<div class="cell large-6 medium-6 small-12">
 						  <label><strong>Instructions:</strong></label>
 						  <input type="radio" id="bench_test" name="instr" value="bench test"/>
 						  <label for="html">Bench Test</label>
@@ -691,7 +659,7 @@ $(function() {
 						  <input type="checkbox" id="others" name="cert" value="Others"/>
 						  <label for="html">Others</label>
 						</div>							
-						<div class="cell large-6 medium-6 small-12">
+						<!--div class="cell large-6 medium-6 small-12">
 						  <label>MOD</label>
 						  
 						  <input type="radio" id="inspect" name="mod" value="Inspect"/>
@@ -710,7 +678,7 @@ $(function() {
 						  <label for="html">Export</label>
 						</div-->
 						<div class="cell large-6 medium-6 small-12">
-						  <label><strong>Notes:</strong></label>
+						  <label><strong>Special Instructions:</strong></label>
 						  <textarea type="text" name="upd_notes" id="upd_notes"></textarea>
 						</div>
 			<!--/div>
@@ -773,8 +741,6 @@ $(function() {
                 <form method="POST" id="sysnl_form" name="sysnl_form">
                   {% csrf_token %}
                   <input type="hidden" name="is_sysnl_form" id="is_sysnl_form" value="1"/>
-				  <input type="hidden" name="rdx_sel" id="rdx_sel" value="{{rdx_sel}}"/>
-				  <input type="hidden" name="site_sel" id="site_sel" value="{{site_sel}}"/>
 				  <input type="hidden" name="user_in" id="user_in" value="{{user_in}}"/>
 				  <input type="hidden" name="vend_input" id="vend_input" value="{{vend_input}}"/>
                   <input type="hidden" name="mode_selector" id="mode_selector" value="{{ active_mode }}"/>
@@ -789,8 +755,6 @@ $(function() {
 				  <input type="hidden" name="user_session" id="user_session" value="{{ user_session }}"/>
 				  <input type="hidden" name="user_auto_key" id="user_auto_key" value="{{ user_auto_key }}"/>
 				  <input type="hidden" name="show_sysnl" id="show_sysnl" value="done"/>
-				  <input type="hidden" name="show_rdx" id="show_rdx" value="{{shown_rdx}}"/>
-				  <input type="hidden" name="shown_site" id="shown_site" value="{{shown_site}}"/>
 				  <input type="hidden" name="session_id" id="session_id" value="{{ session_id }}"/>
 				  
 				  {% for stm in stm_keys %}
@@ -809,7 +773,7 @@ $(function() {
 				  <div><br/><br/><br/><br/></div>	
 				  <div class="cell large-6 medium-6 small-12">
 				    <button class="secondary button shadow" class="close" data-dismiss="modal" name="mod_cancel" value="1" style="float:right; margin-top:-50px;" id="mod_cancel">Cancel</button>
-					<button class="secondary button shadow" name="seq_submit" value="1" style="float:left; margin-top:-50px;" id="pn_info_submit" type="submit" onclick="this.disabled=true,this.form.submit();">Update</button>
+					<button class="secondary button shadow" name="pn_info_submit" value="1" style="float:left; margin-top:-50px;" id="pn_info_submit" type="submit" onclick="this.disabled=true,this.form.submit();">Update</button>
 				  </div>				  
                 </form>          
             </div>
@@ -837,10 +801,6 @@ $(function() {
                   {% csrf_token %}
                   <input type="hidden" name="ro_warn_form" id="ro_warning_form" value="1"/>
 				  <input type="hidden" name="sysnl" id="sysnl" value="{{log_choice}}"/>
-				  <input type="hidden" name="rdx_sel" id="rdx_sel" value="{{rdx_sel}}"/>
-				  <input type="hidden" name="site_sel" id="site_sel" value="{{site_sel}}"/>
-				  <input type="hidden" name="show_rdx" id="show_rdx" value="{{shown_rdx}}"/>
-				  <input type="hidden" name="shown_site" id="shown_site" value="{{shown_site}}"/>
 				  <input type="hidden" name="vend_input" id="vend_input" value="{{vend_input}}"/>
                   <input type="hidden" name="mode_selector" id="mode_selector" value="{{ active_mode }}"/>
 				  <input type="hidden" name="wo_stock_stat" id="wo_stock_stat" value="{{ stock_status }}"/>
@@ -892,8 +852,6 @@ $(function() {
             <div class="modal-body">
                 <form method="POST" id="update_stock" name="update_stock">
                   {% csrf_token %}
-				  <input type="hidden" name="rdx_sel" id="rdx_sel" value="{{rdx_sel}}"/>
-				  <input type="hidden" name="site_sel" id="site_sel" value="{{site_sel}}"/>
 				  <input type="hidden" name="session_id" id="session_id" value="{{ session_id }}"/>
 				  <input type="hidden" name="user_auto_key" id="user_auto_key" value="{{ sysur_auto_key }}"/>
 				  <input type="hidden" name="filter_serial"  id="filter_serial" value="{{ serial_number }}"/>
@@ -946,7 +904,7 @@ $(function() {
                                 {% endfor %}
 							  </datalist-->
 							</div>						  
-							<!--div class="cell large-4 medium-6 small-12">
+							<div class="cell large-4 medium-6 small-12">
 							  <label>Instructions:</label>
 							  <input type="radio" id="bench_test" name="instr" value="bench test"/>
 							  <label for="html">Bench Test</label>
@@ -975,7 +933,7 @@ $(function() {
 							  <input type="checkbox" id="others" name="cert" value="Others"/>
 							  <label for="html">Others</label>
 							</div>							
-							<div class="cell large-4 medium-6 small-12">
+							<!--div class="cell large-4 medium-6 small-12">
 							  <label>MOD</label>
 							  
 							  <input type="radio" id="inspect" name="mod" value="Inspect"/>
@@ -994,7 +952,7 @@ $(function() {
 							  <label for="html">Export</label>
 							</div-->
 							<div class="cell large-4 medium-6 small-12">
-							  <label>Notes:</label>
+							  <label>Special Instructions:</label>
 							  <textarea type="text" name="upd_notes" id="upd_notes"></textarea>
 							</div>
 							<div class="cell large-4 medium-6 small-12">
@@ -1041,8 +999,6 @@ $(function() {
             <div class="modal-body">
                 <form method="POST" id="vendor_form" name="vendor_form">
                   {% csrf_token %}
-				  <input type="hidden" name="rdx_sel" id="rdx_sel" value="{{rdx_sel}}"/>
-				  <input type="hidden" name="site_sel" id="site_sel" value="{{site_sel}}"/>
                   <input type="hidden" name="is_vendor_form" id="is_vendor_form" value="1"/>
 				  <input type="hidden" name="user_in" id="user_in" value="{{user_in}}"/>
 				  <input type="hidden" name="active_mode" id="active_mode" value="{{ active_mode }}"/>
@@ -1112,150 +1068,6 @@ $(function() {
       </div>
 	  {% endif %}  
     <!-- End modal error popup -->
-<script>
-$(function() {
-    $("#myModal").modal();//if you want you can have a timeout to hide the window after x seconds
-});
-</script>
-<!-- Modal -->
-{% if company_sites %}
-<div class="modal fade" id="myModal" role="dialog">
-  <div class="modal-dialog">
-	  <!-- Modal content-->
-	<div class="modal-content">
-	  <div class="modal-header">
-		<button type="button" class="close" data-dismiss="modal">&times;</button>
-		  <h4 class="modal-title">Choose Site</h4>
-	  </div>
-	  <div class="modal-body">
-		<form method="POST" id="site_rdx_form" name="site_rdx_form">
-		  {% csrf_token %}
-          <input type="hidden" name="rdx_sel" id="rdx_sel" value="{{rdx_sel}}"/>
-		  <input type="hidden" name="site_sel_form" id="site_sel_form" value="1"/>
-		  <input type="hidden" name="sysnl" id="sysnl" value="{{log_choice}}"/>
-		  <input type="hidden" name="vend_input" id="vend_input" value="{{vend_input}}"/>
-		  <input type="hidden" name="mode_selector" id="mode_selector" value="{{ active_mode }}"/>
-		  <input type="hidden" name="wo_stock_stat" id="wo_stock_stat" value="{{ stock_status }}"/>
-		  <input type="hidden" name="repair_type" id="repair_type" value="{{ repair_type }}"/>
-		  <input type="hidden" name="socond_code" id="socond_code" value="{{ socond_code }}"/>
-		  <input type="hidden" name="mode_code" id="mode_code" value="{{ mode_code }}"/>
-		  <input type="hidden" name="location_code" id="location_code" value="{{ location_code }}"/>
-		  <input type="hidden" name="ro_number" id="ro_number" value="{{ ro_number }}"/>
-		  <input type="hidden" name="separate_ros" id="separate_ros" value="{{ separate_ros }}"/>
-		  <input type="hidden" name="stock_lab" id="stock_lab" value="{{ stock_lab }}"/>
-		  <input type="hidden" name="user_session" id="user_session" value="{{ user_session }}"/>
-		  <input type="hidden" name="user_auto_key" id="user_auto_key" value="{{ user_auto_key }}"/>
-		  <input type="hidden" name="show_sysnl" id="show_sysnl" value="done"/>
-		  <input type="hidden" name="shown_site" id="shown_site" value="{{shown_site}}"/>
-		  <input type="hidden" name="shown_rdx" id="shown_rdx" value="{{shown_rdx}}"/>
-		  <input type="hidden" name="session_id" id="session_id" value="{{ session_id }}"/>
-		 {% for stm in stm_keys %}
-		 <input type="hidden" name="stm_key_list[]" id="stm_key_list[]" value="{{ stm }}" checked="checked"/>				
-		 {% endfor %}
-		 <div class="mro-lightsearch">
-		   <div class="grid-x grid-padding-x">
-			 <div class="large-6 small-12 cell" style="width:100%;">
-			   <div class="grid-x grid-padding-x align-middle">
-				 {% if company_sites %}
-				 <div class="cell large-6 medium-6 small-12">
-					<label>Use Default</label>
-					<input type="checkbox" name="use_default_site" value="1"/>
-				  </div>	
-				 <div class="cell large-6 medium-6 small-12">					  
-				  <label>Sites</label>
-				  <select name="site_sel" id="site_sel" style="background-color:#cacaca;">
-					<option value=""> -- No Selection -- </option>
-					{% for cst in company_sites %}	
-						<option value="{{ cst.cst_auto_key }}">{{ cst.description }}-{{ cst.ship_name }}</option>
-					{% endfor %}
-				  </select>
-				</div>
-				{% endif %}
-				<div><br/><br/><br/><br/><br/><br/></div>	
-				<div class="cell large-6 medium-6 small-12">
-				  <button class="secondary button shadow" name="cst_submit" style="float:right;" id="cst_submit" type="submit">Go</button>
-				</div>					 
-              </form>
-			</div>
-		  </div>                
-		</div>
-      </div>				
-    </div>
-  </div>                
-</div>
-</div>
-{% endif %}
-<script>
-$(function() {
-    $("#myModal").modal();//if you want you can have a timeout to hide the window after x seconds
-});
-</script>
-<!-- Modal -->
-{% if rolodexes %}
-<div class="modal fade" id="myModal" role="dialog">
-  <div class="modal-dialog">
-  <!-- Modal content-->
-    <div class="modal-content">
-	  <div class="modal-header">
-	    <button type="button" class="close" data-dismiss="modal">&times;</button>
-		<h4 class="modal-title">Choose Rolodexes</h4>
-	  </div>
-	  <div class="modal-body">
-        <form method="POST" id="rdx_form" name="rdx_form">
-		  {% csrf_token %}
-		  <input type="hidden" name="ro_warn_form" id="ro_warning_form" value="1"/>
-		  <input type="hidden" name="site_sel" id="site_sel" value="{{site_sel}}"/>
-		  <input type="hidden" name="sysnl" id="sysnl" value="{{log_choice}}"/>
-		  <input type="hidden" name="vend_input" id="vend_input" value="{{vend_input}}"/>
-		  <input type="hidden" name="mode_selector" id="mode_selector" value="{{ active_mode }}"/>
-		  <input type="hidden" name="wo_stock_stat" id="wo_stock_stat" value="{{ stock_status }}"/>
-		  <input type="hidden" name="repair_type" id="repair_type" value="{{ repair_type }}"/>
-		  <input type="hidden" name="socond_code" id="socond_code" value="{{ socond_code }}"/>
-		  <input type="hidden" name="mode_code" id="mode_code" value="{{ mode_code }}"/>
-		  <input type="hidden" name="location_code" id="location_code" value="{{ location_code }}"/>
-		  <input type="hidden" name="ro_number" id="ro_number" value="{{ ro_number }}"/>
-		  <input type="hidden" name="separate_ros" id="separate_ros" value="{{ separate_ros }}"/>
-		  <input type="hidden" name="stock_lab" id="stock_lab" value="{{ stock_lab }}"/>
-		  <input type="hidden" name="user_session" id="user_session" value="{{ user_session }}"/>
-		  <input type="hidden" name="user_auto_key" id="user_auto_key" value="{{ user_auto_key }}"/>
-		  <input type="hidden" name="show_sysnl" id="show_sysnl" value="done"/>
-		  <input type="hidden" name="shown_site" id="shown_site" value="{{shown_site}}"/>
-		  <input type="hidden" name="shown_rdx" id="shown_rdx" value="{{shown_rdx}}"/>
-		  <input type="hidden" name="session_id" id="session_id" value="{{ session_id }}"/>
-		  {% for stm in stm_keys %}
-		  <input type="hidden" name="stm_key_list[]" id="stm_key_list[]" value="{{ stm }}" checked="checked"/>				
-		  {% endfor %}
-		 <div class="mro-lightsearch">
-		   <div class="grid-x grid-padding-x">
-			 <div class="large-6 small-12 cell" style="width:100%;">
-			   <div class="grid-x grid-padding-x align-middle">
-				 <div class="cell large-6 medium-6 small-12">
-					<label>Use Default Rolodex</label>
-					<input type="checkbox" name="use_default_rdx" value="1"/>
-				 </div>
-				 <div class="cell large-6 medium-6 small-12">					  
-				   <label>Rolodex</label>
-				   <select name="rdx_sel" id="rdx_sel" style="background-color:#cacaca;">
-					 <option value=""> -- No Selection -- </option>
-					 {% for rdx in rolodexes %}	
-					 <option value="{{ rdx.rdx_auto_key }}">{{ rdx.name }}, {{ rdx.title }}</option>
-					 {% endfor %}
-				   </select>
-				 </div>
-				 <div><br/><br/><br/><br/><br/><br/></div>	
-				 <div class="cell large-6 medium-6 small-12">
-				   <button class="secondary button shadow" name="rdx_submit" style="float:right;" id="rdx_submit" type="submit">Go</button>
-				 </div>
-			   </div>                
-			 </div>
-		   </div>	
-         </div>			
-       </form>          
-	  </div>
-	</div>                
-  </div>
-</div>
-	{% endif %}
 	<script type="text/x-kendo-template" id="template">
 		<div id="toolbar"></div>
 	</script> 
@@ -1263,11 +1075,11 @@ $(function() {
       <div class="grid-container mro-bottom-section">
 	      <div class="grid-x grid-padding-x">	
 			{% if all_woos %}
+																																																		  
+		  
 			<div class="centered grid" id="grid" name="grid">
-			<ul id="context-menu">
-				<li id="copyText">Copy Text</li>
-			</ul>
-		    <!--div class="counter_wrap">
+			  <!--div class="counter_wrap">
+		         
 			     <input type="button" class="primary button shadow" value="UPDATE" name="wo_update" id="wo_update"/>			 
 				 <input type="text" class="sel_rows" id="sel_rows" name="sel_rows" size="4" value="{{ sel_rows }}" readonly>of     <input type="text" class="total_rows" id="total_rows" name="total_rows" value="{{ total_rows }}" size="5" readonly>
 			  </div>
@@ -1275,6 +1087,7 @@ $(function() {
 			  <input type="text" class="sel_rows" id="sel_rows" name="sel_rows" size="4" value="{{ sel_rows }}" readonly>of    
 			  <input type="text" class="total_rows" id="total_rows" name="total_rows" value="{{ total_rows }}" size="5" readonly>
 			</div-->	
+
 			<!--/script-->
 								
 			<script>
@@ -1368,8 +1181,7 @@ $(function() {
 						reorderable: true,
 						resizable: true,
 						columnMenu: true,
-                        selectable: "multiple",
-						//allowCopy: true,
+                        selectable: "multiple, row",
 						persistSelection: true,
                         navigatable: false,
 						change: onChange,
@@ -1535,7 +1347,6 @@ $(function() {
 						var id_clicked = e.target.id;
 						var updateForm = $("#update_form");
 						if (id_clicked == 'launch_upd') {
-						    showSpinner();
 							$('body').append('<div style="" id="loadingDiv"><div class="loader">Loading...</div></div>');
 								$(window).on('load', function(){
 								setTimeout(removeLoader, 0); //wait for page load PLUS two seconds.
@@ -1624,40 +1435,25 @@ $(function() {
 							e.stopPropagation();
 						}
 					});
-				    //////////////////////////////////////////////////////////////////////////////////
-
-					$("#context-menu").kendoContextMenu({
-						target: "#grid",
-						filter: "td",
-						select: function (e) {
-							var cell = e.target;
-							var row = $(cell).parent()[0];
-							var grid = $("#grid").getKendoGrid();
-							var itemId = e.item.id;
-                            console.lo
-							var cellText = cell.innerText;
-
-							if (itemId === 'copyText') {
-								new Clipboard('#copyText', {
-									text: function (trigger) {
-										return cellText;
-									}
-								});
-							};
-						}
-					});
-
-					$(document).on("mousedown", "td", function (e) {
-						setTimeout(function () {
-							$("#grid").data("kendoGrid").saveRow();
-						})
-					});
 				});
 			  </script>	
 	            </div>	
 			{% endif %}
 		  </div>
-
+        <!--div class="grid-x mro-pagination-section">
+          <!-- <div class="cell large-5 medium-6 small-12">
+            <a class="mrotop" href="#mrotop" data-smooth-scroll><span>^</span> Back to Top</a>
+          </div> -->
+			<!--div class="cell large-4 medium-4 small-4"></div>
+        	<div class="cell large-4 medium-4 small-4 grid-x align-center">
+            	<a class="mrotop" href="#mrotop" data-smooth-scroll><span>^</span> Back to Top</a>
+          	</div>
+		  	<div class="cell large-4 medium-4 small-4"></div>	
+        </div>		  
+	    </div>
+	  </div-->
+	  
+				
 <div class="mro-footer-wrapper">
 	<div class="grid-container mro-footer">
 		<div class="grid-x">

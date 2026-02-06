@@ -184,9 +184,25 @@
 				error = $("#error").val();
 				if (error) {
 				   $("#my_audio").get(0).play();
-				}			
-			}
-		)
+				}		
+
+            var reserveForm = $("reserve_form");
+			reserveForm.on('keyup keypress', function(e) {
+			
+			    var keyCode = e.keyCode || e.which;
+				var id_clicked = e.target.id;
+				
+				if (keyCode === 13 && id_clicked != 'quantity') {
+					e.preventDefault();
+					return false;
+				}
+				
+				if (keyCode === 9 && id_clicked == 'quantity') {
+					e.preventDefault();
+					reserveForm.submit()
+				}
+			});							
+		})
     </script>
 <div class="mro-header-wrapper">
 	<section id="mrotop"></section>
@@ -229,7 +245,7 @@
 $(function() {
     $("#errorModal").modal();//if you want you can have a timeout to hide the window after x seconds
 	$('#label').trigger('focus');
-	console.log("error thrown.");
+	//console.log("error thrown.");
 });
 </script> 
     <!-- Modal -->
@@ -617,7 +633,7 @@ $(function() {
 		</div>
 		<div class="grid-x mro-footer-bottom">
 			<div class="cell medium-5 small-12 mro-footer-bottom-left">
-				<p>Copyright &copy; 2024 MRO Live <span>|</span> <img class="mro-usa" src="{% static 'dist/assets/img/usa.png' %}" alt="Based in USA">Based in USA</p>
+				<p>Copyright &copy; 2025 MRO Live <span>|</span> <img class="mro-usa" src="{% static 'dist/assets/img/usa.png' %}" alt="Based in USA">Based in USA</p>
 			</div>
 			<!--div class="cell medium-7 small-12 mro-footer-bottom-right">
 				<p><img src="{% static 'dist/assets/img/sectigo.png' %}" /> | Have Questions, Comments, or Concerns? <a href="mailto:Sales@MROLive.com">Get In Touch at Sales@MROLive.com</a></p>

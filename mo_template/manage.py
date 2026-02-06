@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+"""MRO Live version 1.01.01"""
 """Django's command-line utility for administrative tasks."""
 import os
 import sys

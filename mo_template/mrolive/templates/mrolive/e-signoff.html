@@ -22,6 +22,8 @@
     <script src="https://kendo.cdn.telerik.com/2017.2.621/js/jquery.min.js"></script>
     <script src="https://kendo.cdn.telerik.com/2017.2.621/js/kendo.all.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>	
+	<script src="https://demos.telerik.com/kendo-ui/content/shared/js/console.js"></script>
+    <script src="https://demos.telerik.com/kendo-ui/content/shared/js/orders.js"></script>																							   
 	<style>
 	    .subhead {
 			color:white;
@@ -379,7 +381,7 @@ $(function() {
 			$(document).ready(
 			    function () {
 					var baseForm = $("#base_form");	
-                    baseUrl = "http://127.0.0.1:8000/portal/e-signoff/1"					
+                    baseUrl = "/portal/e-signoff/1"					
 					var dataSourceArguments = {
 						autoBind: false,
 					    pageSize: 25,
@@ -402,6 +404,8 @@ $(function() {
 						}
 					}						
 					var dsg = new kendo.data.DataSource(dataSourceArguments);
+					var options = localStorage["grid-options"];
+					
 					function selectFirstRow(event) {
 					    event.sender.select("tr:eq(0)");
 					}
@@ -477,14 +481,57 @@ $(function() {
 							{pageSize: 'All', sizeValue:1000},
 						],
 					});
-                    var grid = $("#results_grid").data("kendoGrid");				
-					var counter='<div style="margin: 5px 0px;" class = "save_buttons"><a href="#" class="secondary button shadow" id="save">Set Grid</a><a href="#" class="secondary button shadow" id="load">Reset Grid</a></div><div style="margin:5px 0px;" class="counter_wrap">TOTAL: <input type="text" class="total_rows" id="total_rows" name="total_rows" value="{{ total_rows }}" size="5" readonly></div>';
-					baseForm.on('submit', function(evt){
-					    var pageSize = $('.k-input').text();	
-                        var cols = grid.getOptions().columns;
-						var colOptions = kendo.stringify(cols);					
-						$("#options_col").val(colOptions);						
-						$("#options_pagesize").val(pageSize);
+					
+
+					$("#results_grid").find("#toolbar").kendoToolBar({
+						items: [
+							{
+								template: `
+								<a class="k-button k-button-icontext k-grid-excel" href="\#"><span class="k-icon k-i-excel"></span>Export to Excel</a>`
+							},
+							{
+								template: `
+									<div class="toolbar-buttons">
+										<input type="button" id="select_all" name="select_all" class="secondary button shadow" value="SELECT ALL"/>
+										<input type="text" class="sel_rows" id="sel_rows" name="sel_rows" size="4" value="{{ sel_rows }}" readonly>of     <input type="text" class="total_rows" id="total_rows" name="total_rows" value="{{ total_rows }}" size="5" readonly>
+									</div>`,
+								attributes: {"class":"align-buttons"}
+							},
+						]
+					});	
+					
+					// Enable select on click to allow for mobile selection of different rows
+					$("#results_grid tbody").on("click", "tr", function(e) {
+						var rowElement = this;
+						var row = $(rowElement);
+						var grid = $("#results_grid").getKendoGrid();
+
+						if (row.hasClass("k-state-selected")) {
+							var selected = grid.select();
+
+							selected = $.grep(selected, function(x) {
+								var itemToRemove = grid.dataItem(row);
+								var currentItem = grid.dataItem(x);
+			                    //$row.removeClass("k-selected");
+								return itemToRemove.id != currentItem.id
+							})
+							
+							var sel_rows = $('#sel_rows').val();
+							$('#sel_rows').val(sel_rows);
+							grid.clearSelection();
+							grid.select(selected);
+							if (selected==false) {
+							    $('#sel_rows').val(0);
+							}
+							
+							// Stop propagation to prevent Kendo's default selection behavior
+							e.stopPropagation();
+
+						}
+						else {
+							grid.select(row)
+							e.stopPropagation();
+						}
 					});
 				});
 			  </script>	
@@ -509,7 +556,7 @@ $(function() {
 
 		<div class="grid-x mro-footer-bottom">
 			<div class="cell medium-5 small-12 mro-footer-bottom-left">
-				<p>Copyright &copy; 2022 MRO Live <span>|</span> <img class="mro-usa" src="{% static 'dist/assets/img/usa.png' %}" alt="Based in USA">Based in USA</p>
+				<p>Copyright &copy; 2025 MRO Live <span>|</span> <img class="mro-usa" src="{% static 'dist/assets/img/usa.png' %}" alt="Based in USA">Based in USA</p>
 			</div>
 			<!--div class="cell medium-7 small-12 mro-footer-bottom-right">
 				<p><img src="{% static 'dist/assets/img/sectigo.png' %}" /> | Have Questions, Comments, or Concerns? <a href="mailto:Sales@MROLive.com">Get In Touch at Sales@MROLive.com</a></p>

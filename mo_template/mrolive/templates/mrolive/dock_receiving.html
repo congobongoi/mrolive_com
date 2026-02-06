@@ -90,12 +90,65 @@
 		float:right;
 		z-index:1000!important;
 		}
+        .loader,
+        .loader:after {
+            border-radius: 50%;
+            width: 10em;
+            height: 10em;
+        }
+        .loader {            
+            margin: 60px auto;
+            font-size: 10px;
+            position: relative;
+            text-indent: -9999em;
+            border-top: 1.1em solid rgba(255, 255, 255, 0.2);
+            border-right: 1.1em solid rgba(255, 255, 255, 0.2);
+            border-bottom: 1.1em solid rgba(255, 255, 255, 0.2);
+            border-left: 1.1em solid #ffffff;
+            -webkit-transform: translateZ(0);
+            -ms-transform: translateZ(0);
+            transform: translateZ(0);
+            -webkit-animation: load8 1.1s infinite linear;
+            animation: load8 1.1s infinite linear;
+        }
+        @-webkit-keyframes load8 {
+            0% {
+                -webkit-transform: rotate(0deg);
+                transform: rotate(0deg);
+            }
+            100% {
+                -webkit-transform: rotate(360deg);
+                transform: rotate(360deg);
+            }
+        }
+        @keyframes load8 {
+            0% {
+                -webkit-transform: rotate(0deg);
+                transform: rotate(0deg);
+            }
+            100% {
+                -webkit-transform: rotate(360deg);
+                transform: rotate(360deg);
+            }
+        }
+        #loadingDiv {
+            position:absolute;;
+            top:0;
+            left:0;
+            width:100%;
+            height:100%;
+            background-color:#000;
+        }
     </style>
   </head>
   <body>
     <audio src="{% static 'error-trombone.mp3' %}" id="sad_trombone"></audio>
-	<audio src="{% static 'win-click.mp3' %}" id="win_click"></audio>
     <script type="text/javascript">
+		function removeLoader(){
+			$( "#loadingDiv" ).fadeOut(500, function() {
+			  $( "#loadingDiv" ).remove(); //makes page more lightweight 
+		  });  
+		}
 			$(document).ready(
 				function () {
                 //$("#get_due_date").kendoDatePicker();
@@ -105,8 +158,44 @@
 				if (error) {
                    $("#sad_trombone").get(0).play();
 				}
+									$('body').append('<div style="" id="loadingDiv"><div class="loader">Loading...</div></div>');
+					$(window).on('load', function(){
+						setTimeout(removeLoader, 0); //wait for page load PLUS two seconds.
+					});
+					
+            var dockForm = $("#tools_form")
+			$("input").click(function(e){
+			
+			    var $form = $(this);
+				var id_clicked = e.target.id;
+				
+				
+				var charCode = e.keyCode || e.which;
+				
+				if (id_clicked=='search_orders' || id_clicked=='print_label' || id_clicked=='loc_submit') {
 
-		    })
+						$('body').append('<div style="" id="loadingDiv"><div class="loader">Loading...</div></div>');
+							$(window).on('load', function(){
+								setTimeout(removeLoader, 0); //wait for page load PLUS two seconds.
+							});	
+						e.preventDefault;								
+						dockForm.submit(); 
+					
+					if ($form.data('submitted') === true) {
+						alert("Click or hit enter only once to submit.");
+						// Previously submitted - don't submit again
+						e.preventDefault ? e.preventDefault() : (e.returnValue = false);
+						} 
+   
+					else {
+					  // Mark it so that the next submit can be ignored
+					  $form.data('submitted', true);
+					}	
+				   
+				}
+                
+			});					
+		})
     </script>
 <div class="mro-header-wrapper">
 	<section id="mrotop"></section>
@@ -222,13 +311,13 @@
                       <!--input type="text" id="get_manager" name="get_manager" value="{{ get_manager }}" placeholder="ABLAKEY..." /-->
                       {{ form.label }}					  
                     </div>
-			        {% if not error %}
+			        
 				    <div class="large-6 small-12 cell">
-				      <input class="primary button shadow" type="submit" value="Search" name="search" id="search_orders" onclick="this.disabled=true,this.form.submit();"/>
+				      <input class="primary button shadow" type="submit" value="Search" name="search_orders" id="search_orders"/>
 				    </div>
-				    {% else %}
+				    {% if msg %}
 				    <div class="large-4 medium-6 small-12 cell">
-					  <input class="primary button shadow" type="submit" value="Print Label" name="print_label" id="print_label" onclick="this.disabled=true,this.form.submit();"/>
+					  <input class="primary button shadow" type="submit" value="Print Label" name="print_label" id="print_label"/>
 					</div>	
 				    {% endif %}
 				</div>

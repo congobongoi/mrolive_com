@@ -136,18 +136,31 @@
 		}
     </style>
   </head>
-<body onload='setFocusToTextBox()'>
+<body onload='setFocusToLabelBox()'>
     <audio src="{% static 'error-trombone.mp3' %}" id="my_audio"></audio>
     <script type="text/javascript">
-			$(document).ready(
-				function () {
-					error = $("#error").val();
+        $(document).ready(
+			function () {
+				error = $("#error").val();
 					//console.log(error);
 					if (error) {
 					   $("#my_audio").get(0).play();
 					}
 				}
-			)
+			);
+
+			$('#stock_label').on('input', function() {
+				var input_text = $(this).val();
+				
+				if (input_text[0] === 'C' || input_text[0] === 'c'){
+					$('#display_type').text('STM_AUTO_KEY');
+				}
+				
+				else {
+				   $('#display_type').text('CTRL#/ID');
+				}
+			});
+					
     </script>
 <div class="mro-header-wrapper">
 	<section id="mrotop"></section>
@@ -320,9 +333,24 @@ $(function() {
 					   {{ form.stock_label }}
                     </div>
                     <div class="cell large-6 medium-6 small-12">
-                      <label>Quantity</label>
+                      <label>Quantity <span style="fontsize: 12pt;" id="uom_code" name="uom_code"></span></label>
 					   {{ form.quantity }}
                     </div>
+                    <!--div class="cell large-4 medium-4 small-8">
+                      <label></label>
+						<div class="cell large-4 medium-6 small-12">
+						  <select name="stock_uom" id="stock_uom" style="background-color:#cacaca;">
+							<option value=""> -- No Selection -- </option>
+							{% for uom in uoms %}						
+								{% if uom.uom_auto_key == uom_default %}
+								<option value="{{ sstatus.wos_auto_key }}" selected>{{ sstatus.name }}</option>
+								{% else %}
+								<option value="{{ sstatus.wos_auto_key }}">{{ sstatus.name }}</option>
+								{% endif %}							
+							{% endfor %}
+						  </select>
+						</div>
+                    </div-->
                     <div class="large-6 small-12 cell">
                       <div class="grid-x grid-padding-x align-middle mro-searchbuttonbox">
                         <div class="cell large-auto medium-6 small-12">
@@ -404,6 +432,28 @@ $(function() {
     <div class="mro-bottom-section-wrapper mro-table">
       <div class="grid-container mro-bottom-section">
 	      <div class="grid-x grid-padding-x">
+            <script>
+            $("#stock_label").focusout(function () {
+				const stock_label = $(this).val();  // get the selected subject ID from the HTML dropdown list
+                
+				if ( stock_label.length > 1 ) {
+					$.ajax({                       // initialize an AJAX request
+						type: "POST",
+						url: '{% url "get_stock_uom" %}',
+						data: {
+							'stock_label': stock_label,
+							'quapi_id': {{ quapi_id }},
+							'csrfmiddlewaretoken':$('input[name=csrfmiddlewaretoken]').val(),
+						},
+						success: function (return_data) {
+							uom_code = return_data['uom_code']
+							$("#uom_code").text('(' + uom_code + ')');	
+                            //console.log('you got some: ' + uom_code)
+						}
+					});
+				}
+			});	
+            </script>
 		    {% if all_woos %}
 	        <div class="centered results_grid" id="results_grid" name="results_grid">
 					<!--div class = "save_buttons">
@@ -443,7 +493,7 @@ $(function() {
 					});				
 					var dataSourceArguments = {
 					    autoBind: false,
-						pageSize: {{ page_size }},
+						pageSize: 2000,
 						serverPaging: true,
 						serverSorting: true,
 						transport: {
@@ -468,7 +518,7 @@ $(function() {
 							allPages: true
 						},
 						dataSource: dsg,
-						pageSize: {{ page_size }},
+						pageSize: 2000,
 						resizable: true,
                         sortable: true,
 						reorderable: true,
@@ -496,39 +546,29 @@ $(function() {
 							{% endfor %}	
                         {% else %}
 							{
-							  field: 'user_id',
-							  title: 'Emp #',
-							  width: screen.availWidth*0.14
+							  field: 'stock_line',
+							  title: 'SL #',
+							  width: 65,
 							},
 							{
-							  field: 'batch_no',
-							  title: 'Batch #',
-							  width: screen.availWidth*0.14
+							  field: 'part_number',
+							  title: 'Part Number',
+							  width: 90,
 							},
 							{
 							  field: 'quantity',
 							  title: 'Qty',
-							  width: screen.availWidth*0.14
+							  width: 80,
 							},
-							{
-							  field: 'stm_auto_key',
-							  title: 'STM',
-							  width: screen.availWidth*0.14
-							},
-							{
-							  field: 'ctrl_number',
-							  title: 'CTRL #',
-							  width: screen.availWidth*0.14
-							},
-							{
-							  field: 'ctrl_id',
-							  title: 'CTRL ID',
-							  width: screen.availWidth*0.14
-							},
+							//{
+							  //field: 'uom_code',
+							  //title: 'UoM',
+							  //width: 55,
+							//},
 							{
 							  field: 'location_code',
-							  title: 'Loc',
-							  width: screen.availWidth*0.14
+							  title: 'Location',
+							  width: 90,
 							},
 					    {% endif %}
 					    ],				
@@ -542,28 +582,8 @@ $(function() {
 							{pageSize: 100},
 							{pageSize: 500},
 							{pageSize: 2000},
-							{pageSize: 'All', sizeValue:1000},
+							{pageSize: 'All', sizeValue:2000},
 						],
-					});
-                    var grid = $("#results_grid").data("kendoGrid");
-					var counter='<div style="margin: 5px 0px;" class = "save_buttons"><a href="#" class="secondary button shadow" id="save">Set Grid</a><a href="#" class="secondary button shadow" id="load">Reset Grid</a></div><div style="margin:5px 0px;" class="counter_wrap">TOTAL: <input type="text" class="total_rows" id="total_rows" name="total_rows" value="{{ total_rows }}" size="5" readonly></div>';
-					var piForm = $("#pi_form");
-					piForm.on('submit', function(evt){
-						var pageSize = $('.k-input').text();	
-						var cols = grid.getOptions().columns;
-						var colOptions = kendo.stringify(cols);	
-						//console.log(colOptions + '\nyou got it!');						
-						$("#options_col").val(colOptions);						
-						$("#options_pagesize").val(pageSize);
-					});
-					var locForm = $("#loc_form");
-					locForm.on('submit', function(evt){
-					    var pageSize = $('.k-input').text();
-                        var cols = grid.getOptions().columns;
-						var colOptions = kendo.stringify(cols);	
-                        //console.log(colOptions + '\nLoc FORM!!!');						
-						$("#loc_col").val(colOptions);
-						$("#loc_pagesize").val(pageSize);
 					});
 				});
 			  </script>

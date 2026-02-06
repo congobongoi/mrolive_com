@@ -98,6 +98,55 @@
 		z-index:1000!important;
 		color: white;
 		}
+        .loader,
+        .loader:after {
+            border-radius: 50%;
+            width: 10em;
+            height: 10em;
+        }
+        .loader {            
+            margin: 60px auto;
+            font-size: 10px;
+            position: relative;
+            text-indent: -9999em;
+            border-top: 1.1em solid rgba(255, 255, 255, 0.2);
+            border-right: 1.1em solid rgba(255, 255, 255, 0.2);
+            border-bottom: 1.1em solid rgba(255, 255, 255, 0.2);
+            border-left: 1.1em solid #ffffff;
+            -webkit-transform: translateZ(0);
+            -ms-transform: translateZ(0);
+            transform: translateZ(0);
+            -webkit-animation: load8 1.1s infinite linear;
+            animation: load8 1.1s infinite linear;
+        }
+        @-webkit-keyframes load8 {
+            0% {
+                -webkit-transform: rotate(0deg);
+                transform: rotate(0deg);
+            }
+            100% {
+                -webkit-transform: rotate(360deg);
+                transform: rotate(360deg);
+            }
+        }
+        @keyframes load8 {
+            0% {
+                -webkit-transform: rotate(0deg);
+                transform: rotate(0deg);
+            }
+            100% {
+                -webkit-transform: rotate(360deg);
+                transform: rotate(360deg);
+            }
+        }
+        #loadingDiv {
+            position:absolute;;
+            top:0;
+            left:0;
+            width:100%;
+            height:100%;
+            background-color:#000;
+        }
     </style>
   </head>
   <body>
@@ -130,24 +179,60 @@
 			$('#task_sel').val(wot_auto_key);
 							    
 		});
+  
 		$("input").click(function(e){
+		    var id_clicked = e.target.id;
+   
+								   
+						   
+							 
+							 
+											  
+					   
+	
+   
 			if (id_clicked == 'yes_button') {
-				e.preventDefault();				
+				//e.preventDefault();				
 				$('#yes_print').val('1');
+						 
+				$('body').append('<div style="" id="loadingDiv"><div class="loader">Loading...</div></div>');
+				$(window).on('load', function(){
+					setTimeout(removeLoader, 0); //wait for page load PLUS two seconds.
+				});						   
 				printDiag.submit();	
 			}
-			var id_clicked = e.target.id;
+			
 			if (id_clicked == 'lot_search') {
+						 
+				$('body').append('<div style="" id="loadingDiv"><div class="loader">Loading...</div></div>');
+				$(window).on('load', function(){
+					setTimeout(removeLoader, 0); //wait for page load PLUS two seconds.
+				});						   
+
 				e.preventDefault();				
 				$('#is_search').val('1');
 				mgmtForm.submit();	
 			}
+			
 			if (id_clicked == 'update' || id_clicked == 'bottom_update') {
+						 
+				$('body').append('<div style="" id="loadingDiv"><div class="loader">Loading...</div></div>');
+				$(window).on('load', function(){
+					setTimeout(removeLoader, 0); //wait for page load PLUS two seconds.
+				});						   
+
 				e.preventDefault();				
 				$('#is_update').val('1');
 				mgmtForm.submit();	
 			}
+			
 			if (id_clicked == 'accept' || id_clicked == 'bottom_accept') {
+						 
+				$('body').append('<div style="" id="loadingDiv"><div class="loader">Loading...</div></div>');
+				$(window).on('load', function(){
+					setTimeout(removeLoader, 0); //wait for page load PLUS two seconds.
+				});						   
+
 				e.preventDefault();				
 				$('#is_accept').val('1');
 				mgmtForm.submit();	
@@ -210,25 +295,25 @@
 	<div class="subhead">Operations</div>
 	{% endif %}
 	{% for app in op_apps %}
-      <li><a target="_blank" href="{% if wo_number %}../{% endif %}../{{ app.ml_apps_id.code }}/{{ quapi_id }}">{{ app.ml_apps_id.name }}</a></li>
+      <li><a target="_blank" href="http://18.188.56.36:8029/portal/{{ app.ml_apps_id.code }}/{{ quapi_id }}">{{ app.ml_apps_id.name }}</a></li>
     {% endfor %}
 	{% if mgmt_apps %}
 	<div class="subhead">Management</div>
 	{% endif %}
 	{% for app in mgmt_apps %}
-      <li><a target="_blank" href="{% if wo_number %}../{% endif %}../{{ app.ml_apps_id.code }}/{{ quapi_id }}">{{ app.ml_apps_id.name }}</a></li>
+      <li><a target="_blank" href="http://18.188.56.36:8029/portal/{{ app.ml_apps_id.code }}/{{ quapi_id }}">{{ app.ml_apps_id.name }}</a></li>
     {% endfor %}
 	{% if dash_apps %}
 	<div class="subhead">Dashboards</div>
 	{% endif %}
 	{% for app in dash_apps %}
-      <li><a target="_blank" href="{% if wo_number %}../{% endif %}../{{ app.ml_apps_id.code }}/{{ quapi_id }}">{{ app.ml_apps_id.name }}</a></li>
+      <li><a target="_blank" href="http://18.188.56.36:8029/portal/{{ app.ml_apps_id.code }}/{{ quapi_id }}">{{ app.ml_apps_id.name }}</a></li>
     {% endfor %}
 	{% if setup_apps %}
 	<div class="subhead">Setup</div>
 	{% endif %}
 	{% for app in setup_apps %}
-      <li><a target="_blank" href="{% if wo_number %}../{% endif %}../{{ app.ml_apps_id.code }}/{{ quapi_id }}">{{ app.ml_apps_id.name }}</a></li>
+      <li><a target="_blank" href="http://18.188.56.36:8029/portal/{{ app.ml_apps_id.code }}/{{ quapi_id }}">{{ app.ml_apps_id.name }}</a></li>
     {% endfor %}
 	<li><a href="/portal/pass-reset/">Reset Password</a></li>
     <li><a href="/login">Logout</a></li>
@@ -238,14 +323,17 @@
     <div class="grid-container mro-top-section">
       <div class="grid-x grid-padding-x">
           <div class="mro-top-section-wrapper mro-search">
-			<form method="POST" id="mgmt_form" name="mgmt_form" onsubmit='setFocusToTextBox()'>
+			<form method="POST" id="mgmt_form" name="mgmt_form" enctype="multipart/form-data" onsubmit='setFocusToTextBox()'>
 			  <input type="hidden" name="task_sel" id="task_sel"/>
+			  <input type="hidden" name="already_printed" id="already_printed" value="{{ already_printed }}"/>
 			  <input type="hidden" name="bom_statuses" id="bom_statuses"/>
 			  <input type="hidden" name="stock_stat" id="stock_stat" value="{{stock_status}}"/>
 			  <input type="hidden" name="clear_form" id="clear_form" value="0"/>
 			  <input type="hidden" name="is_search" id="is_search" value="0"/>
 			  <input type="hidden" name="is_update" id="is_update" value="0"/>
 			  <input type="hidden" name="is_accept" id="is_accept" value="0"/>
+			  <input type="hidden" name="aut_print" id="aut_print" value="0"/>
+			  <input type="hidden" name="not_print" id="not_print" value="0"/>
 			  <input type="hidden" name="session_id" id="session_id" value="{{session_id}}"/>
 			  <input type="hidden" type="text" name="upd_pn" id="upd_pn" value="{{upd_pn}}"/>
 			  <input type="hidden" type="text" name="upd_desc" id="upd_desc" value="{{upd_desc}}"/>
@@ -331,7 +419,7 @@ $(function() {
               <h4 class="modal-title">Update Stock</h4>
             </div>
             <div class="modal-body">
-                <form method="POST" id="update_form" name="update_form">
+                <form method="POST" id="update_form" enctype="multipart/form-data" name="update_form">
                   {% csrf_token %}
 				  <input type="hidden" name="update_session" id="update_session" value="{{ session_id }}"/>
 				  <input type="hidden" name="user_auto_key" id="user_auto_key" value="{{ sysur_auto_key }}"/>
@@ -340,6 +428,7 @@ $(function() {
 				  <input type="hidden" name="filter_wo" id="filter_wo" value="{{ wo_number }}"/>
 				  <input type="hidden" name="filter_pn" id="filter_pn" value="{{ part_number }}"/>
 				  <input type="hidden" name="filter_desc"  id="filter_desc" value="{{ description }}"/>
+				  <input type="hidden" name="filter_desc"  id="filter_cons" value="{{ consignment }}"/>
 				  {% for stm in lot_list %}
 				     <input type="hidden" name="lot_sels[]" id="lot_sels[]" value="{{ stm }}" checked="checked"/>
 				  {% endfor %}
@@ -505,8 +594,12 @@ $(function() {
 								{% endfor %}
 							  </datalist>
 							</div-->
+							 <div class="cell large-6 medium-6 small-12">
+								<label>Image Import:</label>
+								<input type="file" id="img_file" name="img_file" accept="image/*,.pdf"/>
+							</div>
 							<div class="cell large-4 medium-6 small-12">
-							   <button class="primary button shadow" name="update_submitted" id="update_submitted" value="1" type="submit">Accept</button>
+							   <button class="primary button shadow" name="update_submitted" id="update_submitted" value="1" type="submit">Update</button>
 							</div>
 						  </form>  
 						  </div>
@@ -591,7 +684,8 @@ $(function() {
           <div class="modal-content">
 		    <form method="POST" id="print_diag" name="print_diag" target="_blank">
 			    {% csrf_token %}
-				<input type="hidden" id="yes_print" name="yes_print" value="1"/>
+				<input type="hidden" name="yes_print" id="yes_print" value="0"/>
+				<input type="hidden" name="no_print" id="no_print" value="0"/>
 				<input type="hidden" id="filter_wo" name="filter_wo" value="{{ wo_number }}"/>
 				<input type="hidden" id="update_pn" name="update_pn" value="{{ update_pn }}"/>
 				<input type="hidden" id="filter_session" name="filter_session" value="{{ session_id }}"/>
@@ -603,8 +697,8 @@ $(function() {
 				  <h4 class="modal-title">Print Part Label?</h4>
 				</div>
 				<div class="modal-body">
-					<input class="secondary button shadow" id="yes_button" value="Yes" style="float:left; margin-top:-15px;" type="submit" onclick="this.disabled=true,this.form.submit();">
-					<input class="secondary button shadow" id="no_button" value="No" style="margin-top:-15px;" type="submit" data-dismiss="modal">
+					<input class="secondary button shadow" id="yes_button" name="yes_button" value="Yes" style="float:left; margin-top:-15px;" type="submit">
+					<input class="secondary button shadow" id="no_button" name="no_button" value="No" style="margin-top:-15px;" type="submit">
 					<div><br/><br/></div>			
 				</div>
 			</form>
@@ -788,23 +882,40 @@ $(function() {
 							{pageSize: 'All', sizeValue:10000},
 						],
 					});
-                    var grid = $("#results_grid").data("kendoGrid");
-					if (options) {
-					    var pers_options = JSON.parse(options);
-                        console.log(pers_options.excel.fileName);
-					    if (pers_options.excel.fileName == 'lot-inspection-export.xlsx') {
-						    grid.setOptions(pers_options);
-							grid.setOptions({
-							    'dataSource':dsg,
-							});
-					    }
-                    }
-					 
-				    window.onbeforeunload = function() {
-						localStorage["grid-options"] = kendo.stringify(grid.getOptions());
+					   
+					// Enable select on click to allow for mobile selection of different rows
+					$("#results_grid tbody").on("click", "tr", function(e) {
+						var rowElement = this;
+						var row = $(rowElement);
+						var grid = $("#results_grid").getKendoGrid();
 
-						return;
-					}
+						if (row.hasClass("k-state-selected")) {
+							var selected = grid.select();
+
+							selected = $.grep(selected, function(x) {
+								var itemToRemove = grid.dataItem(row);
+								var currentItem = grid.dataItem(x);
+			                    //$row.removeClass("k-selected");
+								return itemToRemove.id != currentItem.id
+							})
+							
+							var sel_rows = $('#sel_rows').val();
+							$('#sel_rows').val(sel_rows);
+							grid.clearSelection();
+							grid.select(selected);
+							if (selected==false) {
+							    $('#sel_rows').val(0);
+							}
+							
+							// Stop propagation to prevent Kendo's default selection behavior
+							e.stopPropagation();
+
+						}
+						else {
+							grid.select(row)
+							e.stopPropagation();
+						}
+					});
 				});
 			  </script>
 	            </div>	
@@ -831,7 +942,7 @@ $(function() {
 
 		<div class="grid-x mro-footer-bottom">
 			<div class="cell medium-5 small-12 mro-footer-bottom-left">
-				<p>Copyright &copy; 2024 MRO Live <span>|</span> <img class="mro-usa" src="{% static 'dist/assets/img/usa.png' %}" alt="Based in USA">Based in USA</p>
+				<p>Copyright &copy; 2025 MRO Live <span>|</span> <img class="mro-usa" src="{% static 'dist/assets/img/usa.png' %}" alt="Based in USA">Based in USA</p>
 			</div>
 		</div>
 	</div>

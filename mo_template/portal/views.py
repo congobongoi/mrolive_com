@@ -1,4 +1,8 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python
+"""MRO Live Demo Version 1.01.01.02
+Trailing last to numbers:
+Patch .01 - 7.09.25 Fixes labor mgmt and labor tracking apps
+Patch .02 - 7.16.25 Fixes to Labor Tracking batching functionality."""
 # -*- coding: utf8 -*-
 # encoding=utf8
 from portal.forms import WODashboardForm,PIUpdateForm
@@ -9,7 +13,7 @@ from polls.models import QuantumUser,AppModes,AuditTrail
 from polls.models import MLApps,UserAppPerms,Companies
 from polls.models import Location,Warehouse,StockCart
 from polls.models import UserQuapiRel,UserProfile
-from polls.models import UserGroupProfile,StockReceiver
+from polls.models import UserGroupProfile,StockReceiver 
 from polls.models import ColumnSettings,Departments
 from polls.models import WarehouseLocation,Document,Sale,Consignments
 from polls.models import MailGroup,EventNotification,EventManager,MailMail
@@ -36,60 +40,537 @@ from django.core.exceptions import ValidationError
 from django.conf import settings
 from django.db.models import F
 from django.http import JsonResponse
-FILE_PATH = settings.MEDIA_URL
+FILE_PATH = settings.MEDIA_URL  
+BASE_PATH = '/home/ubuntu/mo_template'
 
-def create_barcodes_pymu(recs,pwidth=3,pheight=3):
+
+def get_doc_file(request):
+    # Implement your authentication and permission checks here
+    #if not request.user.is_authenticated:
+    #    raise Http404("Not authorized to access this file.")
+
+    #lookup image key and identify the image via unique identifier
+    from django.http import FileResponse
+    file_path = ''
+    req_get = request.GET
+    
+    file_hash = req_get.get('Key')    
+    filename = Document.objects.filter(file_hash = file_hash)
+    
+    if filename:
+        filename = filename and filename[0] and filename[0].file_name or ''
+        file_path = os.path.join(settings.MEDIA_ROOT, '', filename)
+        
+    if not os.path.exists(file_path):
+        raise Http404("File not found.")
+
+    return FileResponse(open(file_path, 'rb'), content_type='application/octet-stream')
+
+def report_tmpl_import(request,quapi_id=None):
+    new_status,location,filter_status = '','',''
+    user_id,user_rec,fail_ms = 'user not set',None,''
+    val_dict,form = {},{} 
+    error,msg,loc_msg,stat_msg = '','','',''
+    from polls.models import StatusSelection as stat_sel,QuantumUser as quser
+    user = request and request.user or None
+    if not (user and user.id):
+        val_dict['error'] = 'Access denied.'
+        return redirect('/login/')  
+    user_profile = user and UserProfile.objects.filter(user=user) or None   
+    user_profile = user_profile and user_profile[0] or None
+    sysur_auto_key = user_profile and user_profile.sysur_auto_key or None
+    user_name = user and user.username or 'No Username'
+    reg_user_id = user and user.is_authenticated and user.id or None
+    dj_user_id = quapi_id and UserQuapiRel.objects.filter(user=user,quapi_id=quapi_id) or None
+    dj_user_id = dj_user_id and user.id or None
+    if not reg_user_id or not dj_user_id:
+        val_dict['error'] = 'Access denied.'
+        return redirect('/login/')  
+    user_apps = user and UserAppPerms.objects.filter(user=user) or None
+    op_apps = user_apps and user_apps.filter(ml_apps_id__app_type='operations').order_by('ml_apps_id__menu_seq') or None
+    val_dict['op_apps'] = op_apps
+    mgmt_apps = user_apps and user_apps.filter(ml_apps_id__app_type='management').order_by('ml_apps_id__menu_seq') or None
+    val_dict['mgmt_apps'] = mgmt_apps
+    dash_apps = user_apps and user_apps.filter(ml_apps_id__app_type='dashboards').order_by('ml_apps_id__menu_seq') or None
+    val_dict['dash_apps'] = dash_apps
+    setup_apps = user_apps and user_apps.filter(ml_apps_id__app_type='setup').order_by('ml_apps_id__menu_seq') or None
+    val_dict['setup_apps'] = setup_apps
+    val_dict['quapi_id'] = quapi_id 
+    val_dict['apps'] = MLApps.objects.all()
+        
+    if request.method == 'GET':
+        form = WODashboardForm() 
+        
+    if request.method == 'POST':
+        req_post = request.POST
+        form = WODashboardForm(req_post, request.FILES)    
+        active_user = 'active_user' in req_post and req_post['active_user'] or ''  
+        filter_user = 'filter_user' in req_post and req_post['filter_user'] or ''        
+        user_id = 'user_id' in req_post and req_post['user_id'] or ''
+        session_id = 'session_id' in req_post and req_post['session_id'] or ''
+        if not session_id:
+            session_id = 'csrfmiddlewaretoken' in req_post and req_post['csrfmiddlewaretoken'] or ''
+          
+        val_dict.update({
+            'msg': msg,
+            'active_user': active_user or user_id,
+            'filter_user': filter_user or active_user or user_id,
+            'user_id': user_id or filter_user or active_user,
+            'user_name': user_name,            
+            'session_id': session_id,                    
+        })
+
+        if request.FILES:               
+            error,msg = import_report_temp(request,quapi_id)
+        #export_list = export_json_tmpl('CTS Basic Label')    
+            
+    val_dict['msg'] = msg
+    val_dict['error'] = error
+    val_dict['form'] = form
+    return render(request, 'mrolive/report_tmpl_import.html', val_dict)
+    
+def export_json_tmpl(tmpl_name):
+    
+    #1. search for template
+    #2. get all template lines
+    #3. loop through and create 
+    #the list of data elements in dictionaries
+    
+    from polls.models import ReportTmpl as rept,\
+        ReportTmplDetail as repline
+    
+    report_tmpl = rept.objects.filter(name=tmpl_name)
+    report_tmpl = report_tmpl and report_tmpl[0]
+    rep_lines = repline.objects.filter(rep_tmpl=report_tmpl)   
+    export_list = []
+
+    for line in rep_lines:
+        
+        db_table = line.db_table
+        db_field = line.db_field
+        db_total = ''
+        
+        if db_field and db_table:
+            db_total = str(db_table) + '.' + str(db_field)
+        
+        img_path = line.img_path or ''
+        fixed_text = line.fixed_text or ''
+        
+        inner_dict = {
+                "type": line.data_type,
+                "x": line.xcoord,
+                "y": line.ycoord,
+                "width": line.width,
+                "height": line.height,
+                "text": fixed_text,
+                "font_size": line.font_size,
+                "url": img_path,
+                "color": [
+                    line.rgb_red,
+                    line.rgb_green,
+                    line.rgb_blue,
+                ],
+                "db_field": db_total,
+                "formatting": [
+                    line.font_bold and 1 or 0,
+                    line.font_ital and 1 or 0,
+                    line.font_udrl and 1 or 0,
+                ],
+            }
+        
+        export_list.append(inner_dict)     
+        
+    print(export_list)
+    return export_list
+
+def import_report_temp(request,quapi_id): 
+    error,msg = '',''
+    detail_data,report_data,report_meta = [],[],[]
+
+    from polls.models import ReportTmpl,ReportTmplDetail
+    req_post = request.POST
+    req_files = request.FILES
+    canv_height = req_post.get('canv_height',1)
+    canv_width = req_post.get('canv_width',1)
+    page_width = req_post.get('page_width',1)
+    page_height = req_post.get('page_height',1)
+    name = req_post.get('name','new report')
+    code = req_post.get('code','new-report')
+    font_type = req_post.get('font','Helvetica')
+    left_margin = req_post.get('left_margin',0)
+    text_chunk = req_post.get('text_chunk',0)
+    textarea_chunk =req_post.get('textarea_chunk',0)
+    app_id = req_post.get('app_id',1)
+    app_id = MLApps.objects.filter(id = app_id)
+    app_id = app_id and app_id[0] or None
+    up_file = req_files['loc_whs_file']
+    file_name = up_file.name
+    file_name = file_name.replace(' ','_')
+    up_file = up_file and Document(docfile=up_file) or None
+    up_file.save()
+    file_path = BASE_PATH + FILE_PATH + file_name
+    
+    if not (code and name and page_height and page_width and app_id):
+        return 'All fields must be filled in.',msg
+        
+    report_meta.append(ReportTmpl(
+        canv_height = float(canv_height),
+        canv_width = float(canv_width),
+        page_width = float(page_width),
+        page_height = float(page_height),
+        name = name,
+        code = code,
+        app_id = app_id,
+        font_type = font_type,
+        left_margin = float(left_margin),
+        text_chunk = float(text_chunk),
+        textarea_chunk = float(textarea_chunk),
+    ))
+        
+    ReportTmpl.objects.bulk_create(report_meta)
+    rep_tmpl = ReportTmpl.objects.filter(
+        canv_height = float(canv_height),
+        canv_width = float(canv_width),
+        page_width = float(page_width),
+        page_height = float(page_height),
+        name = name,
+        code = code,
+        app_id = app_id,                 
+        )
+    rep_tmpl = rep_tmpl and rep_tmpl[0]     
+
+    with open(file_path, 'r') as file:
+        data = json.load(file)
+        
+        for row in data:
+            error = ''
+            data_type = row.get('type','text')           
+            xcoord = row.get('x',0)
+            ycoord = row.get('y',0)
+            x2coord = row.get('x2',0)
+            y2coord = row.get('y2',0)
+            if not (xcoord and ycoord) and row.get('x1',0):
+                xcoord = row.get('x1',0)
+                ycoord = row.get('y1',0)
+            #image, box, barcode width
+            width = row.get('width',3)
+            height = row.get('height',3)
+            fixed_text = row.get('text','')
+            font_type = row.get('font','')
+            img_path = row.get('url','')
+            if img_path == 'https://example.com/image.jpg':
+                img_path = ''
+            #font size, color, decorators                
+            font_size = row.get('font_size',12)
+            font_color = row.get('fontcolor',[0,0,0])
+            font_dec = row.get('formatting', [0,0,0])
+            db_field = row.get('db_field','')
+            db_table,rgb_red,rgb_green,rgb_blue = '','','',''
+                
+            if db_field:
+                db_vals = db_field.split('.',1)
+                db_field = db_vals[0]
+                if len(db_vals)>1:
+                    db_table = db_field
+                    db_field = db_vals[1]
+                
+            if rep_tmpl:
+                detail_data.append(ReportTmplDetail(
+                    data_type = data_type,
+                    xcoord = xcoord,
+                    ycoord = ycoord,
+                    x2coord = x2coord,
+                    y2coord = y2coord,
+                    height = height,
+                    width = width,
+                    fixed_text = fixed_text,
+                    font_size = font_size,
+                    rgb_red = font_color[0],
+                    rgb_green = font_color[1],
+                    rgb_blue = font_color[2],
+                    font_bold = font_dec[0],
+                    font_udrl = font_dec[1],
+                    font_ital = font_dec[2],
+                    db_field = db_field,
+                    db_table = db_table,
+                    rep_tmpl = rep_tmpl,
+                    img_path = img_path,
+                ))
+        
+        try:        
+            tmpls = ReportTmplDetail.objects.bulk_create(detail_data)
+        except Exception as e:
+            error = e
+        msg = 'Successfully added report template.'
+    if error:
+        msg = ''
+    return error,msg
+
+def create_barcodes_pymu(report_vals,app_code,tmpl_code,barcode_txt='',x_delta=-0.85):
     from reportlab.graphics.barcode import code39,code93
     from reportlab.lib.pagesizes import A4,letter,landscape
     from reportlab.lib.units import mm,inch
-    from reportlab.pdfgen import canvas                              
+    from reportlab.pdfgen import canvas
+    from reportlab.lib.colors import Color,black,red,green   
     #set the filepath and logo_path for the pdf label file.
-    file_path = "/var/www/mo_template/static/barcode.pdf" 
-    img_path = "/home/ubuntu/mo_template/static/logo.png"  
-    pagesize = (pwidth*inch, pheight*len(recs)*inch)
-    c = canvas.Canvas(file_path, pagesize=pagesize)
-    x = 1*mm                       
-    y = 87*len(recs)*mm
-    c.setPageSize((105*mm,105*len(recs)*mm)) 
+    file_path = "/home/ubuntu/mo_template/uploads/"
+    file_path += str(app_code) + "_" + str(tmpl_code) + ".pdf" 
+    img_path = "/home/ubuntu/mo_template/static/logo.jpg"
+    model_recs = report_vals['stock_recs']
+    db_val = None
+    x_delta = x_delta*mm
+    #lookup report template based on app and tmpl_code  
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+    #courier new fonts directory
+    font_path = 'C:\\Users\\Adam\\Envs\\mro_portal\\mo_template\\static\\fonts\\Courier New'
+    #reg_path = os.path.join(font_path, 'cour.ttf') 
+    path_exists = os.path.exists(font_path)
 
-    for rec in recs:    
-        
-        for elbox in rec:
+    if path_exists:
+        reg_path = os.path.join(font_path, 'cour.ttf') 
+        pdfmetrics.registerFont(TTFont('CourierNew', reg_path))
+        #bold font
+        bold_path = os.path.join(font_path, 'courbd.ttf') 
+        pdfmetrics.registerFont(TTFont('CourierNew-Bold', bold_path))
+        # Register the bold-italic font
+        boldi_path = os.path.join(font_path, 'courbi.ttf') 
+        pdfmetrics.registerFont(TTFont('CourierNew-BoldItalic', boldi_path))
+        # Register the italic font
+        italic_path = os.path.join(font_path, 'couri.ttf')
+        pdfmetrics.registerFont(TTFont('CourierNew-Italic', italic_path))
+        from reportlab.pdfbase.pdfmetrics import registerFontFamily
 
-            x_coord = elbox.get('x',0)
-            y_coord = elbox.get('y',0)
-            width = elbox.get('width',0)
-            height = elbox.get('height',0)
-            db_val = elbox.get('db_field','')
-            fontsize = elbox.get('font_size',10)
-            font_color = elbox.get('color',[])
-            img_path = elbox.get('img_path','')
+        registerFontFamily('CourierNew', 
+                           normal='CourierNew', 
+                           bold='CourierNew-Bold', 
+                           italic='CourierNew-Italic', 
+                           boldItalic='CourierNew-BoldItalic')
+    
+    if app_code:
+        app_id = MLApps.objects.filter(code = app_code)
+        app_id = app_id and app_id[0] or None
+       
+        if app_id:                                           
             
-            if elbox.get('type','') == 'text':
-                #create the text element
-                c.setFont("Helvetica",fontsize)
-                c.drawString(x_coord * mm, y_coord * mm, str(db_val))
+            from polls.models import ReportTmpl,ReportTmplDetail            
+            rep_tmpl = ReportTmpl.objects.filter(
+                code = tmpl_code,
+                app_id = app_id,                
+                )
+                           
                 
-            if elbox.get('type','') == 'barcode':
-                #create the barcode element
+            rep_tmpl = rep_tmpl and rep_tmpl[0]
+            if not rep_tmpl:
+                return 'No report template found.'
+                                                   
+            pwidth = rep_tmpl.page_width
+            pheight = rep_tmpl.page_height
+            rep_details = ReportTmplDetail.objects.filter(rep_tmpl=rep_tmpl)
+            num_reports = len(model_recs)
+            #define report starting (x,y) and page/canvas size
+            x = 1 * mm                
+            y = pheight * num_reports * inch
+            pagesize = (pwidth * inch, pheight * num_reports * inch)
+            c = canvas.Canvas(file_path, pagesize=pagesize)
+            c.setPageSize((pwidth * inch,pheight * num_reports * inch))
+            fonttype = rep_tmpl.font_type
+            c.setFont(fonttype,12)
+            textarea_chunk_size = rep_tmpl.textarea_chunk_size
+            text_chunk_size = rep_tmpl.text_chunk_size
+    
+            for rec in model_recs:
                 
-                barcode = elbox.get('barcode','') 
-                barcode39Std = code39.Extended39(barcode,\
-                    barHeight=height, barWidth=width, stop=1, checksum=0) 
-                code = barcode39Std
-                code.drawOn(c, -x_coord * mm, y_coord * mm) 
-                
-            if elbox.get('type','') == 'image':
-                c.rect(x_coord * mm, y_coord * mm, width * mm, height * mm, fill=0, stroke=1) 
-                c.drawImage(img_path,x_coord * mm,y_coord * mm,width=width,height=height,mask='auto')   
-                
-        
-        y -= 81 * mm
-        
-    error = c.save() 
-    return error   
-        
+                for elbox in rep_details:
+                    y_val = 0
+                    x_pixels = elbox.xcoord
+                    y_pixels = elbox.ycoord
+                    x2_pixels = elbox.x2coord
+                    y2_pixels = elbox.y2coord
+                    dpi = 150
+                    fonttype = rep_tmpl.font_type
+                    c.setFont(fonttype,12)
+                    #convert x and y + height/width from px to mm
+                    x_coord = x_pixels * 25.4 / dpi
+                    y_coord = y_pixels * 25.4 / dpi
+                    y_coord = pheight * 25.4 - y_coord
+                    x2_coord = x2_pixels * 25.4 / dpi
+                    y2_coord = y2_pixels * 25.4 / dpi
+                    y2_coord = pheight * 25.4 - y2_coord
+                    width = elbox.width
+                    width = int(width)
+                    height = elbox.height
+                    height = int(height)
+                    db_field = elbox.db_field
+                    db_table = elbox.db_table
+                    fixed_text = elbox.fixed_text
+                    fontsize = elbox.font_size
+                    img_path = elbox.img_path
+                    rgb_red = elbox.rgb_red / 256
+                    rgb_blue = elbox.rgb_blue / 256
+                    rgb_green = elbox.rgb_green / 256
+                    box_color = Color(rgb_red,rgb_green,rgb_blue)
+                    #font decorators
+                    font_bold = elbox.font_bold
+                    font_udrl = elbox.font_udrl
+                    font_ital = elbox.font_ital
+                    
+                    if elbox.data_type == 'checkbox':
+                        
+                        x_coord = x_coord + x_delta
+                        
+                        mm_width = 17 * 25.4 / dpi
+                        mm_height = 17 * 25.4 / dpi
+                        delta = 3
+                        yval = (y_coord - mm_height + delta)
 
+                        if mm_width and mm_height:
+                            c.rect(x_coord * mm, yval * mm,(mm_width  + delta/10) * mm,(mm_height  + delta/10) * mm,fill=0, stroke=1)
+
+                    if elbox.data_type in ['box','image'] and not img_path:
+                        
+                        x_coord = x_coord + x_delta
+                        mm_width = width * 25.4 / dpi
+                        mm_height = height * 25.4 / dpi
+                        delta = 0
+                        yval = (y_coord - mm_height + delta)
+
+                        if rgb_red > 0.00 or rgb_blue > 0.00 or rgb_green > 0.00:
+                            c.setFillColorRGB(rgb_red,rgb_green,rgb_blue)
+                            
+                        if mm_width and mm_height:
+                            c.rect(x_coord * mm, yval * mm,(mm_width  + delta/10) * mm,(mm_height  + delta/10) * mm, fill=1, stroke=1)
+
+                    if elbox.data_type in ['line']:
+                            
+                        delta = 3.5
+                        dpi = 150
+                        #convert x and y + height/width from px to mm
+                        x1_coord = x_pixels * 25.4 / dpi
+                        y1_coord = y_pixels * 25.4 / dpi
+                        y1_coord = pheight * 25.4 - y1_coord + delta
+                        x2_coord = x2_pixels * 25.4 / dpi
+                        y2_coord = y2_pixels * 25.4 / dpi
+                        y2_coord = pheight * 25.4 - y2_coord + delta
+
+                        if rgb_red > 0.00 or rgb_blue > 0.00 or rgb_green > 0.00:
+                            c.setFillColorRGB(rgb_red,rgb_green,rgb_blue)
+                        
+                        c.line((x1_coord - delta)* mm, y1_coord * mm, (x2_coord - delta)* mm, y2_coord * mm)
+                    
+                    if elbox.data_type in ['text','textarea']:
+                        
+                        x_coord = x_coord + x_delta
+              
+                        if font_bold or fontsize:
+                            
+                            if font_bold:
+                                if not font_ital:
+                                    fonttype += '-Bold'
+                                  
+                                else:
+                                    fonttype += '-BoldItalic'
+                            
+                            elif font_ital:
+                                fonttype += '-Italic'
+                                                                
+                            if font_udrl:
+                                underline = True
+                                
+                            c.setFont(fonttype,fontsize)
+                      
+                        if rgb_red > 0.00 or rgb_blue > 0.00 or rgb_green > 0.00:
+                            c.setFillColorRGB(rgb_red,rgb_green,rgb_blue)
+
+                        db_val = db_field and getattr(rec, db_field)
+                        line_height = 2
+                        yval = y_coord
+                        decrem = line_height * fontsize * 25.4 / dpi
+                        text_lines = fixed_text and fixed_text.split('\n') or []
+                        num_lines = len(text_lines)
+                        textobject = c.beginText()
+                        
+                        if db_val:
+                            
+                            line_text = str(db_val)                         
+                            
+                            if elbox.data_type not in ['textarea']:
+                                line_text = line_text[:text_chunk_size] 
+                                textobject.setTextOrigin(x_coord * mm, yval * mm,)
+                                textobject.textLine(line_text)
+                                c.drawText(textobject)
+                                yval = yval - decrem
+                                    
+                            else:
+                                chunk_size = textarea_chunk_size
+                                import textwrap
+                                chunkies = textwrap.wrap(line_text, textarea_chunk_size)
+                                
+                                for chk in chunkies:
+                                    
+                                    textobject.setTextOrigin(x_coord * mm, yval * mm,)
+                                    textobject.textLine(chk)
+                                    c.drawText(textobject)
+                                    yval = yval - decrem
+                            
+                        else:   
+                            
+                            for line in text_lines:
+                                                    
+                                line_text = str(line)            
+                                #c.drawString(x_coord * mm, yval * mm, str(line))
+                                textobject.setTextOrigin(x_coord * mm, yval * mm,)
+                                textobject.textLine(line_text)
+                                c.drawText(textobject)
+                                #c.setFillColor(black)
+                                yval = yval - decrem
+                        
+                        c.setFillColor(black)
+                        
+                    c.setFont(fonttype,fontsize)
+                                                    
+                    if elbox.data_type == 'barcode':
+                         
+                        x_coord = x_coord + x_delta
+                        #create the barcode element
+                        #barcode_text = fixed_text
+                        
+                        #if db_field:
+                        #    barcode_text = getattr(rec, db_field)
+                            
+                        #barcode_text = barcode_text and str(barcode_text) or fixed_text
+                        barcode_text = barcode_txt
+                        mm_height = height * 25.4 / dpi
+                        yval = y_coord - mm_height
+                        height = height / dpi
+                        
+                        mm_width = width * 25.4 / dpi
+                        #(11 dots * 25.4 mm/inch / 150 dots/inch) = mm_width
+                        sfactor = 11 * 25.4 / dpi
+                        #1pt = 1/72 inch = 0.3528 mm
+                        pt_mm_factor = 0.3528
+                        width = mm_width / (sfactor * len(barcode_text) + 40) * pt_mm_factor * mm
+                        #width = width / dpi / 2 #width in px divided by the dpi constant
+                        barcode39Std = code39.Extended39(barcode_text,\
+                            barHeight=height * inch, barWidth=width, stop=1, checksum=0) 
+                        code = barcode39Std
+                        code.drawOn(c, (x_coord -15) * mm, yval * mm)
+
+                    if elbox.data_type == 'image' and img_path:
+                        
+                        x_coord = x_coord + x_delta
+                        mm_height = height * 25.4 / dpi
+                        mm_width = width * 25.4 / dpi
+                        y_val = y_coord - mm_height
+                        
+                        c.drawImage(img_path, x_coord * mm, y_val * mm,\
+                            width = mm_width * mm,height = mm_height * mm, mask='auto')
+                        
+                y -= pheight * mm
+                
+            error = c.save() 
+    return error      
+    
 #++++++++++++===================User Input Code============================++++++++++++++++++
 def user_input(request,quapi_id=None):
 
@@ -204,7 +685,7 @@ def user_input(request,quapi_id=None):
         'session_id': session_id,
         })
     return render(request, 'mrolive/user_input.html', val_dict) 
-    
+
 def event_notifications(request,quapi_id):
     error,msg,set_error,save_error = '','','',''
     total_rows = 0
@@ -600,7 +1081,7 @@ def stock_lookup(request,quapi_id,wo_number='',part_number=''):
             printset = app_allow and app_allow[0] and app_allow[0].printset_id
             auth_key = printset and printset.printnode_auth_key
             if printset and auth_key:
-                error = create_barcodes(val_dict,wo_number=wo_number) 
+                error = create_barcodes(val_dict) 
                 if not error:                    
                     error = printnode_pdf(printset,auth_key)
                     val_dict['error'] = error
@@ -842,6 +1323,7 @@ def labor_mgmt_detail(request,user_name='',wo_number='',conn_key=0,session_id=''
     template_path = 'mrolive/labor_mgmt_detail.html'
     val_dict,wtl_list={},[]
     total_rows,total_hours,error,msg,active_mode,dash_error = 0,0,'','','',''
+    session_id,error,msg,date_from,date_to,user_id,wo_number = '','','','','','',''
     user = request and request.user or None
     if not (user and user.id):
         val_dict['error'] = 'Access denied.'
@@ -855,6 +1337,7 @@ def labor_mgmt_detail(request,user_name='',wo_number='',conn_key=0,session_id=''
         return redirect('/login/')
     val_dict['user_id'] = user and user.username or ''
     val_dict['quapi_id'] = conn_key
+
     if request.method == 'GET':
         
         from portal.tasks import labor_dashboard
@@ -886,6 +1369,7 @@ def labor_mgmt_detail(request,user_name='',wo_number='',conn_key=0,session_id=''
         return redirect('/login/')
         
     val_dict['modes'] = modes
+    
     if request.method == 'POST':
         #this is the submit to update/add/edit users labor entries
         req_post = request.POST
@@ -894,7 +1378,7 @@ def labor_mgmt_detail(request,user_name='',wo_number='',conn_key=0,session_id=''
         lupdate = req_post.get('labor_update','')
         update_user = req_post.get('update_user','')
         wo_number = req_post.get('wo_number','')
-        user_id = req_post.get('user_id',update_user)
+        user_id = req_post.get('user_id','')
         date_start = req_post.get('date_start','')
         date_stop = req_post.get('date_stop','')
         active_mode = req_post.get('active_mode','')
@@ -918,12 +1402,14 @@ def labor_mgmt_detail(request,user_name='',wo_number='',conn_key=0,session_id=''
             wtl_list = req_post.getlist('wtl_list[]')  
         elif 'wtl_sels[]' in req_post:
             wtl_list = req_post.getlist('wtl_sels[]')            
+  
         if lsearch:
             from portal.tasks import labor_dashboard
             res = labor_dashboard.delay(conn_key,
-                session_id,user_id=user_id,is_detail=True,
-                date_from=date_start,date_to=date_stop)
+                session_id,user_id=user_id,wo_number=wo_number,
+                is_detail=True,date_from=date_start,date_to=date_stop)
             error,msg,total_hours = res.get()
+
         elif lupdate or update_submitted or is_update=='1':      
             if mod_type.upper() in ['ADD','EDIT']:
                 if not update_submitted:
@@ -1015,11 +1501,17 @@ def labor_mgmt_detail(request,user_name='',wo_number='',conn_key=0,session_id=''
         val_dict['total_rows'] = total_rows
         
     val_dict.update({
-        'error': error + dash_error,
         'msg': msg,
+        'error': error + dash_error,
         'wo_number': wo_number,
+        'date_to':date_to,
+        'date_from':date_from,
+        'user_id':user_id,
+        'session_id': session_id,
+        'conn_key': conn_key,
     })
     
+    #labor-management-detail 
     val_dict['form'] = WODashboardForm()
     return render(request, template_path, val_dict)
 
@@ -1028,7 +1520,8 @@ def labor_management(request,quapi_id=None):
     from polls.models import StatusSelection as stat_sel,QuantumUser as quser
     session_id,error,msg,date_from,date_to,user_id = '','','','','',''
     wo_number = ''
-    val_dict = {'date_to':'','date_from':'','user_id':'','quapi_id': quapi_id}
+    val_dict = {}
+    #val_dict = {'date_to':'','date_from':'','user_id':'','quapi_id': quapi_id}
     user = request and request.user or None
     if not (user and user.id):
         val_dict['error'] = 'Access denied.'
@@ -1055,6 +1548,7 @@ def labor_management(request,quapi_id=None):
     setup_apps = user_apps and user_apps.filter(ml_apps_id__app_type='setup').order_by('ml_apps_id__menu_seq') or None
     val_dict['setup_apps'] = setup_apps
     user_permitted = user_apps.filter(ml_apps_id__code="labor-management")
+
     if not user_permitted:
         val_dict['error'] = 'Access denied.'
         return redirect('/login/')         
@@ -1096,7 +1590,7 @@ def labor_management(request,quapi_id=None):
             error = 'User not found.'
         user_key = user_rec and user_rec.user_auto_key or 0
         from portal.tasks import labor_dashboard
-        res = labor_dashboard.delay(quapi_id,session_id,user_auto_key=user_key,date_from=date_from,date_to=date_to,is_mgmt=True)
+        res = labor_dashboard.delay(quapi_id,session_id,user_id=user_id,date_from=date_from,date_to=date_to,is_mgmt=True)
         error,msg,total_hours = res.get()
         labor_recs = TaskLabor.objects.filter(session_id = session_id)
         val_dict['total_rows'] = len(labor_recs)
@@ -1122,6 +1616,8 @@ def labor_management(request,quapi_id=None):
 def labor_dashboard(request,quapi_id=None):
     template_path = 'mrolive/labor_dashboard.html'
     from polls.models import StatusSelection as stat_sel,QuantumUser as quser
+    session_id,error,msg,date_from,date_to,user_id = '','','','','',''
+    wo_number = ''
     val_dict,error,msg = {},'',''
     val_dict['quapi_id'] = quapi_id 
     user = request and request.user or None
@@ -1166,11 +1662,13 @@ def labor_dashboard(request,quapi_id=None):
         date_from = req_post.get('date_from','')
         date_to = req_post.get('date_to','')
         wo_number = req_post.get('wo_number','')
-        session_id = '25hau9agh' 
+        session_id = '25hau9agh'
+        
         if not session_id:
             session_id = 'csrfmiddlewaretoken' in req_post and req_post['csrfmiddlewaretoken'] or ''
         val_dict['session_id'] = session_id      
         user_rec = None
+        
         if user_id:        
             user_rec = QuantumUser.objects.filter(quapi_id=quapi_id,user_id__iexact=user_id) or None
         if not user_rec and (user_id or user_name or user_logged):
@@ -1178,33 +1676,38 @@ def labor_dashboard(request,quapi_id=None):
         if not user_rec and user_id:
             user_rec = QuantumUser.objects.filter(quapi_id=quapi_id,employee_code__iexact=user_id) or None
         user_rec = user_rec and user_rec[0] or None
-        
         user_key = user_rec and user_rec.user_auto_key or 0
+        
         if not date_to:
             val_dict['error'] = 'Must enter start date.'
                                                                               
-                                   
         if date_from or date_to or wo_number or user_id:
             from portal.tasks import labor_dashboard
             res = labor_dashboard.delay(quapi_id,\
                 session_id,user_id=user_id,\
                 date_from=date_from,date_to=date_to,\
-                wo_number=wo_number)
+                is_dashboard=True,wo_number=wo_number)
             error,msg,total_hours = res.get()
             val_dict['total_hours'] = total_hours 
+            
         labor_recs = TaskLabor.objects.filter(session_id = session_id)
-        val_dict['total_labor_rows'] = len(labor_recs)                   
-                                                             
+        val_dict['total_labor_rows'] = len(labor_recs)                                                           
         val_dict['user_name'] = user_id
-           
-             
-                                                   
+                                                 
     form = WODashboardForm(val_dict)
     val_dict['form'] = form 
     val_dict['user'] = user
+    
     val_dict.update({
         'msg': msg,
         'error': error,
+        'wo_number': wo_number,
+        'date_to':date_to,
+        'date_from':date_from,
+        'user_id':user_id,
+        'quapi_id': quapi_id,
+        'session_id': session_id,
+        'conn_key': quapi_id,
     })
     return render(request, template_path, val_dict)   
     
@@ -1331,7 +1834,8 @@ def consumables(request,quapi_id=None):
             'form': form,  
             'options_col': options_col,
             'page_size': page_size,             
-            })          
+            })  
+       
         #if user submitted clear list form by pressing button
         if clear_form and req_post['clear_form']=='1':       
             WOStatus.objects.filter(user_id=user_logged,is_dashboard=0,active=1,is_racking=1).delete()
@@ -1357,7 +1861,7 @@ def consumables(request,quapi_id=None):
             
         """
         app_mode = sel_mode or active_mode or ''
-
+        
         if app_mode == '1':
             from portal.tasks import stock_reserve
             res = stock_reserve.delay(quapi_id,session_id,sysur_auto_key,user_id,wo_task,quantity,active_mode,ctrl_number,ctrl_id)
@@ -1480,7 +1984,7 @@ def shipping_dashboard(request,quapi_id=None):
     val_dict['error'] = error
     val_dict['form'] = form
     return render(request, 'mrolive/shipping_dashboard.html', val_dict)   
-    
+
 def shipping_mgmt(request,quapi_id=None):
     new_status,location,filter_status = '','',''
     user_id,user_rec,fail_ms = 'user not set',None,''
@@ -1633,7 +2137,7 @@ def shipping_mgmt(request,quapi_id=None):
                 
                 updated_smds = WOStatus.objects.filter(
                     session_id=session_id,
-                    ).order_by('location_code')
+                    )
 
                 scan_time = datetime.now()
                 scan_time = scan_time.strftime('%m/%d/%Y %H:%M:%S')
@@ -1728,7 +2232,7 @@ def shipping_edit(request,quapi_id=None):
             from portal.tasks import create_shipping
             res = create_shipping.delay(quapi_id,session_id,sysur_auto_key,filter_list)
             error,msg = res.get()
-                                          
+                                       
                                                                    
                 
                                  
@@ -1737,12 +2241,12 @@ def shipping_edit(request,quapi_id=None):
                                            
                   
                 
-                                                                                                
+                                                                                                                                                
             
     val_dict['msg'] = msg
     val_dict['error'] = error
     val_dict['form'] = form
-    return render(request, 'mrolive/shipping_edit.html', val_dict)  
+    return render(request, 'mrolive/shipping_edit.html', val_dict)                                                 
 
 def lot_import(request,quapi_id=None):
     new_status,location,filter_status = '','',''
@@ -1794,18 +2298,22 @@ def lot_import(request,quapi_id=None):
             'user_name': user_name,            
             'session_id': session_id,                    
         })
+
         if request.FILES:         
             lot_error,msg,fail_msg = lot_create(quapi_id,user_name,sysur_auto_key,request.FILES,session_id)
-            val_dict['fail_msg'] =fail_msg
+            val_dict['fail_msg'] = fail_msg
             grid_rows = WOStatus.objects.filter(session_id = session_id)
-            val_dict['total_rows'] = len(grid_rows)
+            val_dict['total_rows'] = 'F'
+            if fail_msg:
+                val_dict['total_rows'] = len(grid_rows)
+            
     val_dict['msg'] = msg
     val_dict['error'] = error
     val_dict['form'] = form
     return render(request, 'mrolive/lot_import.html', val_dict)  
   
 def lot_create(quapi_id,user_id,sysur_auto_key,req_files,session_id):
-    import_file,error,msg,fail_msg = None,'','','' 
+    import_file,error,msg,fail_msg,file_name = None,'','','','' 
     up_file = 'loc_whs_file' in req_files or None
     if up_file:
         up_file = req_files['loc_whs_file']
@@ -1813,7 +2321,7 @@ def lot_create(quapi_id,user_id,sysur_auto_key,req_files,session_id):
         file_name = file_name.replace(" ","")
         up_file.name = file_name
     if up_file:
-        import_file = Document(session_id=session_id,docfile=up_file)           
+        import_file = Document(file_name=file_name,session_id=session_id,docfile=up_file)           
     if import_file:
         import_file.save()
                                                                                   
@@ -1821,7 +2329,7 @@ def lot_create(quapi_id,user_id,sysur_auto_key,req_files,session_id):
         res = lot_create.apply_async(
             queue='import',
             priority=1,
-            args=[quapi_id,user_id,sysur_auto_key,session_id],
+            args=[quapi_id,user_id,sysur_auto_key,session_id,file_name],
             )
         error,msg,fail_msg = res.get()
     return error,msg,fail_msg
@@ -1867,12 +2375,18 @@ def lot_teardown(request,quapi_id=None):
     val_dict['user_name'] = user_name
     val_dict['lot_teardown'] = 't'
     session_id = 'Aioewnaisghaie2ri8lkjas'
-    from portal.tasks import get_stock_status
+    from portal.tasks import get_stock_status,get_conditions
     res = get_stock_status.delay(quapi_id,session_id)
     error = res.get()        
-    val_dict['statuses'] = StatusSelection.objects.filter(session_id=session_id)    
+    val_dict['statuses'] = StatusSelection.objects.filter(session_id=session_id)   
+    res = get_conditions.delay(quapi_id,session_id)
+    error = res.get()
+    from polls.models import PartConditions    
+    val_dict['conditions'] = PartConditions.objects.filter(session_id=session_id)
+    
     if request.method == 'GET':
         form = WODashboardForm()         
+
     if request.method == 'POST':
         req_post = request.POST
         form = WODashboardForm(req_post)   
@@ -1987,7 +2501,8 @@ def lot_teardown(request,quapi_id=None):
                 'user_name': user_name,  
                 'auto_click': 'done',                               
             }) 
-            return render(request, 'mrolive/teardown.html', val_dict)               
+            return render(request, 'mrolive/teardown.html', val_dict)
+           
         updated_woos = WOStatus.objects.filter(session_id=session_id)
         record = updated_woos and updated_woos[0] or None
         ctrl_id = record and record.ctrl_id or 0
@@ -2063,8 +2578,10 @@ def lot_teardown(request,quapi_id=None):
             'printed_by': user_name,
             'printed_date': printed_date,
             'status': status,
+            'stock_recs': updated_woos,
+            'lotdown': 1,
         }) 
-        
+
         if msg == 'Successful Teardown.':    
             part_number = ''
             serial_number = ''
@@ -2072,54 +2589,20 @@ def lot_teardown(request,quapi_id=None):
             quantity = ''
             printset = app_allow and app_allow[0] and app_allow[0].printset_id
             auth_key = printset and printset.printnode_auth_key
-            #if printset and auth_key:
-            if 1:
-                
-
-                vals = [
-                [
-                 {
-                   "type": "text",
-                        "x": 5.34558931986491,
-                        "y": 35.08397340774536,
-                        "width": 237.0,
-                        "height": 80.0,
-                        "text": " 1. Approving Civil Aviation\nAuthority/Country:\n",
-                        "font_size": 12,
-                        "color": [
-                            0,
-                            0,
-                            0
-                        ],
-                        "db_field": null
-                    },
-                    {
-                        "type": "image",
-                        "x": 8.28191757202154,
-                        "y": 92.50060717264812,
-                        "width": 108.0,
-                        "height": 56.0,
-                        "db_field": null,
-                        "img_path": "/home/ubuntu/mo_template/static/logo.jpg",
-                    },
-                    {
-                        "type": "barcode",
-                        "x": 101.5319442749023,
-                        "y": 156.72984917958578,
-                        "width": 364.0,
-                        "height": 56.0,
-                        "db_field": null
-                    }
-                ]
-                ]
-                error = create_barcodes_pymu(vals)
+            stock_recs = WOStatus.objects.filter(session_id=session_id)
+            val_dict['stock_recs'] = stock_recs
+            
+            if 0:
+                create_barcodes(element,ctrl_id,ctrl_number,pn,description,serial_no,qty,wo_number,task_list,repair)
+                              
                 #val_dict['error'] = printnode_pdf([printset],auth_key)
                 val_dict['msg'] = 'Successful teardown. Barcode label printed.'                
+            
             val_dict['app_code'] = 'lot-teardown'               
-            #if printset and auth_key: 
+
             if 1:            
-                return render(request, 'mrolive/teardown.html', val_dict)
-                #return render(request, 'mrolive/plain_barcode_unical.html', val_dict)
+                #return render(request, 'mrolive/teardown.html', val_dict)
+                return render(request, 'mrolive/plain_barcode_mro.html', val_dict)
             else:
                 if not error:
                     if not repair:
@@ -2329,12 +2812,30 @@ def exchange_portal(request,quapi_id):
         else:
             error = 'Must select rows to exchange.'       
     val_dict['form'] = form
-    return render(request, 'mrolive/exchange_portal.html', val_dict) 
+    return render(request, 'mrolive/exchange_portal.html', val_dict)
+
+def get_stock_uom(request):
+    req_post = request.POST
+    stock_label = req_post.get('stock_label','')
+    quapi_id = req_post.get('quapi_id','')
+
+    if stock_label:
+        try:
+            from portal.tasks import get_stock_uom
+            import random
+            import string
+            session_id = random.choices(string.ascii_lowercase)
+            res = get_stock_uom.delay(quapi_id,session_id,stock_label)
+            error,uom_code = res.get()
+        except Exception:           
+            return JsonResponse('error retrieving uom.')
+        return JsonResponse({'uom_code':uom_code}, safe = False)
 
 def get_parts_ajax(request):
     req_post = request.POST
     part_char = req_post.get('part_char','')
     quapi_id = req_post.get('quapi_id','')
+
     if part_char:
         try:
             from polls.models import PartNumbers
@@ -2429,7 +2930,7 @@ def e_signoff(request,quapi_id):
                 res = e_signoff.delay(quapi_id,session_id,sysur_auto_key,wot)
                 signoff_error,signoff_msg = res.get()
                 msg += signoff_msg
-                warning_msg += signoff_error
+                error += signoff_error
             wtms = WOTask.objects.filter(session_id=session_id).order_by('wot_sequence','wot_auto_key')
             val_dict.update({
                 'wtms': wtms,
@@ -2485,6 +2986,7 @@ def lot_inspection(request,quapi_id,wo_number=''):
     if request.method == 'GET':
         form = WODashboardForm()
         val_dict['wo_number'] = wo_number        
+    
     if request.method == 'POST':
         req_post = request.POST
         form = WODashboardForm(req_post)
@@ -2498,7 +3000,7 @@ def lot_inspection(request,quapi_id,wo_number=''):
         update_pn = req_post.get('update_pn','')
         notes = req_post.get('notes','')  
         consignment = req_post.get('consignment','')        
-        stock_status = req_post.get('stock_status','') or req_post.get('stock_stat','')
+        stock_status = req_post.get('stock_status','') or req_post.get('filter_status','')
         serial_number = req_post.get('serial_number','')
         upd_status = req_post.get('upd_status','')
         upd_notes = req_post.get('upd_notes','')        
@@ -2521,6 +3023,7 @@ def lot_inspection(request,quapi_id,wo_number=''):
         upd_insp_date = req_post.get('upd_insp_date','')
         upd_pn = req_post.get('upd_pn','')
         upd_desc = req_post.get('upd_desc','')
+        
         upd_cons = req_post.get('upd_cons','')
         upd_loc = req_post.get('upd_loc','')
         upd_should_be = req_post.get('upd_should_be','')
@@ -2529,16 +3032,20 @@ def lot_inspection(request,quapi_id,wo_number=''):
         upd_remarks = req_post.get('upd_remarks','')
         upd_cure_date = req_post.get('upd_cure_date','')
         update_msg = req_post.get('update_msg','')
-        sel_rows = req_post.get('sel_rows','') or 0
+        
+        #sel_rows = req_post.get('sel_rows','') or 0
         is_search = req_post.get('is_search','0')  
-        is_update = req_post.get('is_update','0') 
+        is_update = req_post.get('is_update','0')
         is_accept = req_post.get('is_accept','0')
-        yes_print = req_post.get('yes_print','1')
+        yes_print = req_post.get('yes_print','0')
+        no_print = req_post.get('no_print','0')
         session_id = req_post.get('session_id','')
         filter_session = req_post.get('filter_session','')  
+        already_printed = req_post.get('already_printed','0')
         
         if not (session_id or filter_session):
             session_id = req_post.get('csrfmiddlewaretoken','') or ''
+        
         elif filter_session:
             session_id = filter_session
         
@@ -2549,10 +3056,33 @@ def lot_inspection(request,quapi_id,wo_number=''):
             'qty_need': qty_need,            
             'session_id': session_id,
             'wo_number': wo_number,
-            'sel_rows': sel_rows,
+            #'sel_rows': sel_rows,
             'form': form,
             })
   
+        req_files = request.FILES
+        file_name,import_file,file_hash,file_ext = '','','',''
+        up_file = 'img_file' in req_files or None
+
+        if up_file:
+            up_file = req_files['img_file']
+            file_name = up_file.name
+            file_name = file_name.replace(" ","")
+            up_file.name = file_name
+            import hashlib
+            file_hash = hashlib.sha256(file_name.encode('utf-8')).hexdigest()
+            file_hash = file_hash[:50]
+            file_ext = file_name.split('.')
+            file_ext = file_ext and '.' + file_ext[1] or '.jpg'
+            
+        if up_file:
+            import_file = up_file and\
+            Document(session_id=session_id,docfile=up_file,\
+            file_name=file_name,file_hash=file_hash,file_extension=file_ext) or None
+            
+        if import_file:
+            import_file.save()
+        
         if 'lot_list[]' in req_post:
             lot_list = req_post.getlist('lot_list[]')
 
@@ -2582,7 +3112,7 @@ def lot_inspection(request,quapi_id,wo_number=''):
             """
             if 'lot_list[]' in req_post:               
                 parameters = ['',upd_notes,upd_qty,upd_cond_code,upd_sn]
-                filters = [wo_number,part_number,description,serial_number,stock_status]
+                filters = [wo_number,part_number,description,serial_number,stock_status,consignment]
                 from portal.tasks import update_accept_lots
                 res = update_accept_lots.delay(quapi_id,username,session_id,\
                     sysur_auto_key,lot_list,filters,parameters,\
@@ -2600,12 +3130,13 @@ def lot_inspection(request,quapi_id,wo_number=''):
                 })
             
         elif 'lot_list[]' in req_post and is_update == '1':
+            
             if 'lot_list[]' in req_post:
+                
                 from portal.tasks import get_conditions,get_companies,\
                     get_certs,get_stock_status,get_tag_types,\
                     get_consignment_codes,get_locations
-                #res = get_locations.delay(quapi_id,session_id)
-                #error = res.get()
+                
                 res = get_consignment_codes.delay(quapi_id,session_id)
                 error = res.get()
                 res = get_conditions.delay(quapi_id,session_id)
@@ -2618,10 +3149,11 @@ def lot_inspection(request,quapi_id,wo_number=''):
                 error = res.get()  
                 res = get_tag_types.delay(quapi_id,session_id)
                 error = res.get()            
+                
                 from polls.models import PartConditions as pcc,\
                    Companies as cmp, Departments as dept, StatusSelection as stat,\
                    StockCart as stk_cart, Consignments as cons
-                #locations = loca.objects.filter(session_id=session_id)
+                
                 cons_codes = cons.objects.filter(session_id=session_id).order_by('code')
                 conditions = pcc.objects.filter(session_id=session_id).order_by('condition_code')
                 companies = cmp.objects.filter(session_id=session_id).order_by('name')
@@ -2682,6 +3214,16 @@ def lot_inspection(request,quapi_id,wo_number=''):
                 
         elif 'lot_sels[]' in req_post and lot_list and 'yes_print' not in req_post:
             
+            if file_name:
+                
+                #call the fxn that pushes the image via sftp and creates the Quantum record
+                from portal.tasks import import_part_image
+                res = import_part_image.delay(quapi_id,session_id,lot_list,file_name,file_ext,file_hash)
+                error,msg = res.get()
+                
+                if error:
+                    val_dict['error'] = error    
+                
             if upd_cond_code or upd_qty or upd_sn or upd_notes\
                 or upd_traceable or upd_tag_date or upd_mfg_date\
                 or upd_tagged or upd_obtained or upd_status\
@@ -2702,11 +3244,14 @@ def lot_inspection(request,quapi_id,wo_number=''):
                 description = req_post.get('filter_desc','')
                 serial_number = req_post.get('filter_serial','')
                 stock_status = req_post.get('filter_status','')
-                filters = [wo_number,part_number,description,serial_number,stock_status] 
+                consignment = req_post.get('filter_cons','')
+                filters = [wo_number,part_number,description,serial_number,stock_status,consignment] 
                 
                 res = update_lots.delay(quapi_id,username,session_id,\
                     sysur_auto_key,lot_list,parameters,filters)
+                
                 error,msg = res.get()  
+            
             if not error:
                 show_modal = 'label'                
                 
@@ -2735,7 +3280,7 @@ def lot_inspection(request,quapi_id,wo_number=''):
                     'wo_number': filter_wo,
                 })
                 
-        if 'yes_print' in req_post and req_post.get('yes_print')=='1':
+        if already_printed != 'T' and 'yes_print' in req_post and req_post.get('yes_print') == '1' and lot_list:
             pnm_update = update_pn=='1' and True or False
 
             if pnm_update:
@@ -2746,13 +3291,22 @@ def lot_inspection(request,quapi_id,wo_number=''):
                 stms = WOStatus.objects.filter(\
                     session_id = session_id,\
                     stm_auto_key__in = lot_list)
+                
+            printed_date = datetime.now()
+            printed_date = printed_date.strftime('%m/%d/%Y %H:%M:%S')  
             
             val_dict.update({
-                'stms': stms,
+                'already_printed': 'T',
+                'printed_date': printed_date,
+                'stock_recs': stms,
                 'wo_number': filter_wo,
+                'si_number': filter_wo,
+                'lot_inspection': '1',
+                'inspector': user.first_name + ' ' + user.last_name,
+                'printed_by': user.first_name + ' ' + user.last_name,
                 })
                 
-            return render(request, 'mrolive/lot_insp_barcode_unical.html', val_dict)
+            return render(request, 'mrolive/plain_barcode_mro.html', val_dict)
                 
     val_dict['msg'] = update_msg or msg 
     val_dict['form'] = form
@@ -2789,13 +3343,18 @@ def lot_management(request,quapi_id):
     if not (reg_user_id and app_allow):
         val_dict['error'] = 'Access denied.'
         return redirect('/login/')   
-    if request.method == 'GET':
-        form = WODashboardForm()
-        session_id = 'annW8NK23R(*vN;ARERKTNALSD;KAJ'
-        from portal.tasks import get_stock_status
-        res = get_stock_status.delay(quapi_id,session_id)
-        error = res.get()        
-        val_dict['statuses'] = StatusSelection.objects.filter(session_id=session_id)         
+    #if request.method == 'GET':
+    form = WODashboardForm()
+    session_id = 'annW8NK23R(*vN;ARERKTNALSD;KAJ'
+    from portal.tasks import get_stock_status,get_consignment_codes
+    res = get_stock_status.delay(quapi_id,session_id)
+    error = res.get()        
+    val_dict['statuses'] = StatusSelection.objects.filter(session_id=session_id)      
+    res = get_consignment_codes.delay(quapi_id,session_id)        
+    error = res.get()
+    from polls.models import Consignments as cons
+    val_dict['cons_codes'] = cons.objects.filter(session_id=session_id)
+
     if request.method == 'POST':
         req_post = request.POST
         form = WODashboardForm(req_post)
@@ -2805,6 +3364,8 @@ def lot_management(request,quapi_id):
         description = req_post.get('description','')
         wo_number = req_post.get('wo_number','')
         notes = req_post.get('notes','') 
+        consignment = req_post.get('consignment','')
+        cons_sel = req_post.get('cons_selector','')           
         stock_status = req_post.get('stock_status','') 
         serial_number = req_post.get('serial_number','')
         instr = req_post.get('instr','')
@@ -2813,27 +3374,28 @@ def lot_management(request,quapi_id):
         is_update = req_post.get('is_update','0') 
         certifs = request.POST.getlist('cert',[])
         certifs = ', '.join(certifs)    
-        upd_notes = "Please %s- provide %s.  %s"%(instr,certifs,req_post.get('upd_notes',''))
+        upd_notes = "%s | %s.  %s"%(instr,certifs,req_post.get('upd_notes',''))
         upd_status = req_post.get('upd_status','')        
         session_id = 'session_id' in req_post and req_post['session_id'] or '' 
         if not session_id:
             session_id = req_post.get('csrfmiddlewaretoken','') or ''
-        from portal.tasks import get_stock_status
-        res = get_stock_status.delay(quapi_id,session_id)
-        error = res.get()        
-        statuses = StatusSelection.objects.filter(session_id=session_id)             
+            
+                                 
+                                                                                                                               
+                         
         val_dict.update({
             'part_number': part_number,
             'description': description,
             'serial_number': serial_number,            
-            'qty_need': qty_need,            
+            'qty_need': qty_need,                      
             'session_id': session_id,
             'wo_number': wo_number,
+            'consignement': consignment or cons_sel,
             'sel_rows': sel_rows,
             'form': form,
             'session_id': session_id,
             'stock_status': stock_status,
-            'statuses': statuses,
+              
             })
             
         if 'lot_list[]' in req_post:
@@ -2841,10 +3403,10 @@ def lot_management(request,quapi_id):
         elif 'lot_sels[]' in req_post:
             lot_list = req_post.getlist('lot_sels[]')
           
-        if is_search == '1' and (wo_number or stock_status or part_number or description or serial_number): 
+        if is_search == '1' and (wo_number or stock_status or part_number or description or serial_number or cons_sel): 
             from portal.tasks import get_lots
-            filters = [wo_number,part_number,description,serial_number,stock_status,'']
-            res = get_lots.delay(quapi_id,session_id,filters)            
+            filters = [wo_number,part_number,description,serial_number,stock_status,cons_sel]
+            res = get_lots.delay(quapi_id,session_id,filters)           
             error,msg = res.get() 
             lots = WOStatus.objects.filter(session_id = session_id)
             if not lots:
@@ -2889,6 +3451,7 @@ def lot_management(request,quapi_id):
                 'description': description,
                 'stock_status': stock_status,
                 'serial_number': serial_number,
+                'consignment': consignment,
                 'prod_pn': prod_pn,
                 'prod_desc': prod_desc,
                 'prod_cons': prod_cons,
@@ -2903,7 +3466,9 @@ def lot_management(request,quapi_id):
                 description = req_post.get('filter_desc','')
                 serial_number = req_post.get('filter_serial','')
                 stock_status = req_post.get('filter_status','')
-                filters = [wo_number,part_number,description,serial_number,stock_status,'']                
+                consignement = req_post.get('filter_cons','') 
+                filters = [wo_number,part_number,description,serial_number,stock_status,consignement]      
+
                 res = update_lots.delay(quapi_id,username,session_id,sysur_auto_key,lot_list,parameters,filters,is_mgmt=True)
                 error,msg = res.get()   
                 res = get_lots.delay(quapi_id,session_id,filters)            
@@ -2918,6 +3483,7 @@ def lot_management(request,quapi_id):
                     'description': description,                
                     'qty_need': qty_need,                              
                     'notes': notes,  
+                    'stock_status': stock_status,
                     'sel_rows': 0,                    
                 })         
     val_dict['form'] = form
@@ -3369,7 +3935,7 @@ def part_management(request,quapi_id):
                 val_dict['route_atts'] = route_atts                
     val_dict['form'] = form  
     return render(request, 'mrolive/part_management.html', val_dict) 
-    
+
 def inspection(request,quapi_id,si_number=''):
     error,new_woo_key = '',None
     user = request and request.user or None
@@ -3378,6 +3944,7 @@ def inspection(request,quapi_id,si_number=''):
     user_profile = user_profile and user_profile[0] or None   
     sysur_auto_key = user_profile and user_profile.sysur_auto_key or None
     val_dict = {}
+
     if not (user and user.id):
         val_dict['error'] = 'Access denied.'
         return redirect('/login/')   
@@ -3549,10 +4116,15 @@ def inspection(request,quapi_id,si_number=''):
             stock_recs = WOStatus.objects.filter(session_id = session_id)
             stock_rec = stock_recs and stock_recs[0] or None
             printed_date = datetime.now()
-            printed_date = printed_date.strftime('%m/%d/%Y %H:%M:%S')  
+            printed_date = printed_date.strftime('%m/%d/%Y %H:%M:%S')
+
             if stock_recs:
+                app_code='inspection'
+                tmpl_code='inspection-label'
+                barcode_txt =  '0' + stock_rec.ctrl_number + '00000' + stock_rec.ctrl_id
+
                 val_dict.update({
-                    'element': '0' + stock_rec.ctrl_number + '00000' + stock_rec.ctrl_id,
+                    'element': barcode_txt,
                     'stock_recs': stock_recs,
                     'wo_number': '',
                     'si_number': wo_number,
@@ -3564,22 +4136,35 @@ def inspection(request,quapi_id,si_number=''):
                     'session_id': session_id, 
                     'inspection': 'T',
                     'wo_task': si_number or wo_number,
-                    'records': stock_recs,                   
+                    'records': stock_recs,  
+                    'app_code': app_code,
+                    'tmpl_code': tmpl_code,                    
                 })
 
-                printset = app_allow and app_allow[0] and app_allow[0].printset_id
-                auth_key = printset and printset.printnode_auth_key
+                #printset = app_allow and app_allow[0] and app_allow[0].printset_id
+                #auth_key = printset and printset.printnode_auth_key
                                            
-                error = create_barcodes(val_dict,inspection=True,wo_number=wo_number)
+                #error = create_barcodes_pymu(val_dict,app_code,tmpl_code,barcode_txt=barcode_txt,x_delta=5.5)
                 
                 if 0:
                     #error = printnode_pdf(printset,auth_key) 
                     val_dict['error'] = error
                     val_dict['msg'] = 'Successful Inspection. Label printed.'
-                                                                          
-                else:                
-                    val_dict['error'] = error                      
+                    
+                #elif user_id == 'JBAXT':                
+                    
+                #    val_dict['error'] = error
+                    
+                #    if not error:
+                #        val_dict['msg'] = 'Succesful Update. 8130-3 report created.'                    
+                                
+                val_dict['error'] = error   
+                #return render(request, 'mrolive/inspection.html', val_dict)  
+                if not new_wo:                
                     return render(request, 'mrolive/plain_barcode_mro.html', val_dict)
+                else:
+                    return render(request, 'mrolive/teardown_traveller_mro_header.html', val_dict) 
+                
             else:
                 return render(request, 'mrolive/plain_barcode_mro.html', val_dict)
                 
@@ -3588,6 +4173,7 @@ def inspection(request,quapi_id,si_number=''):
                 res = create_new_wo.delay(quapi_id,session_id,user_id,sysur_auto_key,stm_auto_key,wo_number,ctrl_number,ctrl_id,is_default_repair) 
                 error,msg,new_woo_key = res.get()
                 val_dict['new_woo_key'] = new_woo_key
+                
             if not is_default_repair and not opm_list:            
                 updated_opms = Operation.objects.filter(session_id=session_id)            
                 val_dict.update({        
@@ -3661,6 +4247,7 @@ def inspection(request,quapi_id,si_number=''):
         
     val_dict['form'] = form  
     return render(request, 'mrolive/inspection.html', val_dict) 
+ 
 def email_send(request,quapi_id):
     user = request and request.user or None
     val_dict = {}
@@ -3860,6 +4447,7 @@ def wo_task_create(request,quapi_id,wo_number=''):
                 'override': '',
                 'show_task_entry': show_task_entry,
                 'app_name': 'non-routine',
+                'quapi_id': quapi_id,
             })            
             return render(request, 'mrolive/non_routine_traveller_mtu.html', val_dict)  
             
@@ -3877,7 +4465,8 @@ def wo_task_create(request,quapi_id,wo_number=''):
             })
                 
     val_dict['form'] = form
-    return render(request, 'mrolive/wo_task_create.html', val_dict)      
+    return render(request, 'mrolive/wo_task_create.html', val_dict)    
+    
 def part_attributes(request,quapi_id):
     user = request and request.user or None
     val_dict = {}
@@ -4375,11 +4964,11 @@ def pass_reset(request,quapi_id):
     val_dict['dash_apps'] = dash_apps
     setup_apps = user_apps and user_apps.filter(ml_apps_id__app_type='setup').order_by('ml_apps_id__menu_seq') or None
     val_dict['setup_apps'] = setup_apps
-    app_id = MLApps.objects.filter(code='users')[0]
-    app_allow = user_apps and user_apps.filter(ml_apps_id=app_id)
-    if not (reg_user_id and app_allow):
-        val_dict['error'] = 'Access denied.'
-        return redirect('/login/')    
+    #app_id = MLApps.objects.filter(code='users')[0]
+    #app_allow = user_apps and user_apps.filter(ml_apps_id=app_id)
+    #if not (reg_user_id and app_allow):
+        #val_dict['error'] = 'Access denied.'
+        #return redirect('/login/')    
     if request.method == 'POST':
         req_post = request.POST
         form = WODashboardForm(req_post)
@@ -4622,8 +5211,8 @@ def wo_order_clause(request,quapi_id):
         val_dict['requests'] = requests            
     val_dict['form'] = form
     val_dict['error'] = error    
-    return render(request, 'mrolive/wo_order_clause.html', val_dict)  
-    
+    return render(request, 'mrolive/wo_order_clause.html', val_dict) 
+
 def file_retrieval(request,quapi_id):
     user = request and request.user or None
     val_dict = {}
@@ -4708,7 +5297,73 @@ def file_retrieval(request,quapi_id):
                 val_dict['msg'] = 'Successful download'
 
     val_dict['form'] = form                
-    return render(request, 'mrolive/file_zip.html', val_dict)
+    return render(request, 'mrolive/file_zip.html', val_dict)    
+    
+def file_insert(request,quapi_id):
+    user = request and request.user or None
+    val_dict = {}
+    if not (user and user.id):
+        val_dict['error'] = 'Access denied.'
+        return redirect('/login/')  
+    user_profile = user and UserProfile.objects.filter(user=user) or None   
+    user_profile = user_profile and user_profile[0] or None   
+    sysur_auto_key = user_profile and user_profile.sysur_auto_key or None
+    user_name = user and user.username or 'No Username'
+    reg_user_id = user and user.is_authenticated and user.id or None
+    dj_user_id = quapi_id and UserQuapiRel.objects.filter(user=user,quapi_id=quapi_id) or None
+    dj_user_id = dj_user_id and user.id or None
+    user_apps = user and UserAppPerms.objects.filter(user=user) or None
+    op_apps = user_apps and user_apps.filter(ml_apps_id__app_type='operations').order_by('ml_apps_id__menu_seq') or None
+    val_dict['op_apps'] = op_apps
+    mgmt_apps = user_apps and user_apps.filter(ml_apps_id__app_type='management').order_by('ml_apps_id__menu_seq') or None
+    val_dict['mgmt_apps'] = mgmt_apps
+    dash_apps = user_apps and user_apps.filter(ml_apps_id__app_type='dashboards').order_by('ml_apps_id__menu_seq') or None
+    val_dict['dash_apps'] = dash_apps
+    setup_apps = user_apps and user_apps.filter(ml_apps_id__app_type='setup').order_by('ml_apps_id__menu_seq') or None
+    val_dict['setup_apps'] = setup_apps
+    app_id = MLApps.objects.filter(code='file-import')[0]
+    app_allow = user_apps and user_apps.filter(ml_apps_id=app_id)
+    
+    if not (reg_user_id and dj_user_id and app_allow):
+        val_dict['error'] = 'Access denied.'
+        return redirect('/login/')  
+        
+    val_dict['quapi_id'] = quapi_id  
+    val_dict['user_name'] = user_name    
+    if request.method == 'GET':
+        form = WODashboardForm()         
+    if request.method == 'POST':
+        req_post = request.POST
+        form = WODashboardForm(req_post)   
+         
+        wo_number = req_post and req_post['wo_number'] or ''
+        session_id = 'csrfmiddlewaretoken' in req_post and req_post['csrfmiddlewaretoken'] or ''
+        from zipfile import ZipFile
+        from os.path import basename
+        path = 'C:/QuantumDocImages'
+        file_list = os.listdir(path)
+        right_now = datetime.now()
+        right_now = right_now.strftime('%m-%d-%Y %H:%M:%S')
+
+        from portal.tasks import file_import
+        #need uploader
+        res = file_insert.delay(quapi_id,session_id) 
+        error,msg = res.get()
+        val_dict.update({
+            'error': error,
+            'msg': msg,
+            })
+        zip_obj = None
+        
+        if not error:
+            download_to = 'C:/QuantumDocImages/'        
+
+                    
+            if zip_obj:
+                val_dict['msg'] = 'Successful Upload'
+
+    val_dict['form'] = form                
+    return render(request, 'mrolive/file_import.html', val_dict)
     
 def create_insp_barcodes(code_vals):
     """
@@ -4905,8 +5560,8 @@ def create_traveller(barcode_value,ctrl_id,ctrl_number,part_no,desc,serial,qty,w
     from reportlab.lib.units import mm,inch
     from reportlab.pdfgen import canvas  
     from reportlab.lib.colors import Color,black    
-    filepath = "/var/www/mo_template/static/teardown-traveller-report.pdf" 
-    logo_path = "/home/ubuntu/mo_template/static/logo.jpg"
+    filepath = "/home/ubuntu/mo_template/uploads/barcode.pdf"   
+                                                          
     c = canvas.Canvas(filepath, pagesize=A6)
     c.setPageSize(landscape((105*mm,153*mm)))
     c.rotate(90)
@@ -5012,7 +5667,7 @@ def create_lot_teardown(quapi_id,sysur_auto_key,user_id,row):
     error = ''
     req_data = []
     prod_data = {}
-    from portal.tasks import lot_teardown 
+    from portal.tasks import lot_teardown
     res = lot_teardown.delay(quapi_id,sysur_auto_key,user_id,row)
     error,msg,show_msg = res.get()     
     return error,msg,show_msg
@@ -5054,7 +5709,6 @@ def printnode_pdf(printset,auth_key):
             error = error.json()    
             error = error and type(error) is dict and 'message' in error and error['message'] or ''
     return error
-    
    
 def teardown(request,quapi_id='',si_number='',part_number='',condition_code='',notes=''):
     new_status,location,filter_status,show_msg,task_list = '','','','',[]
@@ -5111,12 +5765,13 @@ def teardown(request,quapi_id='',si_number='',part_number='',condition_code='',n
     val_dict.update({
         'conditions':conditions,
         'condition_code': 'AR',
-    }) 
+    })
     
     if request.method == 'GET':
         form = WODashboardForm()
         import random
         import string
+        
         val_dict.update({
             'wo_task': si_number,
             'part_number': part_number,
@@ -5159,6 +5814,7 @@ def teardown(request,quapi_id='',si_number='',part_number='',condition_code='',n
         val_dict.update({
             'condition_code': condition_code,
             'teardown': 'T',
+                                   
             })
             
         pn_info = []
@@ -5317,7 +5973,7 @@ def teardown(request,quapi_id='',si_number='',part_number='',condition_code='',n
             wo_number = record.wo_number or ''
             stock_line = record.stock_line or ''
             exp_date = record.exp_date or ''
-            condition_code = record.condition_code or ''
+            #condition_code = record.condition_code or ''
             consignment_code = record.consignment_code or ''
             loc_code = record.location_code or ''
             mfg_lot_num = record.spn_code or ''
@@ -5326,7 +5982,9 @@ def teardown(request,quapi_id='',si_number='',part_number='',condition_code='',n
             repair = activity and activity == 'Repair' or ''
             notes = record.notes or '' 
             customer = record.customer or ''
-            ata_code = record.cart or ''            
+            ata_code = record.cart or ''
+            work_request = record.wh_code or ''            
+            
             #get the attributes list to display on the Teardown label
             if pnm_auto_key and not new_wo:
                 from portal.tasks import get_part_attributes
@@ -5372,6 +6030,7 @@ def teardown(request,quapi_id='',si_number='',part_number='',condition_code='',n
                 'notes': notes or '   ', 
                 'eng_model': eng_model,
                 'ata_code': ata_code,
+                'work_request': work_request,
                 'printed_by': user_name,
                 'printed_date': printed_date,
                 'esn': esn,
@@ -5394,46 +6053,8 @@ def teardown(request,quapi_id='',si_number='',part_number='',condition_code='',n
             msg += ' Successful teardown'                        
             printset = app_allow and app_allow[0] and app_allow[0].printset_id
             auth_key = printset and printset.printnode_auth_key
-            vals = [[
-                   {
-                       "type": "text",
-                       "x": 115.34558931986491,
-                       "y": 35.08397340774536,
-                       "width": 237.0,
-                       "height": 80.0,
-                       "text": " 1. Approving Civil Aviation\nAuthority/Country:\n",
-                       "font_size": 12,
-                       "color": [
-                            0,
-                            0,
-                            0
-                        ],
-                       "db_field": 'null'
-                    },
-                    {
-                        "type": "image",
-                        "x": 488.28191757202154,
-                        "y": 92.50060717264812,
-                        "width": 508.0,
-                        "height": 56.0,
-                        "db_field": 'null',
-                        "img_path": "/home/ubuntu/mo_template/static/logo.jpg",
-                    },
-                    {
-                        "type": "barcode",
-                        "x": 541.5319442749023,
-                        "y": 56.72984917958578,
-                        "width": 364.0,
-                        "height": 56.0,
-                        "db_field": 'null',
-                    }
-                ]]
-            error = create_barcodes(val_dict,wo_number=wo_number)
-
-            if not error:                    
-                #error = printnode_pdf(printset,auth_key)
-                                             
-                                 
+                                                       
+            if not error:                                                                        
                 val_dict['msg'] = 'Successful teardown. Barcode label printed.' 
             else:
                 val_dict['error'] = error               
@@ -5500,7 +6121,7 @@ def teardown(request,quapi_id='',si_number='',part_number='',condition_code='',n
                 if new_wo and new_woo_key and not error:                 
                     return render(request, 'mrolive/teardown_traveller_mro_header.html',val_dict)
                     
-                elif not error:
+                elif not error:                                 
                     return render(request, 'mrolive/plain_barcode_mro.html',val_dict)
                     
                 else:                   
@@ -5556,13 +6177,13 @@ def teardown(request,quapi_id='',si_number='',part_number='',condition_code='',n
     val_dict['form'] = form
     return render(request, 'mrolive/teardown.html', val_dict)
     
-def create_barcodes(vals,inspection=False,wo_number=''):
+def create_barcodes(vals,inspection=False):
     from reportlab.graphics.barcode import code39,code93
     from reportlab.lib.pagesizes import A4,letter,landscape
     from reportlab.lib.units import mm,inch
     from reportlab.pdfgen import canvas                              
     #set the filepath and logo_path for the pdf label file.
-    file_path = "/var/www/mo_template/static/teardown-inspection-report.pdf" 
+    file_path = "/home/ubuntu/mo_template/static/teardown-inspection-report.pdf" 
     logo_path = "/home/ubuntu/mo_template/static/logo.jpg"
     stock_recs = vals['stock_recs']    
     pagesize = (3*inch, 3*len(stock_recs)*inch)
@@ -5577,7 +6198,7 @@ def create_barcodes(vals,inspection=False,wo_number=''):
         barcode39Std = code39.Extended39(element,\
             barHeight=45, barWidth=1.31, stop=1, checksum=0) 
         code = barcode39Std
-        code.drawOn(c, -4*mm, y)                               
+        code.drawOn(c, -4*mm, y)                                  
         c.setFont("Helvetica",6)
         c.drawString(10 * mm, y - 3 * mm, 'Ctrl#: ' + str(rec.ctrl_number))
         c.drawString(34 * mm, y - 3 * mm, 'CtrlID: ' + str(rec.ctrl_id))
@@ -6653,8 +7274,9 @@ def convert_csv_dict(quapi_id,sysur_auto_key,file_path,req_files,session_id,wo_n
             #fail_msg += str(len(row_list) - len(good_rows))+ ' rows could not be imported as shown below in the grid.'
             num_failures += len(mbr_data)
             fail_msg += ' ' + str(num_failures) + ' rows could not be imported as shown below in the grid. '
+            
     return error,msg,fail_msg
-  
+                                         
 def wo_labor(request,quapi_id=None):
     new_status,location,filter_status,session_id = '','','',''
     user_id,user_rec,wtms = 'user not set',None,None
@@ -6673,6 +7295,7 @@ def wo_labor(request,quapi_id=None):
     user_profile = user_profile and user_profile[0] or None
     sysur_auto_key = user_profile and user_profile.sysur_auto_key or None
     val_dict['kiosk'] = 'F'
+    
     if user_profile:
         #check apps that are kiosk user apps and return the flag in the view to prompt for user_id
         for app in user_profile.kiosk_apps.all():
@@ -6692,6 +7315,7 @@ def wo_labor(request,quapi_id=None):
                 'quapi_id':quapi_id,
                 'sysur_auto_key':sysur_auto_key,
                 'session_id':session_id,
+                'per_user': True,
             })
         #res = get_batches.delay(quapi_id,sysur_auto_key,session_id)
         error,msg = res.get()
@@ -6724,6 +7348,7 @@ def wo_labor(request,quapi_id=None):
             val_dict['description'] = open_batch.description
             val_dict['start_batch'] = 'T'           
             val_dict['batch_recall'] = open_batch.batch_id
+            val_dict['total_labor_rows'] = len(open_wtls)
         elif open_wtls:
             val_dict['msg'] = 'WO #: ' + open_wtls[0].wo_number
             val_dict['msg'] += ' | Seq: ' + str(open_wtls[0].sequence)
@@ -6759,11 +7384,15 @@ def wo_labor(request,quapi_id=None):
     if request.method == 'GET':
         form = WODashboardForm()
         if val_dict['kiosk'] == 'T':
-            val_dict['button_txt'] = 'OK'        
+            val_dict['button_txt'] = 'OK'
+            
     if request.method == 'POST':
         req_post = request.POST
         form = WODashboardForm(req_post)
+        val_dict['form'] = form
+        remove_wots = req_post.get('remove_wots','0')
         add_task = req_post.get('add_task','0')
+        add_wots = req_post.get('add_wots','0')
         task_submit = req_post.get('task_submit','0') 
         search_user = req_post.get('search_user','F')  
         show_conf = req_post.get('show_conf','F')                
@@ -6777,10 +7406,11 @@ def wo_labor(request,quapi_id=None):
         c_button_txt = 'c_button_txt' in req_post and req_post['c_button_txt'] or ''
         conf_batch_button = 'conf_batch_button' in req_post and req_post['conf_batch_button'] or ''
         conf_batch_no = 'conf_batch_no' in req_post and req_post['conf_batch_no'] or ''
+        conf_msg = 'conf_msg' in req_post and req_post['conf_msg'] or ''
         batch_no = 'batch_no' in req_post and req_post['batch_no'] or ''
-        description = req_post.get('description','') or req_post.get('conf_description','')
-                                                                           
-        yes_complete = req_post.get('yes_complete','F')       
+        description = req_post.get('description','') or req_post.get('conf_description','')                                                                                    
+        yes_complete = req_post.get('yes_complete','F')  
+        not_complete = req_post.get('not_complete','F')         
         wo_number = 'wo_number' in req_post and req_post['wo_number'] or ''
         wot_auto_key = 'wot_auto_key' in req_post and req_post['wot_auto_key'] or ''
         wot_key = 'wot_key' in req_post and req_post['wot_key'] or ''
@@ -6795,14 +7425,43 @@ def wo_labor(request,quapi_id=None):
         active_user = 'active_user' in req_post and req_post['active_user'] or ''
         user_id = 'user_id' in req_post and req_post['user_id'] or ''
         session_id = 'session_id' in req_post and req_post['session_id'] or ''
+        
         if not session_id:
             session_id = 'csrfmiddlewaretoken' in req_post and req_post['csrfmiddlewaretoken'] or ''
         if not user_name:
             user_name = 'user_name' in req_post and req_post['user_name'] or ''
         if not user_name:
             user_name = user_logged
+
         if not user_name:
             user_name = active_user
+
+        if button_txt == 'Start Batch' and not labor_submit: 
+            
+            if batch_no and add_task == '0' and wo_number:
+                
+                if wo_number[-1] in ['s','S']:
+                    add_task = '1'
+                    
+                else:
+                    #lookup the WO's tasks and get the count for total_rows
+                    from portal.tasks import get_signoff_tasks
+                    res = get_signoff_tasks.apply_async(
+                    queue='labor',
+                    priority=1, 
+                    kwargs={
+                        'quapi_id':quapi_id,
+                        'session_id':session_id,
+                        'wo_number':wo_number,
+                    })
+                    #res = get_signoff_tasks.delay(quapi_id,session_id,wo_number=wot_auto_key)
+                    error,msg = res.get()          
+                    wtms = WOTask.objects.filter(session_id=session_id).exclude(status_type='Closed') or []
+                    total_rows = len(wtms)
+                    val_dict.update({
+                        'total_rows': total_rows,
+                    })
+                    
         if 'kiosk' in val_dict and val_dict['kiosk'] == 'T' and (user_id or user_name or user_logged or active_user):
             user_rec = None
             if user_id:        
@@ -6912,15 +7571,18 @@ def wo_labor(request,quapi_id=None):
                     'quapi_id':quapi_id,
                     'sysur_auto_key':sysur_auto_key,
                     'session_id':session_id,
+                    'per_user': True,
                 })
             #res = get_batches.delay(quapi_id,sysur_auto_key,session_id)
             error,msg = res.get()
             all_batches = batches.objects.all().order_by('-batch_id')
             val_dict['batches'] = all_batches
+        
         if not wo_number:
             wo_number = wot_auto_key
         if not wot_auto_key:
             wot_auto_key = wo_number
+        
         #total_rows = 'total_rows' in req_post and req_post['total_rows'] or 0
         options_col,page_size = get_options(req_post,session_id)   
         #if user submitted clear list form by pressing button
@@ -6933,23 +7595,34 @@ def wo_labor(request,quapi_id=None):
             val_dict['active_user'] = user_name or user_logged or active_user or user_id      
             val_dict['user_id'] = user_id            
             val_dict['all_woos'] = []            
-            val_dict['msg'] = '' 
+            val_dict['msg'] = ''
             val_dict['active_mode'] = sel_mode
             val_dict['show_all'] = 1  
+            
             if recall_mode:
                 
-                val_dict['button_txt'] = 'Recall Batch' 
+                val_dict['button_txt'] = 'Recall Batch'        
                 all_batches = batches.objects.all().order_by('-batch_id')
-                val_dict['batches'] = all_batches 
+                val_dict['batches'] = all_batches
+
             elif create_mode:
                 val_dict['button_txt'] = 'Create'
+                
             else:
-                val_dict['button_txt'] = 'Start Task' 
-            #if 'kiosk' in val_dict and val_dict['kiosk'] == 'T':
-            #    val_dict['button_txt'] = 'OK'
+                val_dict['button_txt'] = 'Start Task'
+                
+            if open_batch:
+                val_dict['button_txt'] = 'Stop Batch'
+                val_dict['active_mode'] = 'batch-recall'
+            
+            elif open_wtls:
+                val_dict['button_txt'] = 'Stop Task'
+                val_dict['active_mode'] = 'tracking'
+                
             form = WODashboardForm(val_dict)
             val_dict['form'] = form          
             return render(request, 'mrolive/wolabor.html', val_dict)             
+        
         val_dict.update({
             'all_woos': '',          
             #'button_txt': button_txt or 'Start',
@@ -6969,28 +7642,131 @@ def wo_labor(request,quapi_id=None):
             'stop_batch': stop_batch,
             'batch_button': batch_button or 'Start Batch',
             'main_button': 'Update',
-            'batch_no': batch_no or description,
+            'batch_no': conf_batch_no or batch_no or description,
             'description': description or batch_no,
             'active_mode': active_mode or sel_mode or conf_sel_mode,
             'sel_mode': sel_mode or active_mode or conf_sel_mode,  
-            'conf_sel_mode': conf_sel_mode or active_mode or sel_mode,           
+            'conf_sel_mode': conf_sel_mode or active_mode or sel_mode, 
+            'conf_msg': conf_msg or msg,
+            'msg': msg or conf_msg,            
         })
+        
+        #import pdb;pdb.set_trace()
+        #if the user recalls a batch, we need to send the request to batch_labor
+        #and create a new lbh_auto_key with new ldb_auto_key(s)
+        wot_id_list = req_post.getlist('woos_list[]')
+        
+        if add_wots == 'T':
+            
+            if wot_id_list:              
+                from portal.tasks import batch_task_add
+                
+                res = batch_task_add.apply_async(
+                    queue='labor', 
+                    priority=1,
+                    kwargs={
+                        'quapi_id':quapi_id,
+                        'session_id':session_id or update_session,
+                        'sysur_auto_key':sysur_auto_key,
+                        'batch_id':batch_no or conf_batch_no or description,
+                        'wot_list': wot_id_list,
+                        'user_name': user_name,
+                    })
+                error,msg = res.get()
+                    
+                val_dict['error'] = error
+                val_dict['button_txt'] = 'Start Batch'
+                val_dict['session_id'] = session_id or update_session
+                labor_rows = TaskLabor.objects.filter(session_id=session_id)
+                val_dict['total_labor_rows'] = len(labor_rows)
+                val_dict['total_rows'] = ''
+                val_dict['batch_no'] = batch_no or active_batch or conf_batch_no
+                
+                if not error:
+                    val_dict['msg'] = msg
+                    
+            else:
+                val_dict['error'] = 'Must select at least one task.'
+                
+            val_dict['batch_no'] = batch_no or active_batch or conf_batch_no
+            return render(request, 'mrolive/wolabor.html', val_dict)
+                
+        if remove_wots == 'T':
+            
+            batch_stopped = False
+            if wot_id_list:
+               
+                no_wtls = False
+                if button_txt == 'Start Batch':
+                    no_wtls = True
+
+                labor_rows = TaskLabor.objects.filter(session_id=session_id)
+                total_rows = len(labor_rows)
+                
+                stop_batch = False
+                
+                if total_rows == len(wot_id_list):
+                    stop_batch = True
+                    
+                from portal.tasks import batch_task_remove
+                #for wot in wot_id_list:
+                res = batch_task_remove.apply_async(
+                    queue='labor', 
+                    priority=1, 
+                    kwargs={
+                        'quapi_id':quapi_id,
+                        'session_id':session_id or update_session,
+                        'sysur_auto_key':sysur_auto_key,
+                        'batch_id':batch_no or conf_batch_no or description,
+                        'wot_auto_key':'',
+                        'wot_list': wot_id_list,
+                        'no_wtls':no_wtls,
+                        'stop_batch':stop_batch,
+                        'user_name': user_name,
+                    })
+                error,msg,batch_stopped,new_batch_no = res.get()
+                    
+                val_dict['error'] = error
+                val_dict['button_txt'] = 'Start Batch'
+                val_dict['session_id'] = session_id or update_session
+                labor_rows = TaskLabor.objects.filter(session_id=session_id)
+                val_dict['total_labor_rows'] = len(labor_rows)
+                
+                if batch_stopped:
+                    val_dict['button_txt'] = 'Recall Batch'
+                    
+                else:
+                    val_dict['batch_no'] = new_batch_no or batch_no or active_batch or conf_batch_no
+                
+                if not error:
+                    val_dict['msg'] = 'Successful removal of labor from batch. ' + msg
+                    
+            else:
+                val_dict['error'] = 'Must select at least one task.'
+                
+            return render(request, 'mrolive/wolabor.html', val_dict) 
+            
         #if we aren't logging in as a user at Kiosk...
         if open_wtls:
             wot_auto_key = str(open_wtls[0].wot_auto_key)+'c'
             wot_key = wot_auto_key
             single_wot = wot_auto_key
+                      
+        if search_user != 'T':
 
-        if search_user != 'T':  
-          
-            if (wot_auto_key and wot_auto_key[-1] in ['c','C']\
-                or button_txt in ['Stop Batch','Stop Task']\
+            if (wot_auto_key and wot_auto_key[-1] in ['c','C'] or button_txt in ['Stop Batch','Stop Task']\
                 or labor_submit in ['Stop Batch','Stop Task']) and show_conf in ['','F','got_data']: 
                     
                 if show_conf != 'got_data':
-                    val_dict['show_conf'] = 'T'
+                    val_dict['show_conf']='T'
+                    
                 if not open_wtls or open_wtls and len(open_wtls) == 1:
                     val_dict['button_txt'] = 'Start Task'
+                 
+                if open_batch:
+                    labor_rows = TaskLabor.objects.filter(session_id=session_id)
+                    val_dict['total_labor_rows'] = len(labor_rows)
+                
                 show_conf = 'got_data'
                 val_dict['single_wot_key'] = single_wot
                 val_dict['user_id'] = user_name or user_logged\
@@ -7001,19 +7777,32 @@ def wo_labor(request,quapi_id=None):
                     val_dict['button_txt'] = 'Stop Batch'
                     val_dict['batch_no'] = batch_no or description
                     val_dict['description'] = description or batch_no
+            
+            #if recall_mode and show_conf in ['','F','got_data']\
+            if yes_complete != 'T' and not_complete != 'T'\
+            and recall_mode and show_conf in ['','F','got_data']\
+            and (task_submit == 'Add Task' or\
+            labor_submit not in ['Recall Batch','Stop Batch']):   
+                
+                if conf_sel_mode:
+                    val_dict.update({
+                        'button_txt': 'Recall Batch',
+                        'error': error,
+                        'msg': msg,
+                        'form': form
+                    })
+                    return render(request, 'mrolive/wolabor.html', val_dict)   
                     
-            if recall_mode and show_conf in ['', 'got_data']\
-                and (task_submit == 'Add Task' or\
-                labor_submit not in ['Recall Batch','Stop Batch']):
                 start_batch = False
                 start_tasks = False
-
+                from portal.tasks import batch_labor 
                 val_dict['button_txt'] = 'Start Batch'
-                #val_dict['total_labor_rows'] = 10                
+               
                 if labor_submit == 'Start Batch':
                     start_tasks = True
                     start_batch = True
-                    val_dict['button_txt'] = 'Stop Batch'              
+                    val_dict['button_txt'] = 'Stop Batch'
+                    
                 elif button_txt != 'Stop Batch':
                     if button_txt == 'Recall Batch':
                         start_batch = True
@@ -7021,14 +7810,73 @@ def wo_labor(request,quapi_id=None):
                         wot_auto_key = ''
                         batch_no = active_batch
                     start_tasks = False
-                from portal.tasks import batch_labor  
-                if add_task == '1' and not wot_auto_key[:-1].isnumeric():
-                    #val_dict['error'] = "Task must be an integer followed by \'s\'"
-                    #return render(request, 'mrolive/wolabor.html', val_dict) 
-                    error = "Task must be an integer followed by \'s\'"
-                else: 
+                   
+                total_rows = 0
+                wot_id_list = req_post.getlist('woos_list[]')
+
+                if wot_id_list:
+
+                    res = batch_labor.apply_async(
+                        queue='labor', 
+                        priority=1, 
+                        kwargs={
+                            'quapi_id':quapi_id,
+                            'session_id':session_id,
+                            'sysur_auto_key':sysur_auto_key,
+                            'wot_auto_key':'',
+                            'add_tasks_only': True,
+                            'batch_no':batch_no,
+                            'active_batch':batch_no,
+                            'start_batch':False,
+                            'create_batch':False,
+                            'start_tasks':False,
+                            'wot_ids': wot_id_list,
+                            'user_name':user_name,
+                        })                        
+                        
+                    error,batch_num,description,msg = res.get()
+                    labor_rows = TaskLabor.objects.filter(session_id=session_id)
+                    labor_rows = len(labor_rows)
+                    
+                    val_dict.update({                    
+                        'total_labor_rows': labor_rows,                
+                        'batch_no': batch_no or batch_num,
+                        'description': batch_num,
+                        'wo_number': '',
+                        'wot_auto_key': '',
+                        'msg': msg,
+                        'active_mode': 'batch-recall',
+                        'sel_mode': 'batch-recall',
+                        'conf_sel_mode': 'batch-recall',
+                        'error': error, 
+                        'start_batch': 'T',            
+                        'button_txt': 'Start Batch',
+                    })
+                    
+                elif wot_auto_key and not wot_auto_key[-1] in ['s','S'] and not wot_id_list and add_task=='1':
+                    error,msg,total_rows=get_tasks(quapi_id,session_id,wo_number=wot_auto_key)
+                    wtms = WOTask.objects.filter(session_id=session_id)
+
+                    val_dict.update({                    
+                        'batch_no': batch_no or batch_num,
+                        'description': batch_num,
+                        'wo_number': '',
+                        'total_rows': total_rows,
+                        'wot_auto_key': '',
+                        'msg': msg,
+                        'active_mode': 'batch-recall',
+                        'sel_mode': 'batch-recall',
+                        'conf_sel_mode': 'batch-recall',
+                        'error': error, 
+                        'start_batch': 'T',            
+                        'button_txt': 'Start Batch',
+                    })
+                
+                elif start_batch or add_task == '1': 
                     if add_task != '1':
                         wot_auto_key = ''
+                    
+                                        
                     res = batch_labor.apply_async(
                         queue='labor', 
                         priority=1, 
@@ -7040,31 +7888,42 @@ def wo_labor(request,quapi_id=None):
                             'batch_no':batch_no,
                             'active_batch':active_batch,
                             'start_batch':start_batch,
+                                                
                             'start_tasks':start_tasks,
+                                                       
+                                                   
                             'user_name':user_name,
-                        })                        
+                        })
+                        
                     #res = batch_labor.delay(quapi_id,session_id,sysur_auto_key,wot_auto_key,batch_no=batch_no,active_batch=active_batch,start_batch=start_batch,start_tasks=start_tasks,user_name=user_name)
                     error,batch_no,description,msg = res.get() 
+                    if not error and add_task == '1':
+                        val_dict['msg'] = 'Task %s added to batch.'%wot_auto_key[:-1]
                     val_dict['error'] = error                
                     val_dict['batch_no'] = batch_no
                     val_dict['description'] = description or batch_no
                     val_dict['wo_number'] = ''
                     val_dict['start_batch'] = 'T'
                     val_dict['button_text'] = 'Start Batch'
-                    val_dict['msg'] = msg              
-
-            elif (create_mode or recall_mode)\
+                    val_dict['msg'] = msg  
+                    labor_rows = TaskLabor.objects.filter(session_id=session_id)
+                    val_dict['total_labor_rows'] = len(labor_rows)
+                    
+            #elif (create_mode or recall_mode)\                    
+            elif ((recall_mode or create_mode) and (yes_complete == 'T' or not_complete == 'T'))\
+                or (yes_complete != 'F' and not_complete != 'F' and (create_mode or recall_mode)\
                 and (conf_batch_button == 'Stop Batch' or button_txt == 'Stop Batch')\
-                and show_conf == 'got_data' and (conf_batch_no or batch_no):
-                from portal.tasks import stop_labor 
+                and show_conf == 'got_data' and (conf_batch_no or batch_no or description)):
+                    
+                from portal.tasks import stop_labor
                 res = stop_labor.apply_async(
                     queue='labor', 
-                    priority=1, 
+                    priority=1,
                     kwargs={
                         'quapi_id':quapi_id,
                         'session_id':session_id,
                         'sysur_auto_key':sysur_auto_key,
-                        'batch_no': conf_batch_no,
+                        'batch_no': conf_batch_no or batch_no or description,
                         'wot_auto_key': wot_auto_key,
                         'yes_complete': yes_complete,
                         'user_name': user_name,
@@ -7075,15 +7934,22 @@ def wo_labor(request,quapi_id=None):
                 val_dict['error'] = error          
                 val_dict['start_batch'] = 'F'
                 val_dict['description'] = conf_batch_no or batch_no
+                labors = TaskLabor.objects.filter(session_id = session_id)
+                total_labor_rows = len(labors)
+                val_dict['total_labor_rows'] = total_labor_rows 
                 val_dict['stop_batch'] = 'T'
                 val_dict['wo_number'] = ''
                 val_dict['batch_no'] = ''
                 val_dict['button_txt'] = (recall_mode and 'Recall Batch') or (create_mode and 'Create')              
                 #'Batch ' + batch_no + ' stopped.'                  
-                val_dict['msg'] = msg
+                val_dict['msg'] = msg + conf_msg
                             
-            elif not create_mode and not recall_mode and (wot_auto_key or wot_key or show_conf == 'got_data'):
-                if (single_wot_key and single_wot_key[-1] in ['s','S','c','C']) or (wot_auto_key and wot_auto_key[-1] in ['s','S','c','C']):             
+#           elif (not create_mode and not recall_mode or (recall_mode and not wot_auto_key))\
+#                and (batch_no or active_batch or wot_auto_key or wot_key or show_conf == 'got_data'):
+            elif not (create_mode or recall_mode) and (wot_auto_key or wot_key or show_conf == 'got_data'):
+                
+                if (single_wot_key and single_wot_key[-1] in ['s','S','c','C'])\
+                or (wot_auto_key and wot_auto_key[-1] in ['s','S','c','C']):             
                     if not open_wtls and (button_txt == 'Stop Task' or show_conf == 'got_data'):
                         val_dict['button_txt'] = 'Start Task'
                         val_dict['show_task'] = 'T'
@@ -7091,48 +7957,53 @@ def wo_labor(request,quapi_id=None):
                         if single_wot_key:
                             wot_auto_key = ''
                             wot_key = ''
-                            single_wot_key = single_wot_key[:-1] + 'c'                        
-                    from portal.tasks import add_wo_labor
-                    res = add_wo_labor.apply_async(
-                        queue='labor', 
-                        priority=1, 
-                        kwargs={
-                            'quapi_id':quapi_id,
-                            'session_id':session_id,
-                            'sysur_auto_key':sysur_auto_key,
-                            'wot_auto_key':wot_auto_key or wot_key or single_wot_key,
-                            'yes_complete':yes_complete,
-                            'user_name':user_name,
-                            }
-                        )
-                                                   
-                    #res = add_wo_labor.delay(quapi_id,session_id,sysur_auto_key,wot_auto_key=wot_auto_key or wot_key or single_wot_key,yes_complete=yes_complete,user_name=user_name)
-                                                                                                                                                      
-                                                          
-                    error,msg = res.get()
+                            single_wot_key = single_wot_key[:-1] + 'c'
+                            
+                    if not (yes_complete=='F' and not_complete=='F') or\
+                    (wot_auto_key and wot_auto_key[-1] in ['s','S','c','C']):                            
+                        
+                        from portal.tasks import add_wo_labor
+                        res = add_wo_labor.apply_async(
+                            queue='labor',
+                            priority=1,
+                            kwargs={
+                                'quapi_id':quapi_id,
+                                'session_id':session_id,
+                                'sysur_auto_key':sysur_auto_key,
+                                'wot_auto_key':wot_auto_key or wot_key or single_wot_key,
+                                'yes_complete':yes_complete,
+                                'user_name':user_name,
+                                }
+                            )
+                                                       
+                        #res = add_wo_labor.delay(quapi_id,session_id,sysur_auto_key,wot_auto_key=wot_auto_key or wot_key or single_wot_key,yes_complete=yes_complete,user_name=user_name)
+                        error,msg = res.get()
+                        
                     val_dict.update({
                         'error': error,
                         'msg': msg,
                         'form': form,
                         'show_task': 'T',
-                                                
                     })
                     
                     if error:
                         return render(request, 'mrolive/wolabor.html', val_dict)
                         
                     if not error and button_txt in ('Start Task','Start'):
-                        val_dict['button_txt'] = 'Stop Task'
+                        val_dict['button_txt'] = 'Stop Task'                                                                                                                                                                                                                      
                                     
                 else:
                     start_tasks = False                    
-                                                            
+                    #if recall_mode:
+                    #    wot_auto_key = batch_no or active_batch or ''
+                        
                     if 'woos_list[]' in req_post:
                         wot_id_list = req_post.getlist('woos_list[]')                    
                     if button_txt != 'OK' and not (single_wot_key or wot_id_list) and show_conf != 'got_data':
                         error = 'Must select one or more task.'
                         val_dict['button_txt'] = 'Start Task'
-                        val_dict['show_task'] = 'T' 
+                        val_dict['show_task'] = 'T'
+                        
                     elif (not wot_id_list or len(wot_id_list) == 1) and single_wot:
                                                                
                         if wot_id_list and len(wot_id_list) == 1:
@@ -7151,13 +8022,14 @@ def wo_labor(request,quapi_id=None):
                             )                      
                         #res = add_wo_labor.delay(quapi_id,session_id,sysur_auto_key,wot_auto_key=single_wot,user_name=user_name)
                         error,msg = res.get()
-                           
-                                                           
-                        #val_dict['button_txt'] = ''
-                        #val_dict['total_labor_rows'] = 10
+                                 
+                                                   
+                        val_dict['button_txt'] = 'Start Task'
+                        #val_dict['total_labor_rows'] = 10                     
                         if not error and button_txt in ['Start','Start Task']:
                             val_dict['button_txt'] = 'Stop Task'
                         val_dict['single_wot'] = single_wot
+                        
                     if wot_id_list and not len(wot_id_list) == 1 and button_txt == 'Start':
                         create_batch = True
                         description = wot_key
@@ -7172,9 +8044,9 @@ def wo_labor(request,quapi_id=None):
                                 'wot_auto_key':'',
                                 'batch_no':batch_no,
                                 'active_batch':'',
-                                'start_batch':True,
+                                'start_batch':False,
                                 'create_batch':True,
-                                'start_tasks':True,
+                                'start_tasks':False,
                                 'description': description,
                                 'wot_ids': wot_id_list,
                                 'user_name':user_name,
@@ -7197,12 +8069,14 @@ def wo_labor(request,quapi_id=None):
                             'conf_sel_mode': 'batch-recall',
                             'error': error, 
                             'start_batch': 'T',            
-                            'button_txt': 'Stop Batch',
+                            'button_txt': 'Start Batch',
                         })
+                        
                     #Must be a WO_NUMBER so we will get all tasks for this WO_NUMBER and display them
-                    elif labor_submit != 'OK' and val_dict['button_txt'] != 'Stop Task':
+                    elif labor_submit != 'OK' and val_dict['button_txt'] != 'Stop Task' and not recall_mode:
                         val_dict['button_txt'] = 'Start'
-                    if not wot_id_list and wot_auto_key:
+                        
+                    if not wot_id_list and wot_auto_key and not recall_mode:
                         from portal.tasks import get_signoff_tasks
                         res = get_signoff_tasks.apply_async(
                         queue='labor', 
@@ -7213,12 +8087,17 @@ def wo_labor(request,quapi_id=None):
                             'wo_number':wot_auto_key,
                         })
                         #res = get_signoff_tasks.delay(quapi_id,session_id,wo_number=wot_auto_key)
-                        error,msg = res.get()             
+                        error,msg = res.get()          
                         wtms = WOTask.objects.filter(session_id=session_id).order_by('wot_sequence','wot_auto_key').exclude(status_type='Closed') or []
+                        #wtms = WOTask.objects.filter(session_id=session_id)
                         total_rows = len(wtms)
-                        if total_rows == 0:
-                            error = 'No tasks found.'
-                            val_dict['button_txt'] = 'Start'
+                        
+                        if total_rows == 0 and button_txt != 'Stop Batch':
+                            val_dict['error'] = 'No tasks found.'
+                            val_dict['button_txt'] = 'Start Task'
+                            val_dict['form'] = form
+                            return render(request, 'mrolive/wolabor.html', val_dict)  
+                        
                         if total_rows == 1:
                             wot_auto_key = wtms and wtms[0] and wtms[0].wot_auto_key or 0
                             if val_dict['button_txt'] != 'Stop Task' and 'c_button_txt' not in req_post:
@@ -7227,12 +8106,14 @@ def wo_labor(request,quapi_id=None):
                             elif labor_submit == 'Stop Task' or ('c_button_txt' in req_post and req_post['c_button_txt'] == 'Stop Task'):
                                 val_dict['show_task'] = 'T'
                                 val_dict['button_txt'] = 'Start Task'   
+                        
                         val_dict.update({
                             'wtms': wtms,
                             'single_wot': str(wot_auto_key) + 's',
                             'total_rows': total_rows,
                             'sel_rows': 0,
-                        })                
+                        })
+                        
                 res = get_wtls.apply_async(
                 queue='labor', 
                 priority=1, 
@@ -7240,7 +8121,7 @@ def wo_labor(request,quapi_id=None):
                     'quapi_id':quapi_id,
                     'sysur_auto_key':sysur_auto_key
                 })
-                #res = get_wtls.delay(quapi_id,sysur_auto_key)
+                
                 error,msg = res.get()
                 open_wtls = TaskLabor.objects.filter(sysur_auto_key=sysur_auto_key).order_by('-id') 
                 if not open_wtls:                
@@ -7257,13 +8138,15 @@ def wo_labor(request,quapi_id=None):
                     val_dict['button_txt'] = 'Stop Task'
                     val_dict['wot_key'] = str(open_wtls[0].wot_auto_key) + 'c'
                     val_dict['wot_auto_key'] = str(open_wtls[0].wot_auto_key) + 'c'   
-                val_dict['wo_number'] = ''            
-            elif active_batch and labor_submit == 'Recall Batch':
+                val_dict['wo_number'] = ''
                 
+            elif active_batch and labor_submit == 'Recall Batch':
+                                                                           
                 from portal.tasks import batch_labor
                 if task_submit == 'Add Task' and not wot_auto_key.isnumeric():
                     val_dict['error'] = "Task must be an integer followed by \'s\'"
                     return render(request, 'mrolive/wolabor.html', val_dict)  
+                                                                                                                     
                 if task_submit != 'Add Task' or add_task != '1':
                     wot_auto_key  = ''
                 res = batch_labor.apply_async(
@@ -7275,30 +8158,60 @@ def wo_labor(request,quapi_id=None):
                         'sysur_auto_key':sysur_auto_key,
                         'wot_auto_key':wot_auto_key,
                         'active_batch':active_batch,
+                        'create_batch': True,
                         'start_batch':False,
                         'user_name':user_name,
                     })
+
                 #res = batch_labor.delay(quapi_id,session_id,sysur_auto_key,wot_auto_key,active_batch=active_batch,start_batch=False,user_name=user_name)
                 error,batch_no,description,msg = res.get()              
-                val_dict['button_txt'] = 'Start Batch'
-                val_dict['msg'] = msg
-                val_dict['error'] = error              
+                val_dict['button_txt'] = 'Start Batch'             
+                        
                 if error[:22] == 'No open tasks in batch':
                     val_dict['button_txt'] = 'Recall Batch'
-                    val_dict['msg'] = ''                
+                    msg = 'no tasks found in the batch to recall.'
+                    
+                val_dict['msg'] = msg
+                val_dict['error'] = error                 
                 val_dict['batch_no'] = batch_no
                 val_dict['description'] = description or batch_no
+                labor_rows = TaskLabor.objects.filter(session_id=session_id)
+                val_dict['total_labor_rows'] = len(labor_rows)
                 val_dict['wo_number'] = ''
                 val_dict['wot_auto_key'] = ''            
-                val_dict['start_batch'] = 'T'  
+                val_dict['start_batch'] = 'T' 
+                
             elif create_mode:
+                
+                if wot_auto_key and not wot_auto_key[-1] in ['s','S']:
+                    
+                    if not wot_id_list and labor_submit != 'Start Batch' and task_submit != 'Add Task':
+                        error,msg,total_rows=get_tasks(quapi_id,session_id,wo_number=wot_auto_key)
+                        wtms = WOTask.objects.filter(session_id=session_id)
+
+                        val_dict.update({                    
+                            'batch_no': batch_no and batch_no.upper() or batch_num and batch_num.upper(),
+                            'description': batch_num and batch_num.upper(),
+                            'wo_number': '',
+                            'total_rows': total_rows,
+                            'wot_auto_key': '',
+                            'msg': msg,
+                            'active_mode': 'batch-recall',
+                            'sel_mode': 'batch-recall',
+                            'conf_sel_mode': 'batch-recall',
+                            'error': error, 
+                            'start_batch': 'T',            
+                            'button_txt': 'Start Batch',
+                        })
+                        return render(request, 'mrolive/wolabor.html', val_dict)
+                
                 start_batch = False
                 start_tasks = False           
                 create_batch = False             
                              
-                if task_submit == 'Add Task' and not wot_auto_key[:-1].isnumeric():
-                    val_dict['error'] = "Task must be an integer followed by \'s\'"
-                    return render(request, 'mrolive/wolabor.html', val_dict) 
+                #if task_submit == 'Add Task' and not wot_auto_key[:-1].isnumeric():
+                    #val_dict['error'] = "Task must be an integer followed by \'s\'"
+                    #return render(request, 'mrolive/wolabor.html', val_dict) 
                     
                 if labor_submit == 'Start Batch' and task_submit != 'Add Task':
                     start_batch = True
@@ -7308,18 +8221,26 @@ def wo_labor(request,quapi_id=None):
                 if button_txt == 'Create':
                     button_txt = 'Start Batch'
                     create_batch = True
+                    val_dict['wo_number'] = ''
+                    val_dict['msg'] = msg
+                    val_dict['error'] = error 
+                    val_dict['start_batch'] = 'T'            
+                    val_dict['button_txt'] = button_txt
+                    val_dict['wot_auto_key'] = ''
+                    
                     if len(active_batch) > 5:
                         val_dict['button_txt'] = 'Create'
-                        error = 'Batch name must be no more than 5 characters.'
-                        #return render(request, 'mrolive/wolabor.html', val_dict)
+                        val_dict['error'] = 'Batch name must be no more than 5 characters.'
+                        return render(request, 'mrolive/wolabor.html', val_dict)
+                        
                     if '_' in active_batch:
                         val_dict['button_txt'] = 'Create'
-                        error = 'Batch name cannot contain _.'
-                        #return render(request, 'mrolive/wolabor.html', val_dict)
-                    
-                from portal.tasks import batch_labor  
+                        val_dict['error'] = 'Batch name cannot contain _.'
+                        return render(request, 'mrolive/wolabor.html', val_dict)
+ 
+                from portal.tasks import batch_labor
                 res = batch_labor.apply_async(
-                    queue='labor', 
+                    queue='labor',
                     priority=1, 
                     kwargs={
                         'quapi_id':quapi_id,
@@ -7327,7 +8248,7 @@ def wo_labor(request,quapi_id=None):
                         'sysur_auto_key':sysur_auto_key,
                         'wot_auto_key':wot_auto_key,
                         'batch_no':batch_no or conf_batch_no,
-                        'active_batch':active_batch or batch_no,
+                        'active_batch':active_batch,
                         'start_batch':start_batch,
                         'create_batch': create_batch,
                         'start_tasks':start_tasks,
@@ -7340,18 +8261,22 @@ def wo_labor(request,quapi_id=None):
                 #     start_batch=start_batch,create_batch=create_batch,\
                 #     start_tasks=start_tasks,description=description,
                 #     user_name=user_name)                
-                error,batch_num,description,msg = res.get()            
+                error,batch_num,description,msg = res.get() 
+                labor_rows = TaskLabor.objects.filter(session_id=session_id)                
                 val_dict['batch_no'] = batch_num or batch_no
                 val_dict['description'] = description or batch_num or batch_no
                 val_dict['wo_number'] = ''
                 val_dict['msg'] = msg
                 val_dict['error'] = error 
-                val_dict['start_batch'] = 'T'            
+                val_dict['start_batch'] = 'T'                               
                 val_dict['button_txt'] = button_txt
+                val_dict['total_labor_rows'] = len(labor_rows)
                 val_dict['wot_auto_key'] = ''
+                
 
-            if labor_submit == 'Start' and single_wot and wot_id_list or labor_submit == 'Start Batch' and (task_submit not in ['Add Task'] or wot_id_list) or val_dict['single_wot'] == '' and val_dict['show_conf'] != 'T' and val_dict['button_txt'] in ['Stop Task','Start Task'] or conf_batch_button in ['Stop Batch']:
-                val_dict['total_labor_rows'] = 10  
+            if labor_submit == 'Add' and single_wot and wot_id_list or labor_submit == 'Start Batch' and (task_submit not in ['Add Task'] or wot_id_list) or val_dict['single_wot'] == '' and val_dict['show_conf'] != 'T' and val_dict['button_txt'] in ['Stop Task','Start Task'] or conf_batch_button in ['Stop Batch']:
+                rows = TaskLabor.objects.filter(session_id=session_id)              
+                val_dict['total_labor_rows'] = len(rows)  
                 val_dict['total_rows'] = 0                
                 if search_user in ['','F'] and 'kiosk' in val_dict and val_dict['kiosk'] == 'T':
                     val_dict['button_txt'] = 'OK'
@@ -7359,11 +8284,36 @@ def wo_labor(request,quapi_id=None):
                     val_dict['batch_no'] = ''
                     val_dict['single_wot_key'] = ''
                     val_dict['wot_auto_key'] = '' 
-                    
-    val_dict['error'] = error
+    if error:                
+        val_dict['error'] = error
+
+    if 'button_txt' in val_dict\
+        and not val_dict['button_txt']\
+        and not (recall_mode or create_mode):
+        val_dict['button_txt'] = 'Start Task'
+
     val_dict['form'] = form
     val_dict['wo_number'] = ''
-    return render(request, 'mrolive/wolabor.html', val_dict)     
+    return render(request, 'mrolive/wolabor.html', val_dict)   
+  
+def get_tasks(quapi_id,session_id,wot_auto_key='',wo_number='',woo_auto_key='',batch_id=''):  
+    from portal.tasks import get_signoff_tasks
+    res = get_signoff_tasks.apply_async(
+    queue='labor', 
+    priority=1, 
+    kwargs={
+        'quapi_id':quapi_id,
+        'session_id':session_id,
+        'wot_auto_key':wot_auto_key,
+        'wo_number': wo_number,
+        'woo_auto_key': woo_auto_key,
+        'batch_id': batch_id,
+    })
+    error,msg = res.get()          
+    wtms = WOTask.objects.filter(session_id=session_id).order_by('wot_sequence','wot_auto_key').exclude(status_type='Closed') or []
+    total_rows = len(wtms)  
+    return error,msg,total_rows
+    
 def full_clean(obj_to_clean):
     error = ''
     try:
@@ -8755,7 +9705,7 @@ def management(request,quapi_id=None):
                 try:                
                     from portal.tasks import make_updates
                     res = make_updates.delay(
-                        sysur_auto_key=sysur_auto_key,
+                        sysur_auto_key=sysur_auto_key,                              
                         user_id=user_id, 
                         rank=rank,
                         manager=manager,
@@ -8781,10 +9731,10 @@ def management(request,quapi_id=None):
             if dash_update:
                 keep_recs = True
             from portal.tasks import add_wo_record
-            res = add_wo_record.delay(is_mgmt=True,
-                keep_recs=keep_recs,
-                part_number=part_number,
-                customer=customer,status=new_status,manager=search_mgr,location=location,warehouse=warehouse,due_date=get_due_date,wo_number=wo_number,session_id=session_id,quapi_id=quapi_id,exact_match=exact_match) 
+                                                   
+                                    
+                                        
+            res = add_wo_record.delay(is_mgmt=True,keep_recs=keep_recs,part_number=part_number,customer=customer,status=new_status,manager=search_mgr,location=location,warehouse=warehouse,due_date=get_due_date,wo_number=wo_number,session_id=session_id,quapi_id=quapi_id,exact_match=exact_match) 
             error,msg = res.get()             
             val_dict['sel_rows'] = 0
         else:
@@ -8821,6 +9771,7 @@ def get_modes(app_id=None):
         or AppModes.objects.filter(ml_apps_id=None) or None
     return modes
 
+    
 def barcarting_beta(request,quapi_id=None): 
     location,user_id,user_logged,update,warehouse,rack,new_rack,rerack,rack_user = '','','','','','','','',''
     wo_number,user_error,stat_error,loc_error = '','','',''
@@ -8934,9 +9885,9 @@ def barcarting_beta(request,quapi_id=None):
         trans_loc = req_post.get('trans_loc','')
         trans_cart = req_post.get('trans_cart','')
         stm_keys = req_post.get('stm_keys','')
-        #logger.error('User: ' + auth_user_name + ' | Label: ' + stock_label)
-        #logger.error('| Cart/Loc: ' + rack or cart or loc_cart or cart_code)
-        #logger.error(' | WHS: ' + warehouse + ' | LOC: ' + location)
+
+                                                                                                                   
+                                                                     
         if no_clear:       
             msg = 'Clear cart cancelled.'
             val_dict['active_mode'] = cur_mode
@@ -8959,6 +9910,7 @@ def barcarting_beta(request,quapi_id=None):
             'all_woos': updated_woos,
             'loc_cart': loc_cart,
             'msg': msg,
+            
             'warehouse': warehouse,
             'location': location,
             'dj_user_id': dj_user_id,
@@ -8979,7 +9931,7 @@ def barcarting_beta(request,quapi_id=None):
             'lookup_recs': lookup_recs,
             'show_status': show_status or do_status,
             'do_status': do_status or show_status,
-            'show_user': show_user or do_user,
+            'show_user': show_user or do_user,                                 
             'do_user': do_status or show_status,
             'show_all': show_all and show_all!='0',
             'session_id': session_id,
@@ -9029,7 +9981,7 @@ def barcarting_beta(request,quapi_id=None):
                 
                 if ctrl_number and ctrl_id:
                     from portal.tasks import check_stock
-                    res = check_stock.delay(quapi_id,ctrl_number,ctrl_id)
+                    res = check_stock.delay(quapi_id,ctrl_id,ctrl_number)
                     error,msg = res.get()
                     
                     if error:
@@ -9055,7 +10007,9 @@ def barcarting_beta(request,quapi_id=None):
                 val_dict['error'] = 'Cart not found: %s'%rack
                 return render(request,'mrolive/barcoding.html', val_dict)                
         
+
         if location or trans_loc or loc_cart:
+          
             if trans_loc:
                 location = trans_loc
             elif loc_cart:
@@ -9063,28 +10017,39 @@ def barcarting_beta(request,quapi_id=None):
             from portal.tasks import lookup_location
             res = lookup_location.delay(quapi_id,session_id,location)
             error,msg = res.get()
+            
+            if error and not loc_cart:
+                val_dict['error'] = error
+                return render(request,'mrolive/barcoding.html', val_dict)
+            
             loc_key = Location.objects.filter(session_id=session_id,
                 location_code__iexact=location
                 )            
             loc_key = loc_key and loc_key[0] or None           
+            
             if loc_key:
                 location = loc_key.location_code
                 iq_enable = loc_key.iq_enable
                 loc_key = loc_key.loc_auto_key  
 
                 if loc_cart and cart_code and location and cart_code == location:
-                    # if there is a cart and a location with this code, use 
-                    # the cart.
+                                                                                                                  
+                               
                     loc_key = None
                     
             elif not loc_cart:
                 val_dict['error'] = 'Location not found: %s'%location
                 return render(request, 'mrolive/barcoding.html', val_dict)
-                
+                                 
         if warehouse:
             from portal.tasks import lookup_warehouse
             res = lookup_warehouse.delay(quapi_id,session_id,warehouse)
             error,msg = res.get()
+            
+            if error:
+                val_dict['error'] = error
+                return render(request,'mrolive/barcoding.html', val_dict)
+                
             whs = Warehouse.objects.filter(session_id=session_id,
                 warehouse_code__iexact=location
                 )  
@@ -9095,6 +10060,7 @@ def barcarting_beta(request,quapi_id=None):
             else:
                 val_dict['error'] = 'Warehouse not found: %s'%warehouse
                 return render(request, 'mrolive/barcoding.html', val_dict)  
+                
         elif launch_transfer == '1':
             stm_keys = WOStatus.objects.filter(session_id=session_id).values_list('stm_auto_key',flat=True)
             stm_keys = list(stm_keys)
@@ -9122,28 +10088,29 @@ def barcarting_beta(request,quapi_id=None):
 
             if not error:
                 parameters=[loc_key,iq_enable,cart_key,trans_cart]
-                from polls.models import UserInput
+                #from polls.models import UserInput
                 
                 #set up the data and create the record
                 if not loc_key:
                     location = ''
                     loc_key = ''
                 
-                rec = UserInput(
-                    user_name = auth_user_name,
-                    sysur_auto_key = sysur_auto_key,
-                    timestamp = timestamp,
-                    user_inputs = 'Loc/cart: ' + str(location) + '('\
-                        + str(loc_key) + ')' + ' | Cart: ' + str(cart_code)\
-                        + '(' + str(cart_key) + ')' + ' | Label: '\
-                        + str(wo_number or stock_label),
-                    app_mode = active_mode=='1' and 'Update'\
-                        or active_mode=='2' and 'Transfer'\
-                        or active_mode=='3' and 'Validate',
-                    ml_apps_id = ml_apps_id,
-                    app_name = ml_apps_id and ml_apps_id.name or 'None',
-                )
-                rec.save()
+                #rec = UserInput(
+                #    user_name = auth_user_name,
+                #    sysur_auto_key = sysur_auto_key,
+                #    timestamp = timestamp,
+                #    user_inputs = 'Loc/cart: ' + str(location) + '('\
+                #        + str(loc_key) + ')' + ' | Cart: ' + str(cart_code)\
+                #        + '(' + str(cart_key) + ')' + ' | Label: '\
+                #        + str(wo_number or stock_label),
+                #    app_mode = active_mode=='1' and 'Update'\
+                #        or active_mode=='2' and 'Transfer'\
+                #        or active_mode=='3' and 'Validate',
+                #    ml_apps_id = ml_apps_id,
+                #    app_name = ml_apps_id and ml_apps_id.name or '',
+                #)
+                #rec.save()
+                
                 from portal.tasks import transfer_val_stock         
                 res = transfer_val_stock.apply_async(
                         args=[quapi_id,auth_user_name,sysur_auto_key,session_id,parameters,stm_keys],
@@ -9175,7 +10142,8 @@ def barcarting_beta(request,quapi_id=None):
                 'location': location,
             })
             
-        elif active_mode in ['3']:
+        elif active_mode in ['3'] and not (stock_label or wo_number):
+
             if (cart_key or loc_key):
                 from portal.tasks import search_val_stock
                 parameters=[loc_key,cart_key,cart_code]
@@ -9210,11 +10178,11 @@ def barcarting_beta(request,quapi_id=None):
             group = UserGroupProfile.objects.filter(group=group)
             group_queue = group and group[0] and group[0].priority or None
             res = None
-            from portal.tasks import run_racking_beta 
+            from portal.tasks import run_racking_beta       
             #logger.error('User: ' + auth_user_name + ' | ') 
             #logger.error('ctrl#/id: ' + ctrl_number + ' / ' + ctrl_id + ' | ')
             #logger.error('label: ' + wo_number + ' | cart: ' + cart_code + ' | ')
-            #logger.error('whs: ' + warehouse + ' | location: ' +  location  + ' | ')            
+            #logger.error('whs: ' + warehouse + ' | location: ' +  location  + ' | ')
             if group_queue and group_queue == 'highest_priority':
                 res = run_racking_beta.apply_async(
                     args=[session_id],
@@ -9246,9 +10214,9 @@ def barcarting_beta(request,quapi_id=None):
                         'consignment':consignment,
                         'quantity':quantity,
                         'dpt_auto_key':dpt_auto_key,
-                        'iq_enable':iq_enable,
+                        'iq_enable':iq_enabledef
                     })
-                    
+                 
             else:
                 from polls.models import UserInput
                 
@@ -9269,10 +10237,10 @@ def barcarting_beta(request,quapi_id=None):
                         or active_mode=='2' and 'Transfer'\
                         or active_mode=='3' and 'Validate',
                     ml_apps_id = ml_apps_id,
-                    app_name = ml_apps_id and ml_apps_id.name or 'None'
+                    app_name = ml_apps_id and ml_apps_id.name or 'None',
                 )
                 rec.save()
-                
+                                             
                 res = run_racking_beta.delay(
                     session_id,
                     rack_auto_key = cart_key,
@@ -9302,6 +10270,7 @@ def barcarting_beta(request,quapi_id=None):
                     dpt_auto_key=dpt_auto_key,
                     iq_enable = iq_enable,
                 )
+                
             error,msg,is_rch = res.get()
             val_dict['is_rch'] = is_rch and '1' or '0'
             recs = WOStatus.objects.filter(session_id=session_id)
@@ -9311,6 +10280,7 @@ def barcarting_beta(request,quapi_id=None):
             #updated_woos = not is_rch and WOStatus.objects.filter(session_id=session_id) or []
             #updated_rchs = is_rch and StockReceiver.objects.filter(session_id=session_id) or []            
             #val_dict['total_rows'] = str(len(updated_woos or updated_rchs))
+                             
         val_dict['msg'] = msg
         val_dict['error'] = error + user_error + stat_error + loc_error       
         if not wo_number and lookup_recs not in [1,'1']:
@@ -9467,7 +10437,7 @@ def location_labels(request,quapi_id=None,loc_list=[],user_id='',user_name=''):
         'default_whs': 'WH-GLENDALE',
         'warehouse_codes': warehouses,
         'session_id': session_id,
-    })            
+    })             
     if request.method == 'POST':
         req_post = request.POST
         
@@ -9503,7 +10473,7 @@ def location_labels(request,quapi_id=None,loc_list=[],user_id='',user_name=''):
                     form = WODashboardForm(val_dict)
                     val_dict['form'] = form
                     return render(request, 'mrolive/location_labels.html', val_dict)
-                    
+         
             res = create_locations.delay(quapi_id,sysur_auto_key,label,warehouse,whs_auto_key,loc_labels)    
             error,msg,loc_labels = res.get()  
             
@@ -9610,7 +10580,8 @@ def audit_trail(request,quapi_id=None):
 
     if app_id and app_id.id == 403:
         app_id = MLApps.objects.filter(code__icontains='Labor')
-        app_id = [app.id for app in app_id]        
+        app_id = [app.id for app in app_id]
+        
     if req_post and app_id:     
         if filter_user_id:
             if date_from and date_to:
@@ -9850,54 +10821,63 @@ class LaborJsonView(generics.ListAPIView):
     
     def get_queryset(self, *args, **kwargs):
         records = []
-        session_id = self.request.GET.get('session_id','')  
+        session_id = self.request.GET.get('session_id','') 
+        batch_no = self.request.GET.get('batch_no','')         
         is_mgmt = self.request.GET.get('is_mgmt','')
         is_detail = self.request.GET.get('is_detail','')  
         user_name = self.request.GET.get('user_name','')
         wo_number = self.request.GET.get('wo_number','')
         wtl_sels = self.request.GET.get('wtl_sels','')
         mod_type = self.request.GET.get('mod_type','')
-
+        num_rows = self.request.GET.get('num_rows',10)
+        
         if wtl_sels:
             import ast
             wtl_sels = ast.literal_eval(wtl_sels)
+        if batch_no:
+            records = TaskLabor.objects.filter(batch_id=batch_no).order_by('-id')
         if mod_type == 'ADD':
-             records = TaskLabor.objects.filter(session_id='ay8nNoi80920KHOI:jgals82').order_by('id')
-        elif not session_id:
-            records = TaskLabor.objects.all().order_by('-id')[:10]
+            records = TaskLabor.objects.filter(session_id='ay8nNoi80920KHOI:jgals82').orderl_by('id')
+        #elif not session_id and num_rows:
+        #    records = TaskLabor.objects.all().order_by('-id')[:num_rows]
         elif is_mgmt == '1':
             records = TaskLabor.objects.filter(session_id=session_id,skill_desc='1',batch_id='1',pn='1').order_by('user_name')
         elif is_detail == '1' and not wtl_sels and user_name and not wo_number:
             records = TaskLabor.objects.filter(session_id=session_id,user_name=user_name).order_by('-wtl_auto_key')
             #.exclude(batch_id='1',pn='1',skill_desc='1')
-        elif not session_id:
-            records = TaskLabor.objects.all()
         elif session_id and wtl_sels:
             records = TaskLabor.objects.filter(session_id=session_id,wtl_auto_key__in=wtl_sels)
+        elif session_id:
+            records = TaskLabor.objects.filter(session_id=session_id)
         else:
             records = TaskLabor.objects.filter(session_id=session_id).order_by('id')
+            
         field,direction = '',''
+        
         if 'sort[0][dir]' in self.request.GET:
+            
             try:
                 direction = self.request.GET['sort[0][dir]']
                 field = self.request.GET['sort[0][field]']
             except:
                 pass    
+            
             if direction == 'asc':
                 records = records.order_by(field)
             elif direction == 'desc':
                 records = records.order_by('-'+field)
             else:
                 return records
+        
         return records
-   
+        
    
 class MailSerializer(serializers.ModelSerializer):
     class Meta:
         model = MailGroup
         fields = '__all__'
 
-
+# Create your views here.
 class MailListView(generic.ListView):
     model = MailGroup
     def get_context_data(self, **kwargs):       
@@ -10001,6 +10981,8 @@ class UinpJsonView(generics.ListAPIView):
             else:
                 return records
         return records
+     
+
 
 class EventSerializer(serializers.ModelSerializer):
     class Meta:
@@ -10325,7 +11307,7 @@ class RecordJsonView(generics.ListAPIView):
             wo_type = 'SHIPPER'       
             records = session_id and WOStatus.objects.filter(session_id=session_id,wo_type = wo_type).order_by('-id')
         elif is_shop == 'nada':          
-            records = WOStatus.objects.filter(session_id=session_id).order_by('id')       
+            records = WOStatus.objects.filter(session_id=session_id).order_by('rank').order_by('due_date')       
         elif is_toll_detail == '1':
             if sub_wo_gate and sub_wo_gate != '0':
                 records = is_wos != '0' and session_id and WOStatus.objects.filter(parent_auto_key=parent_auto_key,is_detail=True,sub_wo_gate=sub_wo_gate,session_id=session_id,active=1).order_by('-id') 
@@ -10471,8 +11453,14 @@ def pi_update(request,quapi_id=None):
     val_dict['dash_apps'] = dash_apps
     setup_apps = user_apps and user_apps.filter(ml_apps_id__app_type='setup').order_by('ml_apps_id__menu_seq') or None
     val_dict['setup_apps'] = setup_apps
-    val_dict['quapi_id'] = quapi_id        
-    from portal.tasks import get_users_nsync_beta,get_loc_whs_cart_nsync_beta
+    val_dict['quapi_id'] = quapi_id
+        
+    #from portal.tasks import get_uoms
+    #from polls.models import UomCodes
+    #res = get_uoms.delay(quapi_id,session_id)
+    #error,msg = res.get()
+    #val_dict['uoms'] = UomCodes.objects.filter(session_id=session_id)
+    
     if request.method == 'GET':
         #res = get_loc_whs_cart_nsync_beta.delay(quapi_id,dj_user_id,loc_ok=True,whs_ok=False,cart_ok=False,app='physical-inventory') 
         #loc_error,app = res.get() 
@@ -10502,43 +11490,19 @@ def pi_update(request,quapi_id=None):
             session_id = loc_session
         elif session_id and not loc_session:
             loc_session = session_id
-        #if user submitted clear list form by pressing button
-        clear = 'clear_form' in req_post and req_post['clear_form'] or None
-        loc_input = 'location' in req_post and req_post['location'] or ''  
-        locations = Location.objects.filter(quapi_id=quapi_id,dj_user_id=dj_user_id)
-        if 0:
-            loc_key = Location.objects.filter(location_code=loc_input,quapi_id=quapi_id,dj_user_id=dj_user_id)  
-            loc_key = loc_key and loc_key[0] or None
-            if loc_key:
-                loc_input = loc_key.location_code
-                loc_key = loc_key.loc_auto_key           
-            #else:
-            #    val_dict['error'] = 'Location not found: %s'%loc_input
-            #    return render(request, 'mrolive/pi_results.html', val_dict)         
+       
         show_modal = 'show_modal' in req_post and req_post['show_modal'] or ''
         loc_modal = 'loc_modal' in req_post and req_post['loc_modal'] or ''
         show_all = 'show_all' in req_post and req_post['show_all'] and req_post['show_all'] == '1' and '1' or (user_name and '1') or '0'
         #if user submitted clear list form by pressing button
         clear = 'clear_form' in req_post and req_post['clear_form'] or None
-        ctrl_number,ctrl_id,stm_auto_key='','',''       
-        if scan:
-            if scan[0] in ['c','C']:
-                stm_auto_key = scan[1:] 
-                scan = scan[1:]                
-            elif len(scan) < 7:
-                error = "Your barcode is not long enough."         
-        if not stm_auto_key:
-            if user_name and scan and not loc_input:
-                ctrl_number = scan[0:6]               
-                ctrl_id = scan[7:len(scan)].partition('0')
-                ctrl_id = ctrl_id and ctrl_id[2]
-                if not ctrl_number and ctrl_id:
-                    error = "Something is wrong with the control#/control id combination."
+        ctrl_number,ctrl_id,stm_auto_key='','',''                                                                                       
         control_number = 'control_number' in req_post and req_post['control_number'] or 0
         control_id = 'control_id' in req_post and req_post['control_id'] or 0
-        options_col,page_size = get_options(req_post,session_id)
-        loc_col =  'loc_col' in req_post and req_post['loc_col'] or None 
-        loc_page_size =  'loc_pagesize' in req_post and req_post['loc_pagesize'] or None
+        #if user submitted clear list form by pressing button
+        clear = 'clear_formage' in req_post and req_post['clear_formage'] or None          
+        loc_input = 'location' in req_post and req_post['location'] or ''
+                                                                               
         val_dict.update({
             'error': error,
             'location': loc_input,
@@ -10553,27 +11517,85 @@ def pi_update(request,quapi_id=None):
             'batch': batch,
             'scan': scan,
             'new_qty': new_qty,
-            'control_id': control_id or ctrl_id,
-            'control_number': control_number or ctrl_number,
+            'control_id': control_id,
+            'control_number': control_number,
             'ctrl_id': ctrl_id or control_id,
             'ctrl_number': ctrl_number or control_number, 
             'show_all': show_all or (user_name and '1') or '0',
             'user_name': user_name,
             'session_id': session_id, 
             'loc_session': loc_session, 
-            'form': form,
-            'options_col': options_col,
-            'page_size': page_size,
+            'form': form,                     
             'sysur_auto_key': sysur_auto_key,            
         })
+
+        if clear:
+            woos_to_remove = req_post.getlist('woos_to_clear[]')                        
+            if isinstance(woos_to_remove, list):               
+                PILogs.objects.filter(pk__in=woos_to_remove).delete()
+            return render(request, 'mrolive/pi_results.html', val_dict)
+
+
+        if loc_input:
+            
+            from portal.tasks import lookup_location
+            res = lookup_location.delay(quapi_id,session_id,loc_input)
+            error,msg = res.get()
+            
+            loc_key = Location.objects.filter(session_id=session_id,
+                location_code__iexact=loc_input
+                )             
+            loc_key = loc_key and loc_key[0] or None 
+            
+            if loc_key:
+                loc_input = loc_key.location_code
+                loc_key = loc_key.loc_auto_key
+                
+            else:
+                val_dict['error'] = 'Location not found: %s'%loc_input
+                return render(request, 'mrolive/pi_results.html', val_dict)
+                                         
+        
+        if scan:
+            if scan[0] in ['c','C']:
+                stm_auto_key = scan[1:] 
+                scan = scan[1:]                
+            elif len(scan) < 7:
+                error = "Your barcode is not long enough."
+                      
+        if not stm_auto_key:
+            
+            if user_name and scan:
+                ctrl_number = scan[0:6]               
+                ctrl_id = scan[7:len(scan)].partition('0')
+                ctrl_id = ctrl_id and ctrl_id[2]
+                
+                if not ctrl_number and ctrl_id:
+                    error = "Something is wrong with the control#/control id combination."
+                   
+                else:
+                    from portal.tasks import check_stock
+                    res = check_stock.delay(quapi_id,ctrl_id,ctrl_number)
+                    error,msg = res.get()
+               
+                    if error:
+                        val_dict.update({
+                            'error': error,
+                            'ctrl_id': ctrl_id or control_id,
+                            'ctrl_number': ctrl_number or control_number,
+                        })
+                        
+                        return render(request, 'mrolive/pi_results.html', val_dict)                      
         if error:
             val_dict.update({'error': error})
             return render(request, 'mrolive/pi_results.html', val_dict)
+
         if 'woos_to_clear[]' in req_post and clear:
             woos_to_remove = req_post.getlist('woos_to_clear[]')                        
             if isinstance(woos_to_remove, list):               
                 PILogs.objects.filter(pk__in=woos_to_remove).delete()
-            return render(request, 'mrolive/pi_results.html', val_dict)                                  
+            return render(request, 'mrolive/pi_results.html', val_dict)
+                                 
         from portal.tasks import make_pi_updates            
         res = make_pi_updates.delay(\
             loc_session or session_id,\
@@ -10602,7 +11624,7 @@ def pi_update(request,quapi_id=None):
     val_dict['form'] = form
     val_dict['user'] = user
     return render(request, 'mrolive/pi_results.html', val_dict)
-  
+
 def is_integer(string):
     res = string
     try:
@@ -10819,30 +11841,69 @@ def construct_akl(woo_ids):
     
 def save_grid_options(request):
     
-    import pdb;pdb.set_trace()
+                              
     req_post = request.POST
-    col_options = req_post.get('col_options',[])
-    pagesize = req_post.get('pagesize',10000)
-    session_id = req_post.get('session_id','')
-    quapi_id = req_post.get('quapi_id','')
-    user_id = req_post.get('user_id','')
-    ml_app_id = req_post.get('ml_app_id','')
-    options_col = []
+    if req_post:
+        col_options = req_post.get('col_options',[])
+        pagesize = req_post.get('pagesize',10000)
+        session_id = req_post.get('session_id','')
+        quapi_id = req_post.get('quapi_id','')
+        user_id = req_post.get('user_id','')
+        ml_app_id = req_post.get('ml_app_id','')
+        options_col = []
     
-    if col_options:
+                   
         
-        try:
-            #insert the code you wrote today on Dev 
-            #that inserts the col options records and saves them.
-            options_col,pagesize = store_grid_options(req_post,\
-                session_id,'','',user_id=user_id,ml_app_id=ml_app_id\
-        )
-        except Exception:           
-            return JsonResponse('error retrieving data.')
             
-    return JsonResponse(list(options_col), safe = False)
+                                                    
+        if col_options and user_id:
+                                                                
+                                                                     
+         
+                                    
+                                                         
+            
+            try:
+                #insert the code you wrote today on Dev 
+                #that inserts the col options records and saves them.
+                options_col,pagesize = store_grid_options(req_post,\
+                    session_id,'','',user_id=user_id,ml_app_id=ml_app_id\
+            )
+            except Exception:           
+                return JsonResponse('error retrieving data.')
+                
+        result = {'message': 'Grid settings saved.','options_col': options_col}       
+        return JsonResponse(result, safe = False)
+
+    return render(request, 'mrolive/repair_order_mgmt.html')
+ 
+def get_popup_stock(stm_key_list,session_id): 
+    stms = WOStatus.objects.filter(session_id = session_id,stm_auto_key__in=stm_key_list)
+    prod_pn,prod_desc,prod_cons,sl_list = '','','',''
+    count = 0
     
-def repair_order_mgmt(request,quapi_id=None):   
+    for stm in stms:
+        if count == 0:
+            prod_pn = stm.part_number
+            prod_desc = stm.description
+            prod_cons = stm.consignment_code
+            
+        else:                    
+            if prod_pn != stm.part_number:
+                prod_pn = 'Multiple'
+            
+            if prod_desc != stm.description:
+                prod_desc = 'Multiple'
+                
+            if prod_cons != stm.consignment_code:
+                prod_cons = 'Multiple'
+        
+        sl_list += stm.stock_line + ' | '
+        count += 1
+    return [prod_pn,prod_desc,prod_cons,sl_list]
+    
+def repair_order_mgmt(request,quapi_id=None):
+    
     location,customer,user_id = '','',''
     wo_number,user_error,stat_error,loc_error = '','','',''
     val_dict,form,updated_woos,all_woos,woo_num_list,woo_key_list = {},{},[],[],[],[]           
@@ -10851,9 +11912,11 @@ def repair_order_mgmt(request,quapi_id=None):
     quser=QuantumUser
     val_dict['quapi_id'] = quapi_id 
     user = request.user
+    
     if not user.id:
         val_dict['error'] = 'Access denied.'
         return redirect('/login/')  
+        
     user_id = user.username
     user_profile = UserProfile.objects.filter(user=user)
     user_profile = user_profile and user_profile[0] or None
@@ -10861,9 +11924,11 @@ def repair_order_mgmt(request,quapi_id=None):
     reg_user_id = user and user.is_authenticated and user.id or None 
     dj_user_id = user and quapi_id and UserQuapiRel.objects.filter(user=user,quapi_id=quapi_id) or None
     dj_user_id = dj_user_id and user.id or None
+    
     if not reg_user_id or not dj_user_id:
         val_dict['error'] = 'Access denied.'
-        return redirect('/login/')      
+        return redirect('/login/') 
+        
     user_apps = user and UserAppPerms.objects.filter(user=user) or None
     op_apps = user_apps and user_apps.filter(ml_apps_id__app_type='operations').order_by('ml_apps_id__menu_seq') or None
     val_dict['op_apps'] = op_apps
@@ -10877,10 +11942,12 @@ def repair_order_mgmt(request,quapi_id=None):
     alloc_app = alloc_app and alloc_app[0] or None
     modes = alloc_app and get_modes(alloc_app) or []
     val_dict['sel_rows'] = 0
+    
     if request.method == 'GET':
         form = WODashboardForm() 
         sel_rows = 0
-    from portal.tasks import get_stock_status,get_uda_status
+        
+    from portal.tasks import get_stock_status,get_uda_status,get_consignment_codes
     session_id = 'annW8NK23R2ifOSALKO8234LAKASGLKL3OI;R'
     res = get_uda_status.delay(quapi_id,session_id,app='ro-management')
     stat_error,app = res.get()
@@ -10889,7 +11956,10 @@ def repair_order_mgmt(request,quapi_id=None):
     session_id = 'auaawe()agnsdlkghw^234Neir908OI23'
     res = get_stock_status.delay(quapi_id,session_id)
     error = res.get()        
-    val_dict['stock_statuses'] = StatusSelection.objects.filter(session_id=session_id)
+    val_dict['stock_statuses'] = StatusSelection.objects.filter(session_id=session_id)   
+    res = get_consignment_codes.delay(quapi_id,session_id)        
+    error = res.get()
+    val_dict['consignments'] = Consignments.objects.filter(session_id=session_id) 
     
     if request.method == 'POST':
         req_post = request.POST
@@ -10945,13 +12015,11 @@ def repair_order_mgmt(request,quapi_id=None):
         socond_code = req_post.get('socond_code','')
         filter_socond_code = req_post.get('filter_socond_code','')
         socondition_code = req_post.get('socondition_code','')
-        active_mode = active_mode or sel_mode  
-                                             
-        #if not (sel_mode or not active_mode) and not vendor_input:
-        #    val_dict['error'] = 'Must select a method for creating ROs.'
-        #    render(request, 'mrolive/repair_order_mgmt.html', val_dict)                                                                    
+        active_mode = active_mode or sel_mode 
+        stock_line = 'label' in req_post and req_post['label'] or ''                                                                 
         wo_update = 'wo_update' in req_post and req_post['wo_update'] or False
         show_all = 1
+        is_search = req_post.get('is_search','')
         search_stock = 'search_stock' in req_post and req_post['search_stock'] or False   
         session_id = 'session_id' in req_post and req_post['session_id'] or ''
         upd_status = req_post.get('upd_status','')
@@ -10964,25 +12032,32 @@ def repair_order_mgmt(request,quapi_id=None):
         certifs = ', '.join(certifs)    
         upd_notes = "Please %s- provide %s.  %s"%(instr,certifs,req_post.get('upd_notes',''))
         upd_status = req_post.get('upd_status','')
-        
-        #if not (sel_mode or active_mode) and not (vendor_input or ro_number):
-            #val_dict['error'] = 'Must select a method for creating ROs.'
-            #render(request, 'mrolive/repair_order_mgmt.html', val_dict)
+        repair_type = req_post.get('repair_type','')
+        log_choice = req_post.get('sysnl','')
+        next_num = req_post.get('next_num','')
+        cons_code = req_post.get('cons_selector','')
+        separate_ros = req_post.get('separate_ros','') 
+        yes_proceed = req_post.get('yes_proceed','')
+        not_proceed = req_post.get('not_proceed','')  
+        ro_warning = req_post.get('ro_warning_form','')         
 
         if not session_id and not (filter_session or user_session):
             session_id = 'csrfmiddlewaretoken' in req_post and req_post['csrfmiddlewaretoken'] or ''
             filter_session = session_id
             user_session = session_id
+            
         elif not session_id and filter_session:
             session_id = filter_session
             user_session = filter_session
+        
         elif not session_id and not filter_session:
             session_id = user_session
             filter_session = user_session   
-            
+        
         val_dict.update({
             'wo_number': wo_number,
             'all_woos': updated_woos,
+            'log_choice': log_choice,
             'msg': msg,
             'customer': customer,
             'condition_code': condition_code or cond_code,
@@ -11026,7 +12101,10 @@ def repair_order_mgmt(request,quapi_id=None):
             'filter_session': filter_session or session_id or user_session or update_session,
             'update_session': update_session or session_id or user_session or filter_session, 
             'user_session': user_session or update_session or session_id or filter_session,
-            'ro_number': ro_number,          
+            'ro_number': ro_number,   
+            'next_num': next_num,  
+            'separate_ros': separate_ros,    
+            'cons_code': cons_code,            
             })
 
         #if user submitted clear list form by pressing button
@@ -11042,13 +12120,14 @@ def repair_order_mgmt(request,quapi_id=None):
         stm_key_list = []
         woo_keys = []
         selection = None
-
+        
         if 'stm_sels[]' in req_post:
             stm_list = req_post.getlist('stm_sels[]') 
             stm_key_list = req_post.getlist('stm_sels[]') 
             selection = WOStatus.objects.filter(\
                stm_auto_key__in = stm_key_list,session_id=session_id)  
             woo_keys = [woo.woo_auto_key for woo in selection]
+            
             #update with the data from the pop up
             from portal.tasks import update_lots
             parameters = [upd_status,upd_notes,'','','']              
@@ -11056,14 +12135,27 @@ def repair_order_mgmt(request,quapi_id=None):
                 session_id,sysur_auto_key,\
                 stm_key_list,parameters,[],is_mgmt=True)
             error,msg = res.get()
-        
+
         if 'stm_key_list[]' in req_post:
         
             stm_key_list = req_post.getlist('stm_key_list[]') 
+            val_dict['stm_keys'] = stm_key_list
             stm_key_tuple = tuple([int(stm) for stm in stm_key_list])
             selection = WOStatus.objects.filter(stm_auto_key__in = stm_key_tuple,session_id=session_id)  
             woo_keys = [woo.woo_auto_key for woo in selection]
-            
+
+            if not_proceed:
+                #return the grid and the rest of the data
+                grid_rows = WOStatus.objects.filter(session_id=session_id)
+                
+                val_dict.update({
+                    'msg': 'you chose not to proceed.',
+                    'error': '',
+                    'total_rows': len(grid_rows),
+                })
+                
+                return render(request, 'mrolive/repair_order_mgmt.html', val_dict) 
+                
             if launch_update == '1':
             
                 stms = WOStatus.objects.filter(session_id = session_id,stm_auto_key__in=stm_key_list)
@@ -11106,8 +12198,12 @@ def repair_order_mgmt(request,quapi_id=None):
                 })
                 
                 return render(request, 'mrolive/repair_order_mgmt.html', val_dict)
-       
-        if not (wo_update or ro_number) and ((ctrl_number and ctrl_id) or stock_status or socondition_code or wo_number or part_number or condition_code or location or customer or new_status):
+        
+        if not (wo_update or ro_number) and ((ctrl_number and ctrl_id)\
+            or stock_status or socondition_code or wo_number or part_number\
+            or condition_code or location or customer or new_status\
+            or stock_line or cons_code):
+            
             from portal.tasks import run_ro_mgmt
             res = run_ro_mgmt.delay(
                 session_id,
@@ -11127,22 +12223,205 @@ def repair_order_mgmt(request,quapi_id=None):
                 dj_user_id = dj_user_id,
                 wos_auto_key = new_status,
                 stock_status = stock_status,
+                stock_line = stock_line,
+                cons_code = cons_code,
             )
             error,msg = res.get()
             val_dict['sel_rows'] = 0
+                            
+        elif vendor_input and repair_type and not not_proceed:
             
-        elif (active_mode in ['1','2'] or ro_number):
+            if 'stm_key_list[]' in req_post:
+                stm_key_list = req_post.getlist('stm_key_list[]') 
+                
+            from portal.tasks import add_new_ro
+             #get vendors now that we know we're going to need them
+            #!!!!fix this!!!!
+            from portal.tasks import get_companies_n_sync
+            res = get_companies_n_sync.delay(quapi_id,dj_user_id,is_vendor=True)
+            error = res.get()
+            vendor_list = Companies.objects.filter(quapi_id=quapi_id,dj_user_id=dj_user_id,is_vendor=True)           
+            vendor = vendor_list.filter(name=vendor_input)            
+            vendor = vendor and vendor[0]
+            vendor_id = vendor and vendor.cmp_auto_key or 0
+
+            all_woos = WOStatus.objects.filter(session_id=session_id) 
+            total_rows = len(all_woos)           
             
+            if not (not_proceed or yes_proceed) and log_choice:
+                
+                if vendor and vendor.allow_ro == 'Warn':
+                    #launch the popup to display the warning
+                                   
+                    val_dict.update({
+                        'warn_user':'1',
+                        'ro_warn_msg': vendor.ro_warning,
+                        'stm_keys': stm_key_list,
+                        'msg': '',
+                        'all_woos': all_woos,
+                        'repair_type': repair_type,
+                        'vend_input': vendor_input,
+                    })
+                    
+                    return render(request, 'mrolive/repair_order_mgmt.html', val_dict) 
+                    
+                elif vendor and vendor.allow_ro == 'Never':
+                    #launch an error pop-up
+                    val_dict.update({
+                        'error': 'Vendor not allowed for RO: ' + vendor.ro_warning,
+                        'stm_keys': stm_key_list,
+                        'msg': '',
+                        'all_woos': all_woos,
+                        'repair_type': repair_type,
+                        'vend_input': vendor_input,
+                    })
+                    
+                    return render(request, 'mrolive/repair_order_mgmt.html', val_dict) 
+                    
+            val_dict['vendor_vals'] = vendor_list
+            val_dict['separate_ros'] = separate_ros
+            val_dict['active_mode'] = '2'           
+            #check the vendor selection to see if they are eligible for repairs
+            #vendor_id = vendors and vendors[0] or None
+            #vendor_id = vendor_id and vendor_id.cmp_auto_key or None                       
+            val_dict['session_id'] = user_session
+            session_id = user_session 
+            selection = stm_key_list and WOStatus.objects.filter(session_id=session_id,stm_auto_key__in=stm_key_list) or [] 
+            woo_keys = [woo.woo_auto_key for woo in selection]
+            
+            if vendor_id:
+
+                if log_choice and log_choice.isnumeric() and not next_num:
+                    from polls.models import NumberLog
+                    log_chosen = NumberLog.objects.filter(sysnl_auto_key=log_choice)
+                    next_num = log_chosen and log_chosen[0] and log_chosen[0].next_number
+                 
+                res = add_new_ro.delay(quapi_id,session_id,\
+                sysur_auto_key,stm_keys=stm_key_list,\
+                vendor=vendor_id,last_vendor=False,\
+                woo_keys=woo_keys,separate_ros=separate_ros,\
+                repair_type=repair_type,next_num=next_num,\
+                sysnl_auto_key=log_choice,stock_status=upd_status,\
+                notes=upd_notes,yes_proceed=yes_proceed)
+                error,msg,next_nl = res.get()                 
+
+                if upd_status or upd_notes and msg not in ['show_sysnl','warn_user']:
+                    from portal.tasks import update_lots
+                    parameters = [upd_status,upd_notes,'','','']              
+                    res = update_lots.delay(quapi_id,user_id,\
+                        session_id,sysur_auto_key,\
+                        stm_key_list,parameters,[],is_mgmt=True)
+                    upderror,updmsg = res.get() 
+ 
+                if msg == 'show_sysnl' and not log_choice:
+                    from polls.models import NumberLog
+                    sysnl = NumberLog.objects.filter(session_id=session_id).order_by('sequence')                              
+                    #update the values to show the sequences
+                    
+                    val_dict.update({
+                        'show_sysnl':'1',
+                        'stm_keys': stm_key_list,
+                        'msg': '',
+                        'sysnl': sysnl,
+                        'repair_type': repair_type,
+                        'vend_input': vendor_input,
+                    })
+                    
+                if msg[:9] == 'warn_user' and not (not_proceed or yes_proceed):                    
+                    val_dict.update({
+                        'warn_user':'1',
+                        'ro_warn_msg': msg[9:],
+                        'stm_keys': stm_key_list,
+                        'msg': '',
+                        'repair_type': repair_type,
+                        'vend_input': vendor_input,
+                    })
+                    
+                    return render(request, 'mrolive/repair_order_mgmt.html', val_dict)                   
+
+                if not error and log_choice: 
+                    from portal.tasks import update_sysnl
+                    res = update_sysnl.delay(quapi_id,session_id,log_choice,next_num)
+                    upderror,sysnl_msg = res.get()   
+                    
+                val_dict['msg'] = msg
+                val_dict['error'] = error                 
+                val_dict['show_modal'] = '0'
+                
+            else:
+                val_dict['error'] = 'Vendor not found. Must select from the list' 
+           
+             
+        elif active_mode in ['1','2'] or ro_number:
+               
             if stm_key_list:            
                 from portal.tasks import add_new_ro
-                #if user enters a ro_number:
+
                 if ro_number:
-                    res = add_new_ro.delay(quapi_id,session_id,sysur_auto_key,ro_number=ro_number,stm_keys=stm_key_list,last_vendor=False,woo_keys=woo_keys)
-                    error,msg = res.get()
-                elif active_mode == '2':
+                    
+                    if repair_type:
+                            
+                        res = add_new_ro.delay(quapi_id,session_id,sysur_auto_key,\
+                        ro_number=ro_number,stm_keys=stm_key_list,last_vendor=False,\
+                        woo_keys=woo_keys,separate_ros=False,repair_type=repair_type,
+                        next_num=0)
+                        error,msg,next_nl = res.get()
+                        
+                        if msg[:9] == 'warn_user':                   
+                            val_dict.update({
+                                'warn_user':'1',
+                                'ro_warn_msg': msg[9:],
+                                'stm_list': stm_key_list,
+                                'msg': '',
+                                'repair_type': repair_type,
+                                'vend_input': vendor_input,
+                            }) 
+                        
+                        if upd_status or upd_notes:
+                            from portal.tasks import update_lots
+                            parameters = [upd_status,upd_notes,'','','']              
+                            res = update_lots.delay(quapi_id,user_id,\
+                                session_id,sysur_auto_key,\
+                                stm_key_list,parameters,[],is_mgmt=True)
+                            upderror,updmsg = res.get()
+                        
+                    else:
+                        prod_pn,prod_desc,prod_cons,sl_list = get_popup_stock(stm_key_list,session_id)
+                        val_dict.update({
+                            'ro_number': ro_number,
+                            'separate_ros': separate_ros,
+                            'show_reps':'1',
+                            'stm_list': stm_key_list,
+                            'prod_pn': prod_pn,
+                            'prod_desc': prod_desc,
+                            'prod_cons': prod_cons,
+                            'stm_list': stm_key_list,
+                            'sl_list': sl_list,
+                        })
+                        
+                elif active_mode == '2' and is_search != '1' and not repair_type:
+                    
+                    #need to raise the pop-up to prompt for repair type.
+                    prod_pn,prod_desc,prod_cons,sl_list = get_popup_stock(stm_key_list,session_id)
+                    val_dict.update({
+                        'user_session': session_id,
+                        'show_reps':'1',
+                        'stm_keys': stm_key_list,
+                        'prod_pn': prod_pn,
+                        'prod_desc': prod_desc,
+                        'prod_cons': prod_cons,
+                        'stm_list': stm_key_list,
+                        'sl_list': sl_list,
+                        'separate_ros': separate_ros,
+                        'active_mode': '2',
+                    })                                                      
+                    
+                elif active_mode == '2' and is_search != '1' and repair_type:
+                    
                     #need to raise the pop-up to prompt for vendor_input.
-                    val_dict['show_modal'] = '1'                     
-                    val_dict['user_session'] = session_id                                                           
+                    val_dict['show_modal'] = '1'    
+                    val_dict['repair_type'] = repair_type                   
+                    val_dict['user_session'] = session_id                 
                     val_dict['stm_keys'] = stm_key_list
                     #get vendors now that we know we're going to need them
                     from portal.tasks import get_companies_n_sync
@@ -11150,34 +12429,80 @@ def repair_order_mgmt(request,quapi_id=None):
                     error = res.get()
                     vendor_vals = Companies.objects.filter(quapi_id=quapi_id,dj_user_id=dj_user_id,is_vendor=True)
                     val_dict['vendor_vals'] = vendor_vals
+                    val_dict['separate_ros'] = separate_ros
+                    val_dict['active_mode'] = '2'
+                    
                 elif active_mode == '1':
-                    #get the last vendor via sql query and create a new RO with that vendor
-                    res = add_new_ro.delay(quapi_id,session_id,sysur_auto_key,stm_keys=stm_key_list,last_vendor=True,woo_keys=woo_keys)
-                    error,msg = res.get()
-            else:
-                error = 'You must select at least one stock record in the grid to proceed.'
-                
-        elif vendor_input:  
-            if 'stm_keys_sel[]' in req_post:
-                stm_key_list = req_post.getlist('stm_keys_sel[]')        
-            from portal.tasks import add_new_ro
-            #call the task that adds a new RO
-            vendors = Companies.objects.filter(name=vendor_input,dj_user_id=dj_user_id,quapi_id=quapi_id)
-            vendor_id = vendors and vendors[0] or None
-            vendor_id = vendor_id and vendor_id.cmp_auto_key or None
-            val_dict['session_id'] = user_session
-            session_id = user_session 
-            selection = stm_key_list and WOStatus.objects.filter(session_id=session_id,stm_auto_key__in=stm_key_list) or [] 
-            woo_keys = [woo.woo_auto_key for woo in selection] 
-            if vendor_id:
-                res = add_new_ro.delay(quapi_id,session_id,sysur_auto_key,stm_keys=stm_key_list,vendor=vendor_id,last_vendor=False,woo_keys=woo_keys)
-                error,msg = res.get()  
-                val_dict['msg'] = msg
-                val_dict['error'] = error                 
-                val_dict['show_modal'] = '0' 
-            else:
-                val_dict['error'] = 'Vendor not found. Must select from the list' 
-                
+
+                    if repair_type:
+                        
+                        if log_choice and log_choice.isnumeric():
+                            from polls.models import NumberLog
+                            log_chosen = NumberLog.objects.filter(sysnl_auto_key=log_choice)
+                            next_num = log_chosen and log_chosen[0] and log_chosen[0].next_number
+                            
+                        #get the last vendor via sql query and create a new RO with that vendor
+                        res = add_new_ro.delay(quapi_id,session_id,sysur_auto_key,\
+                            stm_keys=stm_key_list,last_vendor=True,woo_keys=woo_keys,\
+                            separate_ros=separate_ros,repair_type=repair_type,next_num=next_num,\
+                            sysnl_auto_key=log_choice,yes_proceed=yes_proceed)                      
+                        error,msg,next_nl = res.get() 
+                        
+                        if msg[:9] == 'warn_user':
+                            if not yes_proceed:                    
+                                val_dict.update({
+                                    'warn_user':'1',
+                                    'ro_warn_msg': msg[9:],
+                                    'stm_keys': stm_key_list,
+                                    'msg': '',
+                                    'repair_type': repair_type,
+                                    'vend_input': vendor_input,
+                                    'next_num': next_num,
+                                })
+                            
+                            return render(request, 'mrolive/repair_order_mgmt.html', val_dict)   
+                    
+                        if upd_status or upd_notes:
+                            from portal.tasks import update_lots
+                            parameters = [upd_status,upd_notes,'','','']              
+                            res = update_lots.delay(quapi_id,user_id,\
+                                session_id,sysur_auto_key,\
+                                stm_key_list,parameters,[],is_mgmt=True)
+                            upderror,updmsg = res.get()
+                        
+                        if not error and log_choice and log_choice.isnumeric(): 
+                            from portal.tasks import update_sysnl
+                            res = update_sysnl.delay(quapi_id,session_id,log_choice,next_num)
+                            sysnl_error,sysnl_msg = res.get()
+                            
+                        if msg == 'show_sysnl':
+                            from polls.models import NumberLog
+                            sysnl = NumberLog.objects.filter(session_id=session_id).order_by('sequence')                              
+                            #update the values to show the sequences
+                            
+                            val_dict.update({
+                                'show_sysnl':'1',
+                                'stm_list': stm_key_list,
+                                'msg': msg,
+                                'sysnl': sysnl,
+                                'repair_type': repair_type,
+                                'error': error,
+                            })
+                    else:
+                        prod_pn,prod_desc,prod_cons,sl_list = get_popup_stock(stm_key_list,session_id)
+                        val_dict.update({
+                            'separate_ros': separate_ros,
+                            'show_reps':'1',
+                            'stm_list': stm_key_list,
+                            'prod_pn': prod_pn,
+                            'prod_desc': prod_desc,
+                            'prod_cons': prod_cons,
+                            'stm_list': stm_key_list,
+                            'sl_list': sl_list,
+                        })
+            elif not not_proceed:
+                error = 'Must select row(s).'
+     
         #if user has already entered a vendor:
         #the user clicked the "New RO" button so we add a new one with the stock lines as RO's
         stm_key_list =[int(stm) for stm in stm_key_list]
@@ -11204,7 +12529,6 @@ def repair_order_mgmt(request,quapi_id=None):
     
     return render(request, 'mrolive/repair_order_mgmt.html', val_dict)
     
-    
 def store_grid_options(req_post,\
     session_id,user_profile,ml_app,\
     user_id='',ml_app_id=''):        
@@ -11216,18 +12540,30 @@ def store_grid_options(req_post,\
     """
     options_col = {}
     page_size = 10000
-    
-    if ml_app_id and user_id:
-        ml_app = MLApps.objects.filter(id = ml_app_id)
-        user_profile_id = UserProfile.objects.filter(user_id = user_id)
-        
+
     from polls.models import GridOptions
-    grid = GridOptions.objects.create(
-        user_profile_id=user_profile,
-        app_id = ml_app,
-        session_id=session_id
-    )
-    grid = grid.save()
+    if not user_profile:
+                                                      
+        user_profile = user_id and UserProfile.objects.filter(user_id = user_id)
+        
+    if user_profile:   
+        if ml_app_id:
+            ml_app = MLApps.objects.filter(code = ml_app_id)
+
+            grid = GridOptions.objects.create(
+                user_profile_id=user_profile,
+                app_id = ml_app,
+                session_id=session_id
+            )
+            
+        else:
+
+            grid = GridOptions.objects.create(
+                user_profile_id=user_profile,
+                session_id=session_id
+            )
+            
+        grid = grid.save()
 
     if req_post:
         options_col,page_size = get_options(
@@ -11274,7 +12610,7 @@ def repair_order_edit(request,quapi_id=None):
     alloc_app = alloc_app and alloc_app[0] or None
     modes = alloc_app and get_modes(alloc_app) or []
     val_dict['sel_rows'] = 0 
-    from portal.tasks import get_users_nsync_beta,get_statuses_nsync_beta,get_uda_status
+    from portal.tasks import get_users_nsync_beta,get_statuses_nsync_beta,get_uda_status,get_consignment_codes
     if request.method == 'GET':
         if not reg_user_id or not dj_user_id:
             val_dict['error'] = 'Access denied.'
@@ -11288,9 +12624,10 @@ def repair_order_edit(request,quapi_id=None):
         form = WODashboardForm()        
     session_id = 'annW8NK23R2ifOSALKO8234LAKASGLKL3OI;R'    
     val_dict['status_vals'] = StatusSelection.objects.filter(quapi_id=quapi_id,dj_user_id=dj_user_id,is_dashboard=1).distinct() or [] 
-                              
-                                                                    
-                                      
+    res = get_consignment_codes.delay(quapi_id,session_id)        
+    error = res.get()
+    val_dict['consignments'] = Consignments.objects.filter(session_id=session_id) 
+    
     if request.method == 'POST':
         req_post = request.POST
         form = WODashboardForm(req_post)
@@ -11323,9 +12660,11 @@ def repair_order_edit(request,quapi_id=None):
         wo_number = 'wo_number' in req_post and req_post['wo_number'] or ''
         new_status = req_post.get('new_status','')
         uda_status = req_post.get('uda_status','')
-        session_id = 'session_id' in req_post and req_post['session_id'] or ''
+        repair_type = req_post.get('repair_type','')
+        
         if not dj_user_id:
             dj_user_id = 'dj_user_id' in req_post and req_post['dj_user_id'] or ''#dj admin user id
+            
         #user_id = 'user_id' in req_post and req_post['user_id'] or None
         user_name = 'user_name' in req_post and req_post['user_name'] or ''
         clear_form = 'clear_form' in req_post and req_post['clear_form'] or False
@@ -11380,17 +12719,21 @@ def repair_order_edit(request,quapi_id=None):
         update_user = 'update_user' in req_post and req_post['update_user'] or ''
         active_user = 'active_user' in req_post and req_post['active_user'] or ''       
         session_id = 'session_id' in req_post and req_post['session_id'] or ''
+        cons_code = req_post.get('cons_selector','')
+        
         if not session_id and not (filter_session or split_session):
             session_id = 'csrfmiddlewaretoken' in req_post and req_post['csrfmiddlewaretoken'] or ''
             filter_session = session_id
             split_session = session_id
+            
         if not session_id and filter_session:
-            session_id = filter_session  
+            session_id = filter_session
+            
         elif not session_id and split_session:
             session_id = split_session
-
-        options_col,page_size = get_options(req_post,session_id)            
+           
         val_dict.update({
+            'cons_code': cons_code,
             'header_notes': '',
             'receiver_instr': '',
             'approved': '',
@@ -11444,10 +12787,9 @@ def repair_order_edit(request,quapi_id=None):
             'split_vendor': filter_vendor or vendor or vendor or split_vendor, 
             'split_new_status': filter_new_status or new_status or split_new_status,
             'filter_session': filter_session or session_id,
-            'split_session': session_id or filter_session,           
-            'page_size': page_size,
-            'options_col': options_col,            
-            })   
+            'split_session': session_id or filter_session,                      
+            })  
+            
         show_modal = '0'
         ro_id_list = []               
         selection = None
@@ -11488,22 +12830,24 @@ def repair_order_edit(request,quapi_id=None):
         if (is_update or split_ro) and not user_id and clear_form != '1':
             error += 'Invalid employee number.'
             val_dict['error'] = error
-            return render(request, 'mrolive/repair_order_edit.html', val_dict)     
+            return render(request, 'mrolive/repair_order_edit.html', val_dict)   
+            
         #if user submitted clear list form by pressing button
         if clear_form and req_post['clear_form']=='1':       
-            WOStatus.objects.filter(session_id=session_id,is_dashboard=0,active=1,is_racking=1).delete()
+            #WOStatus.objects.filter(session_id=session_id,is_dashboard=0,active=1,is_racking=1).delete()
             val_dict['all_woos'] = []            
             val_dict['msg'] = '' 
             val_dict['show_all'] = 1  
             form = WODashboardForm(val_dict)
             val_dict['form'] = form                         
-            return render(request, 'mrolive/repair_order_edit.html', val_dict)                                          
+            return render(request, 'mrolive/repair_order_edit.html', val_dict)                         
+
         fields_update = misc_cost or parts_cost or labor_cost\
             or airway_bill or pnm_modify or cond_code\
             or approved or quoted or next_dlv_date\
             or notes or upd_status or header_notes or receiver_instr\
-            or ro_categ or ship_date
-            
+            or ro_categ or ship_date or repair_type
+        
         if not upd_ro_submit:
             from portal.tasks import run_ro_edit
             res = run_ro_edit.delay(
@@ -11516,8 +12860,10 @@ def repair_order_edit(request,quapi_id=None):
                 entry_date = entry_date,
                 rst_auto_key = new_status,
                 uda_status = uda_status,
+                cons_code = cons_code,
             )
             error,msg = res.get()
+            
         else:
             stm_sels = req_post.getlist('stm_sels[]')
             if not stm_sels:
@@ -11550,6 +12896,7 @@ def repair_order_edit(request,quapi_id=None):
                     receiver_instr=receiver_instr,
                     ship_date=ship_date,
                     ro_categ=ro_categ,
+                    repair_type=repair_type,
                 )
                 error,msg = res.get()
                 from portal.tasks import run_ro_edit
@@ -11652,6 +12999,7 @@ def get_options(req_post,session_id,user_profile_id=None,app_id=None):
         cols_to_del = ColumnSettings.objects.filter(session_id=session_id)
 
         if app_id and user_profile_id:
+            from polls.models import GridOptions
             grid = GridOptions.objects.filter(
                 app_id=app_id,
                 user_profile_id = user_profile_id
@@ -11685,7 +13033,7 @@ def get_options(req_post,session_id,user_profile_id=None,app_id=None):
         options_col = ColumnSettings.objects.filter(session_id=session_id)
         
     return options_col,page_size
-    
+            
 def dock_receiving(request,quapi_id=None):
     val_dict,msg,message = {},'',''
     sysnl = []
@@ -11793,7 +13141,7 @@ def dock_receiving(request,quapi_id=None):
                 #check to see if multiple sequences
                 
                 from polls.models import NumberLog
-                sysnl = NumberLog.objects.filter(session_id=session_id).order_by('sequence')     
+                sysnl = NumberLog.objects.filter(session_id=session_id).order_by('sequence')  
                 
             if not error:          
                 soh_auto_key,roh_auto_key,poh_auto_key = '','',''
@@ -11810,8 +13158,7 @@ def dock_receiving(request,quapi_id=None):
                 cmp_auto_key = order.cmp_auto_key
                 dpt_auto_key = order.dpt_auto_key
                 next_number = order.next_num
-                
-                next_num = not next_num and next_number or next_num
+                next_num = not next_num and next_number.replace(' ','') or next_num.replace(' ','')
                 order_num = order.wo_number               
                 priority = order.priority
                 airway_bill = order.airway_bill or airway_bill
@@ -11856,12 +13203,12 @@ def dock_receiving(request,quapi_id=None):
                     if not error and log_choice: 
                         
                         res = update_sysnl.delay(quapi_id,session_id,log_choice,next_num)
-                        error,msg = res.get() 
-                #else:
-                    #error = 'Order fully received and closed.'
+                        error,msg = res.get()
+                        
+                                                               
                 if not error and not sysnl:                    
                     return render(request, 'mrolive/plain_barcode_dock.html', val_dict)
-     
+    
     show_sysnl = not error and sysnl and 'show' or 'nope'                                                 
     val_dict.update({
         'msg': msg or message,
@@ -11872,7 +13219,7 @@ def dock_receiving(request,quapi_id=None):
     form = WODashboardForm(val_dict)
     val_dict['form'] = form
     return render(request, 'mrolive/dock_receiving.html', val_dict)
-                                                                                           
+                                                              
 def timeclock(request,quapi_id):
     error,msg,warning_msg = '','',''
     user = request and request.user or None
